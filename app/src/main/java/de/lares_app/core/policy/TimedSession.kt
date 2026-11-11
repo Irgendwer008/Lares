@@ -5,6 +5,9 @@
  */
 package de.lares_app.core.policy
 
+import de.lares_app.core.time.Clock
+import kotlinx.serialization.Serializable
+
 /**
  * End of a pause or edit session. Stored both as wall clock and as `elapsedRealtime`, so
  * changing the system clock doesn't extend it while the device stays booted.
@@ -12,6 +15,7 @@ package de.lares_app.core.policy
  * @property bootId identifies the boot in which [elapsedEndMillis] is valid
  *   (e.g. `Settings.Global.BOOT_COUNT`).
  */
+@Serializable
 data class TimedSession(
     val wallEndMillis: Long,
     val elapsedEndMillis: Long,
@@ -32,7 +36,14 @@ data class TimedSession(
             wallEndMillis - nowWallMillis
         }
 
+    fun isActive(clock: Clock): Boolean = isActive(clock.wallMillis(), clock.elapsedMillis(), clock.bootId())
+
+    fun remainingMillis(clock: Clock): Long = remainingMillis(clock.wallMillis(), clock.elapsedMillis(), clock.bootId())
+
     companion object {
+        fun start(durationMillis: Long, clock: Clock): TimedSession =
+            start(durationMillis, clock.wallMillis(), clock.elapsedMillis(), clock.bootId())
+
         fun start(durationMillis: Long, nowWallMillis: Long, nowElapsedMillis: Long, bootId: Int): TimedSession {
             require(durationMillis > 0) { "duration must be positive" }
             return TimedSession(nowWallMillis + durationMillis, nowElapsedMillis + durationMillis, bootId)

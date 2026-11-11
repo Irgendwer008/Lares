@@ -1,5 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Home (placeholder) -->
+    <!-- General -->
     <string name="home_tagline">Weniger scrollen, mehr leben.</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="back">Zurück</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d Minute</item>
+        <item quantity="other">%d Minuten</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d Stunde</item>
+        <item quantity="other">%d Stunden</item>
+    </plurals>
+
+    <!-- Setup -->
+    <string name="setup_intro_title">Willkommen</string>
+    <string name="setup_intro_body">Lares sperrt die Apps und Websites, die du auswählst. Einschränkungen hinzufügen geht immer – sie zu entfernen oder zu lockern erfordert einen Code, den nur eine Vertrauensperson kennt: dein Guardian, zum Beispiel ein Freund oder ein Familienmitglied.\n\nFür die nächsten Schritte gib das Handy bitte deinem Guardian.</string>
+    <string name="setup_intro_start">Los geht’s</string>
+    <string name="setup_method_title">Guardian: Code festlegen</string>
+    <string name="setup_method_body">Der Code wird gebraucht, wenn Einschränkungen pausiert oder gelockert werden sollen. Verrate ihn nicht der Person, der das Handy gehört.</string>
+    <string name="setup_method_password_title">Passwort</string>
+    <string name="setup_method_password_desc">Du legst jetzt ein Passwort fest und gibst es bei Bedarf auf diesem Handy ein.</string>
+    <string name="setup_method_totp_title">Authenticator-App</string>
+    <string name="setup_method_totp_desc">Codes aus einer App auf deinem eigenen Handy (z. B. Aegis oder FreeOTP). Jeder Code funktioniert nur einmal – du kannst ihn also auch per Nachricht schicken.</string>
+    <string name="setup_password_title">Passwort festlegen</string>
+    <string name="setup_password_label">Passwort</string>
+    <string name="setup_password_repeat_label">Passwort wiederholen</string>
+    <plurals name="setup_password_too_short">
+        <item quantity="one">Mindestens %d Zeichen.</item>
+        <item quantity="other">Mindestens %d Zeichen.</item>
+    </plurals>
+    <string name="setup_password_mismatch">Die Passwörter stimmen nicht überein.</string>
+    <string name="setup_continue">Weiter</string>
+    <string name="setup_back">Zurück</string>
+    <string name="setup_totp_title">Mit der Authenticator-App scannen</string>
+    <string name="setup_totp_body">Öffne deine Authenticator-App, füge ein neues Konto hinzu und scanne diesen Code. Gib dann den 6-stelligen Code ein, den die App anzeigt.</string>
+    <string name="setup_totp_qr_description">QR-Code für die Authenticator-App</string>
+    <string name="setup_totp_manual">Oder gib diesen Schlüssel manuell ein:</string>
+    <string name="setup_totp_code_label">6-stelliger Code</string>
+    <string name="setup_totp_wrong">Der Code passt nicht. Prüfe, ob auf beiden Handys die richtige Uhrzeit eingestellt ist, und gib den aktuellen Code ein.</string>
+    <string name="setup_totp_confirm">Bestätigen</string>
+    <string name="setup_recovery_title">Wiederherstellungscode</string>
+    <string name="setup_recovery_body">Falls der Code einmal verloren geht, entsperrt dieser Wiederherstellungscode Lares einmalig. Er wird nur jetzt angezeigt. Guardian: Schreib ihn auf oder bewahre ihn sicher auf – lass ihn nicht bei der Person, der das Handy gehört.</string>
+    <string name="setup_recovery_confirm">Ich habe den Wiederherstellungscode sicher aufbewahrt</string>
+    <string name="setup_finish">Fertig</string>
+
+    <!-- Home -->
+    <string name="home_add_rule">Hinzufügen</string>
+    <string name="home_empty">Noch keine Regeln. Füge die Apps und Websites hinzu, die du sperren möchtest.</string>
+    <string name="home_status_protected_title">Schutz ist aktiv</string>
+    <string name="home_status_protected_body">Regeln hinzufügen geht immer. Regeln entfernen oder Limits erhöhen erfordert den Guardian-Code.</string>
+    <string name="home_unlock">Guardian-Code eingeben</string>
+    <string name="home_status_paused_title">Sperren pausiert</string>
+    <string name="home_status_edit_title">Bearbeitungsmodus</string>
+    <string name="home_status_edit_body">Bis zum Ende können Regeln entfernt und Limits erhöht werden.</string>
+    <string name="home_time_left">noch %1$s</string>
+    <string name="home_end_pause">Pause beenden</string>
+    <string name="home_end_edit">Jetzt beenden</string>
+    <string name="home_needs_code">Das lockert eine Einschränkung und erfordert den Guardian-Code.</string>
+
+    <!-- Rules -->
+    <string name="rule_always_blocked">Immer gesperrt</string>
+    <plurals name="rule_limit_minutes">
+        <item quantity="one">%d Minute pro Tag</item>
+        <item quantity="other">%d Minuten pro Tag</item>
+    </plurals>
+    <string name="rule_disabled">Deaktiviert</string>
+    <string name="rule_supporting_disabled">%1$s · %2$s</string>
+    <string name="rule_dialog_enabled">Regel aktiv</string>
+    <string name="rule_dialog_hint">Lockern (entfernen, deaktivieren, Limit erhöhen) erfordert den Guardian-Code.</string>
+    <string name="rule_dialog_save">Speichern</string>
+    <string name="rule_dialog_remove">Regel entfernen</string>
+    <string name="limit_always">Immer gesperrt</string>
+    <string name="limit_daily">Tägliches Zeitlimit</string>
+    <string name="limit_minutes_label">Minuten pro Tag</string>
+
+    <!-- Add rule -->
+    <string name="add_rule_title">Regel hinzufügen</string>
+    <string name="add_rule_tab_apps">Apps</string>
+    <string name="add_rule_tab_website">Website</string>
+    <string name="add_rule_search">Apps suchen</string>
+    <string name="add_rule_website_label">Website</string>
+    <string name="add_rule_website_hint">z. B. reddit.com oder youtube.com/shorts</string>
+    <string name="add_rule_add">Hinzufügen</string>
+    <string name="add_rule_duplicate">Das ist bereits gesperrt. Bearbeite stattdessen die bestehende Regel.</string>
+    <string name="add_rule_invalid">Bitte gib eine gültige Website-Adresse ein.</string>
+    <string name="add_rule_limit_title">%1$s sperren</string>
+
+    <!-- Unlock -->
+    <string name="unlock_title">Guardian-Code</string>
+    <string name="unlock_body">Gib das Passwort, den Code aus der Authenticator-App oder den Wiederherstellungscode ein.</string>
+    <string name="unlock_code_label">Code</string>
+    <string name="unlock_submit">Entsperren</string>
+    <plurals name="unlock_error_wrong">
+        <item quantity="one">Falscher Code. Noch %d Versuch bis zu einer Wartezeit.</item>
+        <item quantity="other">Falscher Code. Noch %d Versuche bis zu einer Wartezeit.</item>
+    </plurals>
+    <string name="unlock_error_wait">Falscher Code. Nächster Versuch in %1$s möglich.</string>
+    <string name="unlock_error_locked">Zu viele falsche Versuche. Nächster Versuch in %1$s möglich.</string>
+    <string name="unlock_choose_title">Was soll entsperrt werden?</string>
+    <string name="unlock_recovery_used">Der Wiederherstellungscode wurde verwendet. Danach muss der Guardian einen neuen Code festlegen.</string>
+    <string name="unlock_mode_edit">Regeln bearbeiten (Lockern erlaubt)</string>
+    <string name="unlock_mode_pause">Alle Sperren pausieren</string>
+    <string name="unlock_custom">Eigene</string>
+    <string name="unlock_custom_minutes">Minuten</string>
+    <string name="unlock_start">Starten</string>
 </resources>

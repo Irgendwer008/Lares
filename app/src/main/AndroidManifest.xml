@@ -2,6 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- App list without QUERY_ALL_PACKAGES (restricted on Play): launchable apps + browsers. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <!-- allowBackup=false: rules/settings move via the explicit export (no secrets),
          and Keystore-encrypted secrets can't be restored on another device anyway. -->
     <application

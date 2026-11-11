@@ -76,7 +76,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore)
     implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.hilt.android)
@@ -85,6 +85,7 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.zxing.core) // QR code for TOTP setup (Apache-2.0)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

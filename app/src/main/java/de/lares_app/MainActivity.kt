@@ -13,7 +13,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import de.lares_app.ui.LaresRoot
 import de.lares_app.ui.theme.LaresTheme
 
-/** AppCompatActivity (not ComponentActivity) so per-app language works back to API 26. */
+/** AppCompatActivity (not ComponentActivity) so pe r-app language works back to API 26. */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

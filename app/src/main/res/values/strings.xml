@@ -1,11 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Translator notes: keep placeholders (%1$s, %2$d …) intact; word order may change.
-         Use <plurals> for counts. See docs/localization.md. -->
+    <!-- Translator notes: keep placeholders (%1$s, %1$d, %d) intact; word order may change.
+         Use the plural forms of your language. See docs/localization.md. -->
 
     <!-- General -->
     <string name="app_name" translatable="false">Lares</string>
-
-    <!-- Home (placeholder) -->
     <string name="home_tagline">Less scrolling, more living.</string>
+    <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+
+    <!-- Setup (first start; done together with the guardian) -->
+    <string name="setup_intro_title">Welcome</string>
+    <string name="setup_intro_body">Lares blocks the apps and websites you choose. Adding restrictions is always possible – removing or loosening them needs a code that only a trusted person knows: your guardian, for example a friend or family member.\n\nFor the next steps, please hand the phone to your guardian.</string>
+    <string name="setup_intro_start">Let’s start</string>
+    <string name="setup_method_title">Guardian: choose your code</string>
+    <string name="setup_method_body">The code is needed whenever restrictions are paused or loosened. Don’t tell it to the phone owner.</string>
+    <string name="setup_method_password_title">Password</string>
+    <string name="setup_method_password_desc">You set a password now and type it on this phone whenever it’s needed.</string>
+    <string name="setup_method_totp_title">Authenticator app</string>
+    <string name="setup_method_totp_desc">Codes from an app on your own phone (e.g. Aegis or FreeOTP). Each code works only once, so you can also send it by message.</string>
+    <string name="setup_password_title">Set the password</string>
+    <string name="setup_password_label">Password</string>
+    <string name="setup_password_repeat_label">Repeat password</string>
+    <plurals name="setup_password_too_short">
+        <item quantity="one">Use at least %d character.</item>
+        <item quantity="other">Use at least %d characters.</item>
+    </plurals>
+    <string name="setup_password_mismatch">The passwords don’t match.</string>
+    <string name="setup_continue">Continue</string>
+    <string name="setup_back">Back</string>
+    <string name="setup_totp_title">Scan with your authenticator app</string>
+    <string name="setup_totp_body">Open your authenticator app, add a new account and scan this code. Then enter the 6-digit code the app shows.</string>
+    <string name="setup_totp_qr_description">QR code for the authenticator app</string>
+    <string name="setup_totp_manual">Or enter this key manually:</string>
+    <string name="setup_totp_code_label">6-digit code</string>
+    <string name="setup_totp_wrong">That code doesn’t match. Check that the time is correct on both phones and enter the current code.</string>
+    <string name="setup_totp_confirm">Confirm</string>
+    <string name="setup_recovery_title">Recovery code</string>
+    <string name="setup_recovery_body">If the code is ever lost, this recovery code unlocks Lares once. It is shown only now. Guardian: write it down or store it safely – don’t leave it with the phone owner.</string>
+    <string name="setup_recovery_confirm">I have stored the recovery code safely</string>
+    <string name="setup_finish">Done</string>
+
+    <!-- Home -->
+    <string name="home_add_rule">Add</string>
+    <string name="home_empty">No rules yet. Add the apps and websites you want to block.</string>
+    <string name="home_status_protected_title">Protection is on</string>
+    <string name="home_status_protected_body">Adding rules is always possible. Removing rules or raising limits needs the guardian code.</string>
+    <string name="home_unlock">Enter guardian code</string>
+    <string name="home_status_paused_title">Blocking is paused</string>
+    <string name="home_status_edit_title">Edit session</string>
+    <string name="home_status_edit_body">Rules can be removed and limits raised until the session ends.</string>
+    <!-- %1$s = remaining time, e.g. "4:59" -->
+    <string name="home_time_left">%1$s left</string>
+    <string name="home_end_pause">End pause</string>
+    <string name="home_end_edit">End now</string>
+    <string name="home_needs_code">This loosens a restriction and needs the guardian code.</string>
+
+    <!-- Rules -->
+    <string name="rule_always_blocked">Always blocked</string>
+    <plurals name="rule_limit_minutes">
+        <item quantity="one">%d minute per day</item>
+        <item quantity="other">%d minutes per day</item>
+    </plurals>
+    <string name="rule_disabled">Disabled</string>
+    <!-- %1$s = limit, e.g. "30 minutes per day"; %2$s = "Disabled" -->
+    <string name="rule_supporting_disabled">%1$s · %2$s</string>
+    <string name="rule_dialog_enabled">Rule active</string>
+    <string name="rule_dialog_hint">Loosening (removing, deactivating, raising the limit) needs the guardian code.</string>
+    <string name="rule_dialog_save">Save</string>
+    <string name="rule_dialog_remove">Remove rule</string>
+    <string name="limit_always">Always blocked</string>
+    <string name="limit_daily">Daily time limit</string>
+    <string name="limit_minutes_label">Minutes per day</string>
+
+    <!-- Add rule -->
+    <string name="add_rule_title">Add rule</string>
+    <string name="add_rule_tab_apps">Apps</string>
+    <string name="add_rule_tab_website">Website</string>
+    <string name="add_rule_search">Search apps</string>
+    <string name="add_rule_website_label">Website</string>
+    <string name="add_rule_website_hint">e.g. reddit.com or youtube.com/shorts</string>
+    <string name="add_rule_add">Add</string>
+    <string name="add_rule_duplicate">This is already blocked. Edit the existing rule instead.</string>
+    <string name="add_rule_invalid">Please enter a valid website address.</string>
+    <!-- %1$s = app name -->
+    <string name="add_rule_limit_title">Block %1$s</string>
+
+    <!-- Unlock -->
+    <string name="unlock_title">Guardian code</string>
+    <string name="unlock_body">Enter the password, the code from the authenticator app, or the recovery code.</string>
+    <string name="unlock_code_label">Code</string>
+    <string name="unlock_submit">Unlock</string>
+    <plurals name="unlock_error_wrong">
+        <item quantity="one">Wrong code. %d more attempt before a waiting time.</item>
+        <item quantity="other">Wrong code. %d more attempts before a waiting time.</item>
+    </plurals>
+    <!-- %1$s = waiting time, e.g. "1:00" -->
+    <string name="unlock_error_wait">Wrong code. Next attempt possible in %1$s.</string>
+    <string name="unlock_error_locked">Too many wrong attempts. Next attempt possible in %1$s.</string>
+    <string name="unlock_choose_title">What should be unlocked?</string>
+    <string name="unlock_recovery_used">The recovery code was used. Afterwards, the guardian must set up a new code.</string>
+    <string name="unlock_mode_edit">Edit rules (loosening allowed)</string>
+    <string name="unlock_mode_pause">Pause all blocking</string>
+    <string name="unlock_custom">Custom</string>
+    <string name="unlock_custom_minutes">Minutes</string>
+    <string name="unlock_start">Start</string>
 </resources>
