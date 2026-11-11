@@ -1,0 +1,21 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/base:debian",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers/features/java:1": { "version": "21" }
+  },
+  "runArgs": ["--security-opt", "label=disable"],
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind",
+    // Android SDK (incl. accepted licenses) and Gradle caches survive container rebuilds.
+    "source=lares-android-sdk,target=/home/vscode/android-sdk,type=volume",
+    "source=lares-gradle-cache,target=/home/vscode/.gradle,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "ANDROID_HOME": "/home/vscode/android-sdk"
+  },
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/android-sdk /home/vscode/.gradle && bash .devcontainer/setup-android-sdk.sh"
+}

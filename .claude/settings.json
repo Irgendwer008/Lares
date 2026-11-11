@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/.devcontainer/**)",
+      "Edit(//workspaces/Lares/.devcontainer/**)",
+      "Edit(/.claude/settings.json)",
+      "Edit(//workspaces/Lares/.claude/settings.json)",
+      "Edit(/.claude/settings.local.json)",
+      "Edit(//workspaces/Lares/.claude/settings.local.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // empty' | grep -qE 'devcontainer|\\.claude/settings' && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"The .devcontainer folder and the project Claude settings files are protected: Claude may not modify them. Use the Read tool to view them; the user edits them manually.\"}}' || true"
+          }
+        ]
+      }
+    ]
+  }
+}
