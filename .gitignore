@@ -1,15 +1,46 @@
+# --- Android / Gradle ---
 *.iml
 .gradle
-/local.properties
+.kotlin/
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+# Machine-specific SDK path (written by Android Studio)
+local.properties
+
+# --- Android Studio: user/machine-specific files ---
+# (shared settings like codeStyles/, gradle.xml, misc.xml stay tracked)
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+/.idea/appInsightsSettings.xml
+/.idea/shelf/
+/.idea/httpRequests/
+
+# --- Claude Code: personal session data ---
+# The shared project settings file in .claude/ stays tracked (protection rules);
+# the personal local override file next to it does not.
+/.claude/*
+!/.claude/settings.json
+claude-session.json
+claude-session/
+*.jsonl
+/start-claude.sh
+.devcontainer/*
+# Conversation exports from /export (e.g. 2026-11-11-104312-....txt)
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt
+
+# --- Files shared with Claude for debugging ---
+/logs/
+/screenshots/
+
+# --- OS ---
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+Thumbs.db
