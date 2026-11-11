@@ -26,105 +26,150 @@ class UnlockManagerTest {
     private val tamper = FakeTamperLog()
     private val manager = UnlockManager(store, clock, FakeCipher(), tamper, PasswordHasher(iterations = 1_000))
 
-    private suspend fun success(code: String) = manager.verify(code) as VerifyResult.Success
+    /** First setup including confirming the recovery code. */
+    private suspend fun setUp(password: String = "hunter22"): String =
+        manager.setupPassword(password).also { manager.completeSetup() }
+
+    private suspend fun assertUnlocks(code: String, viaRecovery: Boolean = false) {
+        assertEquals(VerifyResult.Success(viaRecovery), manager.unlock(code))
+        assertTrue(manager.isUnlocked())
+    }
 
     @Test fun notSetUpUntilConfigured() = runTest {
-        assertEquals(VerifyResult.NotSetUp, manager.verify("anything"))
+        assertEquals(VerifyResult.NotSetUp, manager.unlock("anything"))
     }
 
-    @Test fun passwordSetupAndVerify() = runTest {
-        val recovery = manager.setupPassword("hunter22")
-        assertEquals(UnlockMethod.PASSWORD, store.current().unlock.method)
-        assertNotNull(RecoveryCode.normalize(recovery))
-        assertFalse(success("hunter22").viaRecoveryCode)
-        assertTrue(manager.verify("hunter23") is VerifyResult.Wrong)
+    @Test fun correctCodeUnlocksForTenMinutes() = runTest {
+        setUp()
+        assertFalse(manager.isUnlocked())
+        assertTrue(manager.unlock("hunter23") is VerifyResult.Wrong)
+        assertFalse(manager.isUnlocked())
+
+        assertUnlocks("hunter22")
+        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS - 1)
+        assertTrue(manager.isUnlocked())
+        clock.advance(1)
+        assertFalse(manager.isUnlocked())
     }
 
-    @Test fun changingMethodNeedsEditSession() = runTest {
-        manager.setupPassword("hunter22")
+    @Test fun interruptedFirstSetupCanBeRepeated() = runTest {
+        manager.setupPassword("first1") // app closed before the recovery code was confirmed
+        assertFalse(store.current().settings.setupComplete)
+        assertTrue(manager.canChangeMethod())
+        manager.setupPassword("second2")
+        manager.completeSetup()
+        assertTrue(store.current().settings.setupComplete)
         assertFalse(manager.canChangeMethod())
-        runCatching { manager.setupPassword("other1") }.let { assertTrue(it.exceptionOrNull() is CodeRequiredException) }
+        assertTrue(manager.unlock("second2") is VerifyResult.Success)
+    }
 
-        manager.startEditSession(success("hunter22").grant, 10 * 60_000L)
+    @Test fun lockEndsUnlockedModeImmediately() = runTest {
+        setUp()
+        assertUnlocks("hunter22")
+        manager.lock()
+        assertFalse(manager.isUnlocked())
+    }
+
+    @Test fun changingMethodNeedsUnlockedMode() = runTest {
+        setUp()
+        assertFalse(manager.canChangeMethod())
+        assertTrue(runCatching { manager.setupPassword("other1") }.exceptionOrNull() is CodeRequiredException)
+
+        assertUnlocks("hunter22")
         manager.setupPassword("other1")
-        assertTrue(manager.verify("other1") is VerifyResult.Success)
+        assertTrue(manager.unlock("other1") is VerifyResult.Success)
     }
 
     @Test fun backoffAfterRepeatedFailures() = runTest {
-        manager.setupPassword("hunter22")
-        repeat(4) { assertEquals(0L, (manager.verify("nope") as VerifyResult.Wrong).lockoutMillis) }
-        assertEquals(60_000L, (manager.verify("nope") as VerifyResult.Wrong).lockoutMillis)
+        setUp()
+        assertEquals(VerifyResult.Wrong(attemptsLeft = 2, lockoutMillis = 0), manager.unlock("nope"))
+        assertEquals(VerifyResult.Wrong(attemptsLeft = 1, lockoutMillis = 0), manager.unlock("nope"))
+        // The 3rd wrong code starts the waiting time.
+        assertEquals(VerifyResult.Wrong(attemptsLeft = 0, lockoutMillis = 60_000L), manager.unlock("nope"))
         assertEquals(listOf(TamperEventType.REPEATED_WRONG_CODE), tamper.recorded)
 
         // Even the correct code is refused while locked out.
-        assertTrue(manager.verify("hunter22") is VerifyResult.LockedOut)
-        // A reboot doesn't reset the lockout (wall-clock fallback).
+        assertTrue(manager.unlock("hunter22") is VerifyResult.LockedOut)
+        // A reboot doesn't skip the waiting time – it starts over in full.
+        clock.advance(50_000L)
         clock.boot = 2
         clock.elapsed = 0
-        assertTrue(manager.verify("hunter22") is VerifyResult.LockedOut)
+        assertEquals(VerifyResult.LockedOut(60_000L), manager.unlock("hunter22"))
 
         clock.advance(60_000L)
-        assertTrue(manager.verify("hunter22") is VerifyResult.Success)
+        assertUnlocks("hunter22")
         assertEquals(0, store.current().unlock.failedAttempts)
     }
 
+    @Test fun unlockedModeAndPauseEndOnReboot() = runTest {
+        setUp()
+        assertUnlocks("hunter22")
+        manager.startPause(60 * 60_000L)
+        clock.boot = 2
+        clock.elapsed = 0
+        clock.wall -= 3_600_000L // setting the clock back after the reboot doesn't help either
+        assertFalse(manager.isUnlocked())
+        assertFalse(manager.isPauseActive())
+    }
+
+    @Test fun reSetupAfterRecoveryNeedsUnlockedMode() = runTest {
+        val recovery = setUp()
+        assertUnlocks(recovery, viaRecovery = true)
+        assertTrue(manager.canChangeMethod())
+        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS) // guardian walked away
+        assertFalse(manager.canChangeMethod())
+        assertTrue(runCatching { manager.setupPassword("owner1") }.exceptionOrNull() is CodeRequiredException)
+    }
+
     @Test fun recoveryCodeUnlocksAndForcesReSetup() = runTest {
-        val recovery = manager.setupPassword("hunter22")
-        val result = success(recovery.lowercase())
-        assertTrue(result.viaRecoveryCode)
+        val recovery = setUp()
+        assertTrue(store.current().unlock.recoveryHash!!.startsWith("sha256$")) // fast hash, see UnlockManager
+        assertUnlocks(recovery.lowercase(), viaRecovery = true)
         assertTrue(store.current().unlock.reSetupRequired)
         assertEquals(listOf(TamperEventType.RECOVERY_CODE_USED), tamper.recorded)
         assertTrue(manager.canChangeMethod())
 
         val newRecovery = manager.setupPassword("fresh-pass")
+        // Stays in re-setup until the new recovery code has been shown and confirmed.
+        assertTrue(store.current().unlock.reSetupRequired)
+        manager.completeSetup()
         assertFalse(store.current().unlock.reSetupRequired)
         // The old recovery code is no longer valid.
-        assertTrue(manager.verify(recovery) is VerifyResult.Wrong)
-        assertTrue(success(newRecovery).viaRecoveryCode)
+        assertTrue(manager.unlock(recovery) is VerifyResult.Wrong)
+        assertUnlocks(newRecovery, viaRecovery = true)
     }
 
     @Test fun totpSetupNeedsConfirmationAndRejectsReplay() = runTest {
         val setup = manager.beginTotpSetup("Phone")
         assertTrue(setup.provisioningUri.startsWith("otpauth://totp/Lares:Phone?secret=" + setup.secretBase32))
         val secret = Base32.decode(setup.secretBase32)
+        val current = Totp.code(secret, Totp.counterAt(clock.wall))
 
-        assertNull(manager.confirmTotpSetup(setup, "000000".takeIf { it != Totp.code(secret, Totp.counterAt(clock.wall)) } ?: "111111"))
+        assertNull(manager.confirmTotpSetup(setup, if (current == "000000") "111111" else "000000"))
         assertFalse(store.current().unlock.isSetUp)
 
-        val setupCode = Totp.code(secret, Totp.counterAt(clock.wall))
-        assertNotNull(manager.confirmTotpSetup(setup, setupCode))
+        assertNotNull(manager.confirmTotpSetup(setup, current))
         assertEquals(UnlockMethod.TOTP, store.current().unlock.method)
 
         // The code used for setup can't be reused.
-        assertTrue(manager.verify(setupCode) is VerifyResult.Wrong)
+        assertTrue(manager.unlock(current) is VerifyResult.Wrong)
         clock.advance(30_000L)
         val next = Totp.code(secret, Totp.counterAt(clock.wall))
-        assertTrue(manager.verify(next) is VerifyResult.Success)
-        assertTrue(manager.verify(next) is VerifyResult.Wrong) // replay
+        assertUnlocks(next)
+        manager.lock()
+        assertTrue(manager.unlock(next) is VerifyResult.Wrong) // replay
     }
 
-    @Test fun pauseAndEditSessionNeedFreshGrant() = runTest {
-        manager.setupPassword("hunter22")
-        val grant = success("hunter22").grant
-        manager.startPause(grant, 15 * 60_000L)
-        assertTrue(manager.isPauseActive())
+    @Test fun pauseOnlyWhileUnlockedAndOutlivesLocking() = runTest {
+        setUp()
+        assertTrue(runCatching { manager.startPause(60_000L) }.exceptionOrNull() is CodeRequiredException)
 
-        // A grant works only once.
-        assertTrue(runCatching { manager.startEditSession(grant, 60_000L) }.isFailure)
+        assertUnlocks("hunter22")
+        manager.startPause(60 * 60_000L)
+        manager.lock()
+        assertTrue(manager.isPauseActive()) // the pause keeps running after locking
 
-        clock.advance(15 * 60_000L)
-        assertFalse(manager.isPauseActive())
-
-        // A grant expires.
-        val old = success("hunter22").grant
-        clock.advance(UnlockManager.GRANT_VALIDITY_MILLIS + 1)
-        assertTrue(runCatching { manager.startPause(old, 60_000L) }.isFailure)
-    }
-
-    @Test fun endingEarlyIsFree() = runTest {
-        manager.setupPassword("hunter22")
-        manager.startPause(success("hunter22").grant, 60 * 60_000L)
-        manager.endPause()
+        manager.endPause() // ending early is always allowed
         assertFalse(manager.isPauseActive())
     }
 }

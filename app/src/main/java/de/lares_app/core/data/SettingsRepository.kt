@@ -17,7 +17,7 @@ import java.time.ZoneId
 /** Settings changes with the tighten/loosen policy applied. */
 class SettingsRepository(
     private val store: StateStore,
-    private val gate: EditSessionGate,
+    private val gate: UnlockGate,
     private val clock: Clock,
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
 ) {
@@ -46,7 +46,7 @@ class SettingsRepository(
         }
     }
 
-    /** Needs the code; takes effect after the next reset (decision #19). */
+    /** Needs the code (either direction can grant a fresh quota); takes effect after the next reset. */
     suspend fun setResetTime(time: LocalTime) {
         val settings = store.current().settings
         val now = Instant.ofEpochMilli(clock.wallMillis())
@@ -54,9 +54,5 @@ class SettingsRepository(
         gate.check(ChangePolicy.classifyResetTime(schedule.pending?.resetTime ?: schedule.resetTime, time))
         val updated = schedule.requestChange(time.withSecond(0).withNano(0), now, zone())
         store.update { it.copy(settings = it.settings.withResetSchedule(updated)) }
-    }
-
-    suspend fun markSetupComplete() {
-        store.update { it.copy(settings = it.settings.copy(setupComplete = true)) }
     }
 }

@@ -19,7 +19,7 @@ import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
-@Entity(tableName = "rules")
+@Entity(tableName = "rules", indices = [Index("groupId")])
 data class RuleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** [de.lares_app.core.policy.RuleType] name. */
@@ -28,6 +28,30 @@ data class RuleEntity(
     val limitMinutesPerDay: Int?,
     val enabled: Boolean,
     val createdAtMillis: Long,
+    /** [RuleGroupEntity.id], null for standalone rules. Members are deleted together with the group. */
+    val groupId: Long? = null,
+)
+
+@Entity(tableName = "rule_groups")
+data class RuleGroupEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val limitMinutesPerDay: Int?,
+    val enabled: Boolean,
+    val createdAtMillis: Long,
+)
+
+/** Summed foreground time of all group members per usage period. */
+@Entity(
+    tableName = "group_usage",
+    primaryKeys = ["groupId", "periodStartMillis"],
+    foreignKeys = [ForeignKey(entity = RuleGroupEntity::class, parentColumns = ["id"], childColumns = ["groupId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("periodStartMillis")],
+)
+data class GroupUsageEntity(
+    val groupId: Long,
+    val periodStartMillis: Long,
+    val foregroundMillis: Long,
 )
 
 /** Foreground time per rule and usage period (keyed by period start, see ResetSchedule). */
@@ -67,23 +91,11 @@ interface RuleDao {
     @Insert
     suspend fun insert(rule: RuleEntity): Long
 
-    @Insert
-    suspend fun insertAll(rules: List<RuleEntity>)
-
     @Update
     suspend fun update(rule: RuleEntity)
 
     @Query("DELETE FROM rules WHERE id = :id")
     suspend fun delete(id: Long)
-
-    @Query("DELETE FROM rules")
-    suspend fun deleteAll()
-
-    @Transaction
-    suspend fun replaceAll(rules: List<RuleEntity>) {
-        deleteAll()
-        insertAll(rules)
-    }
 }
 
 @Dao
@@ -102,6 +114,42 @@ interface UsageDao {
 }
 
 @Dao
+interface GroupDao {
+    @Query("SELECT * FROM rule_groups ORDER BY createdAtMillis")
+    fun observeAll(): Flow<List<RuleGroupEntity>>
+
+    @Query("SELECT * FROM rule_groups ORDER BY createdAtMillis")
+    suspend fun all(): List<RuleGroupEntity>
+
+    @Query("SELECT * FROM rule_groups WHERE id = :id")
+    suspend fun get(id: Long): RuleGroupEntity?
+
+    @Insert
+    suspend fun insert(group: RuleGroupEntity): Long
+
+    @Update
+    suspend fun update(group: RuleGroupEntity)
+
+    @Query("DELETE FROM rules WHERE groupId = :id")
+    suspend fun deleteMembers(id: Long)
+
+    @Query("DELETE FROM rule_groups WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Transaction
+    suspend fun deleteWithMembers(id: Long) {
+        deleteMembers(id)
+        delete(id)
+    }
+
+    @Query("SELECT * FROM group_usage WHERE periodStartMillis = :periodStart")
+    suspend fun usage(periodStart: Long): List<GroupUsageEntity>
+
+    @Upsert
+    suspend fun upsertUsage(usage: GroupUsageEntity)
+}
+
+@Dao
 interface TamperEventDao {
     @Query("SELECT * FROM tamper_events ORDER BY timestampMillis DESC")
     fun observeAll(): Flow<List<TamperEventEntity>>
@@ -117,9 +165,11 @@ interface TamperEventDao {
 }
 
 @Database(
-    entities = [RuleEntity::class, UsageEntity::class, TamperEventEntity::class],
+    entities = [RuleEntity::class, UsageEntity::class, TamperEventEntity::class, RuleGroupEntity::class, GroupUsageEntity::class],
+    // Pre-release: the schema is changed in place (no migrations). After a schema change,
+    // uninstall the app or clear its data. Enable exportSchema + migrations before the first release.
     version = 1,
-    exportSchema = true,
+    exportSchema = false,
 )
 abstract class LaresDatabase : RoomDatabase() {
     abstract fun ruleDao(): RuleDao
@@ -127,6 +177,8 @@ abstract class LaresDatabase : RoomDatabase() {
     abstract fun usageDao(): UsageDao
 
     abstract fun tamperEventDao(): TamperEventDao
+
+    abstract fun groupDao(): GroupDao
 
     companion object {
         const val NAME = "lares.db"

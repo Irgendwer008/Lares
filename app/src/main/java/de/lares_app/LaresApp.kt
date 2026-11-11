@@ -7,6 +7,13 @@ package de.lares_app
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
+import de.lares_app.platform.RecoveryExport
 
 @HiltAndroidApp
-class LaresApp : Application()
+class LaresApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // Safety net: never keep a shared recovery code file around (e.g. if the app was killed).
+        RecoveryExport.deleteSharedFile(this)
+    }
+}

@@ -12,17 +12,21 @@ import org.junit.Test
 
 class TimedSessionTest {
 
-    private val s = TimedSession.start(durationMillis = 15 * 60_000L, nowWallMillis = 1_000_000L, nowElapsedMillis = 5_000L, bootId = 3)
+    private val s = TimedSession.start(durationMillis = 15 * 60_000L, nowElapsedMillis = 5_000L, bootId = 3)
 
-    @Test fun usesElapsedRealtimeWithinTheSameBoot() {
-        assertTrue(s.isActive(nowWallMillis = 1_000_000L, nowElapsedMillis = 5_000L, currentBootId = 3))
-        // Clock moved back an hour: still ends on time.
-        assertFalse(s.isActive(nowWallMillis = 1_000_000L - 3_600_000L, nowElapsedMillis = 5_000L + 15 * 60_000L, currentBootId = 3))
-        assertEquals(60_000L, s.remainingMillis(0L, 5_000L + 14 * 60_000L, 3))
+    @Test fun usesTheMonotonicClockWithinTheSameBoot() {
+        assertTrue(s.isActive(nowElapsedMillis = 5_000L, currentBootId = 3))
+        assertEquals(60_000L, s.remainingMillis(5_000L + 14 * 60_000L, 3))
+        assertFalse(s.isActive(nowElapsedMillis = 5_000L + 15 * 60_000L, currentBootId = 3))
     }
 
-    @Test fun fallsBackToWallClockAfterReboot() {
-        assertTrue(s.isActive(nowWallMillis = 1_000_000L + 60_000L, nowElapsedMillis = 10L, currentBootId = 4))
-        assertFalse(s.isActive(nowWallMillis = 1_000_000L + 15 * 60_000L, nowElapsedMillis = 10L, currentBootId = 4))
+    @Test fun endSessionsStopOnReboot() {
+        // Unlocked mode / pause: a reboot ends them, so changing the clock afterwards can't extend them.
+        assertFalse(s.isActive(nowElapsedMillis = 10L, currentBootId = 4))
+    }
+
+    @Test fun restartSessionsStartOverAfterReboot() {
+        val lockout = TimedSession.start(60_000L, nowElapsedMillis = 5_000L, bootId = 3, afterReboot = AfterReboot.RESTART)
+        assertEquals(60_000L, lockout.remainingMillis(nowElapsedMillis = 10L, currentBootId = 4))
     }
 }

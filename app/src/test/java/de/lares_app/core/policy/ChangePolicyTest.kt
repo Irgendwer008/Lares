@@ -43,19 +43,6 @@ class ChangePolicyTest {
         assertEquals(NONE, ChangePolicy.classify(web, web.copy(target = "https://www.reddit.com/")))
     }
 
-    @Test fun ruleSetImport() {
-        val web = Rule(2, RuleType.WEBSITE, "reddit.com")
-        val current = listOf(app, web)
-        // Same rules with other ids + one extra → tightening.
-        assertEquals(TIGHTENING, ChangePolicy.classifyRuleSet(current, listOf(app.copy(id = 10), web.copy(id = 11), limited.copy(id = 12, target = "x.y"))))
-        // Identical → none.
-        assertEquals(NONE, ChangePolicy.classifyRuleSet(current, listOf(web.copy(id = 5), app.copy(id = 6))))
-        // Missing one → loosening, even if something else is added.
-        assertEquals(LOOSENING, ChangePolicy.classifyRuleSet(current, listOf(app, Rule(3, RuleType.APP, "a.b"))))
-        // A duplicate with a looser limit doesn't hide the strict rule.
-        assertEquals(NONE, ChangePolicy.classifyRuleSet(listOf(app), listOf(app, limited.copy(id = 9))))
-    }
-
     @Test fun togglesAndResetTime() {
         assertEquals(TIGHTENING, ChangePolicy.classifyToggle(false, true))
         assertEquals(LOOSENING, ChangePolicy.classifyToggle(true, false))

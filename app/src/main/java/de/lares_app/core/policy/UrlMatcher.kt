@@ -51,6 +51,23 @@ object UrlMatcher {
     /** Normalizes a rule target as entered by the user (same rules as [parse]). */
     fun normalizeRule(target: String): WebAddress? = parse(target)
 
+    /** Second-level suffixes where the registrable domain has three labels (e.g. bbc.co.uk). */
+    private val TWO_PART_SUFFIXES = setOf(
+        "co.uk", "org.uk", "ac.uk", "gov.uk", "com.au", "net.au", "org.au", "co.nz", "co.jp",
+        "co.in", "com.br", "com.mx", "com.tr", "co.za", "com.cn", "com.ar", "co.kr",
+    )
+
+    /**
+     * Base domain for sorting / grouping: `m.youtube.com` → `youtube.com`, `news.bbc.co.uk` →
+     * `bbc.co.uk`. A heuristic (no public-suffix list), only used for display order.
+     */
+    fun baseHost(host: String): String {
+        val labels = host.split('.')
+        if (labels.size <= 2) return host
+        val lastTwo = labels.takeLast(2).joinToString(".")
+        return if (lastTwo in TWO_PART_SUFFIXES) labels.takeLast(3).joinToString(".") else lastTwo
+    }
+
     fun matches(address: WebAddress, rule: WebAddress): Boolean {
         val hostMatches = address.host == rule.host || address.host.endsWith("." + rule.host)
         if (!hostMatches) return false

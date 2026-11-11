@@ -5,6 +5,7 @@
  */
 package de.lares_app.core.data
 
+import de.lares_app.core.alerts.AlertChannelConfig
 import de.lares_app.core.policy.PendingReset
 import de.lares_app.core.policy.ResetSchedule
 import de.lares_app.core.policy.TimedSession
@@ -33,6 +34,8 @@ data class AppSettings(
     val resetMinuteOfDay: Int = 0,
     val pendingResetMinuteOfDay: Int? = null,
     val pendingResetEffectiveFromMillis: Long? = null,
+    /** Guardian notification channels (secrets encrypted, see AlertChannelConfig). */
+    val alertChannels: List<AlertChannelConfig> = emptyList(),
 ) {
     val resetSchedule: ResetSchedule
         get() = ResetSchedule(
@@ -68,7 +71,7 @@ data class UnlockState(
     val failedAttempts: Int = 0,
     val lockout: TimedSession? = null,
     val pause: TimedSession? = null,
-    val editSession: TimedSession? = null,
+    val unlockedSession: TimedSession? = null,
 ) {
     val isSetUp: Boolean get() = method != null
 }
@@ -96,5 +99,5 @@ interface SecretCipher {
     fun decrypt(encoded: String): ByteArray
 }
 
-/** Thrown when a loosening change is attempted without an open edit session. */
+/** Thrown when a loosening change is attempted while the app isn't unlocked. */
 class CodeRequiredException : IllegalStateException("This change loosens restrictions and needs the guardian code")

@@ -1,3 +1,12 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
 plugins {
     // AGP 9 has built-in Kotlin support, no separate kotlin-android plugin needed.
     alias(libs.plugins.android.application)
@@ -5,6 +14,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // Generates the list of all (also transitive) libraries with their license texts.
+    alias(libs.plugins.aboutlibraries)
 }
 
 android {
@@ -23,6 +34,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // All languages in every install: the in-app language switch and guardian messages in another
+    // language need them (the alternative, Play Core language downloads, isn't FOSS).
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     androidResources {
         // Per-app language support; generates locales_config from values-xx folders.
         generateLocaleConfig = true
@@ -31,9 +50,18 @@ android {
     buildTypes {
         release {
             optimization {
+                // Whole-app optimization with the libraries' keep rules. (A partial `packageScope`
+                // made R8 split Kotlin's package-private SequencesKt parts across packages →
+                // IllegalAccessError at startup.)
                 enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
+        }
+        // Release-like build (optimized, not debuggable) for testing performance on a device.
+        // Signed with the debug key so it installs without a store key; never published.
+        create("localRelease") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
     compileOptions {
@@ -52,10 +80,6 @@ android {
         includeInApk = false
         includeInBundle = false
     }
-}
-
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -86,9 +110,44 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.zxing.core) // QR code for TOTP setup (Apache-2.0)
+    implementation(libs.aboutlibraries.compose.m3) // open-source license screen (Apache-2.0)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+/**
+ * Puts the repository's LICENSE (GPL-3.0) into the app as `R.raw.lares_license`, so the full
+ * license text can be shown offline. LICENSE stays the single source – no copy in the source tree.
+ */
+abstract class LicenseResTask : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val licenseFile: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val raw = outputDir.get().dir("raw").asFile.apply { deleteRecursively(); mkdirs() }
+        licenseFile.get().asFile.copyTo(raw.resolve("lares_license.txt"), overwrite = true)
+    }
+}
+
+val licenseRes = tasks.register<LicenseResTask>("generateLicenseRes") {
+    licenseFile.set(rootProject.layout.projectDirectory.file("LICENSE"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.res?.addGeneratedSourceDirectory(licenseRes, LicenseResTask::outputDir)
+    }
+}
+
+aboutLibraries {
+    // Offline and reproducible (F-Droid): only license texts known to the plugin, no network access.
+    offlineMode = true
 }

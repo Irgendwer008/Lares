@@ -35,6 +35,13 @@ class UrlMatcherTest {
         assertFalse(UrlMatcher.matches("facebook.com.evil.org", "facebook.com"))
     }
 
+    @Test fun baseHostForSorting() {
+        assertEquals("youtube.com", UrlMatcher.baseHost("youtube.com"))
+        assertEquals("youtube.com", UrlMatcher.baseHost("m.youtube.com"))
+        assertEquals("bbc.co.uk", UrlMatcher.baseHost("news.bbc.co.uk"))
+        assertEquals("localhost", UrlMatcher.baseHost("localhost"))
+    }
+
     @Test fun pathRulesMatchBySegmentCaseInsensitively() {
         val rule = "youtube.com/shorts"
         assertTrue(UrlMatcher.matches("youtube.com/shorts", rule))

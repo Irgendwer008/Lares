@@ -46,21 +46,40 @@ object ChangePolicy {
     }
 
     /**
-     * Classifies replacing a whole rule set (e.g. import). Rules are matched by [Rule.key];
-     * if several rules share a key, the strictest one counts.
+     * Like [classify], but compares the rules as enforced inside their groups (see [effective]).
+     * Leaving an active group ends the time sharing, so it counts as loosening unless the
+     * rule's new limit is strictly lower.
      */
-    fun classifyRuleSet(old: Collection<Rule>, new: Collection<Rule>): ChangeKind {
-        val before = strictestByKey(old)
-        val after = strictestByKey(new)
-        return (before.keys + after.keys).fold(ChangeKind.NONE) { acc, key ->
-            acc.combine(classify(before[key], after[key]))
-        }
+    fun classifyInGroups(old: Rule?, new: Rule?, groups: Map<Long, RuleGroup>): ChangeKind {
+        val oldEffective = old?.effective(groups)
+        val base = classify(oldEffective, new?.effective(groups))
+        val leftActiveGroup = oldEffective != null && old.groupId != null && old.groupId in groups && old.groupId != new?.groupId
+        return if (leftActiveGroup && base != ChangeKind.TIGHTENING) ChangeKind.LOOSENING else base
     }
 
-    private fun strictestByKey(rules: Collection<Rule>): Map<RuleKey, Rule> =
-        rules.filter { it.enabled }
-            .groupBy { it.key }
-            .mapValues { (_, group) -> group.minBy { allowedMinutes(it) } }
+    /**
+     * Group switch / limit changes. Only matters if the group has active members.
+     * @param old null = group is being created. @param new null = group is being deleted.
+     */
+    fun classifyGroup(old: RuleGroup?, new: RuleGroup?, hasActiveMembers: Boolean): ChangeKind {
+        if (!hasActiveMembers) return ChangeKind.NONE
+        val before = old?.takeIf { it.enabled }
+        val after = new?.takeIf { it.enabled }
+        return when {
+            before == null && after == null -> ChangeKind.NONE
+            before == null -> ChangeKind.TIGHTENING
+            after == null -> ChangeKind.LOOSENING
+            else -> {
+                val b = before.limitMinutesPerDay ?: 0
+                val a = after.limitMinutesPerDay ?: 0
+                when {
+                    a < b -> ChangeKind.TIGHTENING
+                    a > b -> ChangeKind.LOOSENING
+                    else -> ChangeKind.NONE
+                }
+            }
+        }
+    }
 
     /** For protections and website blocking: turning on is tightening, off is loosening. */
     fun classifyToggle(old: Boolean, new: Boolean): ChangeKind = when {

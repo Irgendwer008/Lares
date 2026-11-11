@@ -8,8 +8,11 @@ package de.lares_app.core.policy
 /** Everything the engine needs to know about the current state. Built by the Android layer. */
 data class PolicySnapshot(
     val rules: List<Rule>,
-    /** Foreground time already used in the current usage period, per rule id. */
+    /** Foreground time already used in the current usage period, per standalone rule id. */
     val usedMillis: Map<Long, Long> = emptyMap(),
+    val groups: Map<Long, RuleGroup> = emptyMap(),
+    /** Summed foreground time of all members in the current usage period, per group id. */
+    val groupUsedMillis: Map<Long, Long> = emptyMap(),
     val pauseActive: Boolean = false,
     val websiteBlockingEnabled: Boolean = false,
     /** Browsers whose URL bar Lares can read. */
@@ -24,16 +27,19 @@ enum class BlockReason { ALWAYS_ON, LIMIT_REACHED, UNSUPPORTED_BROWSER }
 
 sealed interface Decision {
     /**
-     * @property countedRuleIds rules with a daily limit whose time is consumed while this
-     *   stays in the foreground.
-     * @property remainingMillis smallest remaining time among [countedRuleIds], or null.
+     * @property countedRuleIds standalone rules with a daily limit whose time is consumed while
+     *   this stays in the foreground.
+     * @property remainingMillis smallest remaining time among everything counted, or null.
+     * @property countedGroupIds groups whose shared time is consumed (each group counts once,
+     *   even if several members match, e.g. the YouTube app showing a youtube.com link).
      */
     data class Allow(
         val countedRuleIds: Set<Long> = emptySet(),
         val remainingMillis: Long? = null,
+        val countedGroupIds: Set<Long> = emptySet(),
     ) : Decision
 
-    data class Block(val reason: BlockReason, val ruleId: Long? = null) : Decision
+    data class Block(val reason: BlockReason, val ruleId: Long? = null, val groupId: Long? = null) : Decision
 }
 
 /** Pure decision logic: (foreground app, optional URL, state) → allow / block. */
@@ -47,15 +53,14 @@ object PolicyEngine {
         if (snapshot.pauseActive) return Decision.Allow()
         if (packageName in snapshot.exemptPackages) return Decision.Allow()
 
+        val active = snapshot.rules.mapNotNull { it.effective(snapshot.groups) }
         val matching = buildList {
-            snapshot.rules.filterTo(this) {
-                it.enabled && it.type == RuleType.APP && it.target == packageName
-            }
+            active.filterTo(this) { it.type == RuleType.APP && it.target == packageName }
             if (snapshot.websiteBlockingEnabled && url != null && packageName in snapshot.supportedBrowsers) {
                 val address = UrlMatcher.parse(url)
                 if (address != null) {
-                    snapshot.rules.filterTo(this) { rule ->
-                        rule.enabled && rule.type == RuleType.WEBSITE &&
+                    active.filterTo(this) { rule ->
+                        rule.type == RuleType.WEBSITE &&
                             UrlMatcher.normalizeRule(rule.target)?.let { UrlMatcher.matches(address, it) } == true
                     }
                 }
@@ -63,7 +68,7 @@ object PolicyEngine {
         }
 
         matching.firstOrNull { it.isAlwaysOn }?.let {
-            return Decision.Block(BlockReason.ALWAYS_ON, it.id)
+            return Decision.Block(BlockReason.ALWAYS_ON, it.id, groupOf(it, snapshot))
         }
 
         if (snapshot.websiteBlockingEnabled &&
@@ -74,16 +79,24 @@ object PolicyEngine {
         }
 
         var minRemaining: Long? = null
+        val countedRules = mutableSetOf<Long>()
+        val countedGroups = mutableSetOf<Long>()
         for (rule in matching) {
-            val remaining = remainingMillis(rule, snapshot.usedMillis[rule.id] ?: 0L)
-            if (remaining <= 0L) return Decision.Block(BlockReason.LIMIT_REACHED, rule.id)
+            val groupId = groupOf(rule, snapshot)
+            val used = if (groupId != null) snapshot.groupUsedMillis[groupId] ?: 0L else snapshot.usedMillis[rule.id] ?: 0L
+            val remaining = remainingMillis(rule, used)
+            if (remaining <= 0L) return Decision.Block(BlockReason.LIMIT_REACHED, rule.id, groupId)
             minRemaining = minOf(minRemaining ?: remaining, remaining)
+            if (groupId != null) countedGroups += groupId else countedRules += rule.id
         }
-        return Decision.Allow(matching.mapTo(mutableSetOf()) { it.id }, minRemaining)
+        return Decision.Allow(countedRules, minRemaining, countedGroups)
     }
 
     fun remainingMillis(rule: Rule, usedMillis: Long): Long {
         val limit = rule.limitMinutesPerDay ?: return 0L
         return limit * 60_000L - usedMillis
     }
+
+    /** The group whose limit applies to [rule] (null for standalone rules or unknown groups). */
+    private fun groupOf(rule: Rule, snapshot: PolicySnapshot): Long? = rule.groupId?.takeIf { it in snapshot.groups }
 }

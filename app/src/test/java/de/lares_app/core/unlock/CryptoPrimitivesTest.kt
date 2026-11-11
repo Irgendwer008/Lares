@@ -76,12 +76,10 @@ class CryptoPrimitivesTest {
     }
 
     @Test fun attemptPolicy() {
-        assertEquals(0L, AttemptPolicy.lockoutMillisAfter(4))
-        assertEquals(60_000L, AttemptPolicy.lockoutMillisAfter(5))
-        assertEquals(120_000L, AttemptPolicy.lockoutMillisAfter(6))
+        // The 3rd wrong code in a row starts the first waiting time, then it doubles.
+        assertEquals(listOf(0L, 0L, 60_000L, 120_000L, 240_000L), (1..5).map { AttemptPolicy.lockoutMillisAfter(it) })
         assertEquals(AttemptPolicy.MAX_LOCKOUT_MILLIS, AttemptPolicy.lockoutMillisAfter(100))
-        assertEquals(listOf(5, 10, 15), (1..15).filter { AttemptPolicy.shouldReport(it) })
-        assertEquals(3, AttemptPolicy.attemptsBeforeLockout(1))
-        assertEquals(0, AttemptPolicy.attemptsBeforeLockout(7))
+        assertEquals(listOf(2, 1, 0, 0), (1..4).map { AttemptPolicy.attemptsLeft(it) })
+        assertEquals(listOf(3, 8, 13), (1..15).filter { AttemptPolicy.shouldReport(it) })
     }
 }

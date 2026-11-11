@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
+import de.lares_app.core.policy.RuleTemplates
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -35,9 +36,13 @@ class AppCatalog(private val context: Context) {
             .sortedBy { it.label.lowercase() }
     }
 
-    /** Label and icon of [packageName]; falls back to the package name if not installed. */
-    suspend fun describeOrFallback(packageName: String): InstalledApp =
-        withContext(Dispatchers.IO) { describe(packageName) ?: InstalledApp(packageName, packageName, null) }
+    /**
+     * Label and icon of [packageName]. If it isn't installed: a known name from the templates
+     * (e.g. "TikTok"), otherwise the package name; no icon (the UI shows a letter icon).
+     */
+    suspend fun describeOrFallback(packageName: String): InstalledApp = withContext(Dispatchers.IO) {
+        describe(packageName) ?: InstalledApp(packageName, RuleTemplates.knownAppNames[packageName] ?: packageName, null)
+    }
 
     private fun describe(packageName: String): InstalledApp? {
         cache[packageName]?.let { return it }

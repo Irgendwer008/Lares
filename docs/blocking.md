@@ -1,12 +1,19 @@
 # Blocking
 
+Design of the blocking services (blocking milestone). Already in place: the policy logic
+(`PolicyEngine`, `UrlMatcher`, `ResetSchedule`), the declared accessibility service / device admin
+receiver, and the setup checks on the main screen.
+
 ## App blocking modes
 
 ### Accessibility Service mode
 - Listens to `TYPE_WINDOW_STATE_CHANGED`; `event.packageName` = foreground app.
 - On block: `performGlobalAction(GLOBAL_ACTION_HOME)` and launch the block screen.
 - Pros: instant, battery friendly. Cons: user must enable it manually in system settings;
-  Google Play requires an Accessibility API declaration and prominent disclosure.
+  Google Play requires an Accessibility API declaration and prominent disclosure (shown before
+  the main screen opens the accessibility settings).
+- Website blocking / settings guard additionally need `canRetrieveWindowContent` in
+  `accessibility_service.xml` (currently off, since no window content is read yet).
 - The system restarts an enabled accessibility service automatically after reboot.
 
 ### Usage Stats + Overlay mode
@@ -16,7 +23,10 @@
 - Shows an overlay / block activity. Slight delay and battery cost.
 - Android 14+: foreground service needs a type (`specialUse`) declared in the manifest.
 - Some OEMs (Xiaomi, Huawei, Samsung…) kill background services aggressively →
-  onboarding must guide the user to battery-optimization exemptions.
+  the main screen recommends the battery-optimization exemption (both modes; required in practice
+  for Usage Stats mode on these devices), opens the system list
+  (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` – the one-tap dialog needs a Play-restricted
+  permission) and links manufacturer tips (dontkillmyapp.com, opened in the browser).
 
 ## Website blocking (requires Accessibility Service)
 - Read the address bar node of **supported browsers** by view ID, e.g.
@@ -37,8 +47,11 @@
 ## Daily time limits
 - `UsageTracker` accumulates foreground time per rule; for websites the time a matching
   URL is in the foreground.
-- Reset at the configured local time (default midnight, see requirements §2). Clock / time-zone changes are recorded as tamper events
-  (see [Unlock & Security](unlock-and-security.md)).
+- Reset at the configured local time (default midnight, see [Requirements](requirements.md) §3).
+  Clock / time-zone changes never grant a new quota (`ResetSchedule.advance()`) and are recorded
+  as tamper events (see [Unlock & Security](unlock-and-security.md)).
+- Group members share one counter: the group's foreground time is the sum of all members, counted
+  once even if several members match at the same time (app + website).
 - Warn shortly before the limit is reached (e.g. 1 min left).
 
 ## Block screen

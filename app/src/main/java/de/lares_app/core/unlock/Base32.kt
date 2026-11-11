@@ -5,6 +5,8 @@
  */
 package de.lares_app.core.unlock
 
+import java.io.ByteArrayOutputStream
+
 /** RFC 4648 Base32 without padding (the format authenticator apps expect for TOTP secrets). */
 object Base32 {
     private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
@@ -27,7 +29,7 @@ object Base32 {
 
     fun decode(text: String): ByteArray {
         val clean = text.trim().trimEnd('=').replace(" ", "").uppercase()
-        val out = java.io.ByteArrayOutputStream(clean.length * 5 / 8)
+        val out = ByteArrayOutputStream(clean.length * 5 / 8)
         var buffer = 0
         var bits = 0
         for (c in clean) {

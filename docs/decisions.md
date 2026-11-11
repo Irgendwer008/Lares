@@ -1,25 +1,68 @@
-# Decision Log
+# Decisions
 
-| # | Date | Decision | Reason / alternatives |
-|---|---|---|---|
-| 1 | 2026-11-10 | Unlock method selectable at setup: password or TOTP | Password is simple; TOTP allows remote, non-reusable codes |
-| 2 | 2026-11-10 | App-blocking mode selectable: Accessibility or Usage Stats + Overlay | Trade-off reliability vs. sensitive permission; Device Owner rejected (needs reset/adb) |
-| 3 | 2026-11-10 | **No VPN/DNS blocking** | User's own VPN must always be usable; Private DNS gets overridden by VPNs anyway |
-| 4 | 2026-11-10 | Website blocking = URL-bar reading + block unsupported browsers | Only option working on stock devices without VPN/root/Device Owner |
-| 5 | 2026-11-10 | Website blocking always requires Accessibility Service | URL bar can only be read via Accessibility |
-| 6 | 2026-11-10 | Tamper protections: uninstall block, settings guard, reboot restart, guardian alerts – each toggleable | User choice |
-| 7 | 2026-11-10 | Code allows pause or edit session | Flexibility |
-| 8 | 2026-11-10 | Tightening free, loosening requires code | Encourages stricter rules |
-| 9 | 2026-11-10 | v1 rule types: always on, daily time limit | Schedules and open-limits deferred |
-| 10 | 2026-11-10 | Alert channels: Telegram, ntfy, webhook, Matrix | SMS rejected (Play restrictions); Signal has no bot API |
-| 11 | 2026-11-10 | Recovery code at setup | Avoid permanent lock-out |
-| 12 | 2026-11-10 | Kotlin + Compose, minSdk 26 | ~95 % device coverage, modern stack |
-| 13 | 2026-11-10 | UI EN + DE, docs EN, strict i18n rules | Easy extension to more languages |
-| 14 | 2026-11-10 | Settings-page guard requires Accessibility Service in all modes | Reliable detection needs window content |
-| 15 | 2026-11-10 | Distribute via Google Play **and** F-Droid | Reach + FOSS audience; implies FOSS-only deps, no Play Services, no `QUERY_ALL_PACKAGES` |
-| 16 | 2026-11-11 | License: **GPL-3.0-or-later** | Keeps forks open source (no closed/tracking re-releases); F-Droid compatible; Apache-2.0 deps are compatible |
-| 17 | 2026-11-11 | Pause / edit session: presets + custom, **no maximum duration** | Guardian decides the length when entering the code; sessions still end automatically |
-| 18 | 2026-11-11 | **No guardian notification for pauses / edit sessions** (only tamper events) | Guardian entered the code, so they already know |
-| 19 | 2026-11-11 | Daily reset time **configurable** (default 00:00); any change = loosening, effective after the next reset | Night owls; moving the reset in either direction can grant a fresh quota |
-| 20 | 2026-11-11 | **Export / import of rules & settings in v1** (JSON, no secrets); import follows the tighten/loosen policy | Device change / reinstall without re-entering everything |
-| 21 | 2026-11-11 | Android auto backup **and** device-to-device transfer disabled (`allowBackup=false` + `data_extraction_rules.xml` excluding everything) | Keystore-bound secrets cannot be restored elsewhere; rules move via the explicit export instead |
+Current design decisions and their reasons, by topic. When a decision changes, its entry is
+updated in place.
+
+## Product
+| Decision | Reason |
+|---|---|
+| Tightening is free, loosening needs the guardian code | Encourages stricter rules; the guardian only needs to be involved for loosening |
+| Rule types in v1: always blocked or daily time limit | Schedules and open-count limits deferred |
+| Daily reset time configurable (default 00:00); any change needs the code and applies after the next reset | Night owls; moving the reset in either direction can grant a fresh quota |
+| Groups with a shared daily limit and a common switch; members use the group's limit | Sum up time across app + website + alternative clients; switch related rules at once |
+| A target can be a single rule and a group member at the same time; both limits apply | Adding a group never changes existing rules; the stricter limit always wins |
+| Taking a member out of a group is loosening (unless its own limit is stricter); deleting a group deletes its members | Leaving ends the time sharing; keeps the model simple |
+| Templates for popular social apps incl. alternative clients (NewPipe, ReVanced, LibreTube …), optionally as a group | One-tap setup; alternative clients would otherwise be an easy bypass |
+| Backup: export rules and groups (no secrets, no usage data); import only adds | Device change without re-entering everything; add-only import never loosens, so it needs no code |
+
+## Guardian code & unlocking
+| Decision | Reason |
+|---|---|
+| Guardian code: static password or TOTP, chosen at setup | Password is simple; TOTP allows remote, non-reusable codes |
+| Recovery code at setup, hashed with salted SHA-256 | Avoids permanent lock-out; 100 random bits can't be brute-forced, so a slow KDF would only add delay |
+| Recovery code is copied or shared, never saved on the phone | Sharing sends it straight to the guardian; a stored file would stay on the owner's phone |
+| Correct code → unlocked mode (10 min, "Lock now"); a pause is started from unlocked mode | The guardian unlocks once and can change anything |
+| Pause: presets + custom, no maximum | The guardian decides the length |
+| No guardian notification for unlocking or pauses (only tamper events) | The guardian entered the code, so they already know |
+| 3rd wrong code → 1 min waiting time, doubling up to 24 h | Brute-force protection without locking out after a single typo |
+| Timers run on `elapsedRealtime`; a reboot ends unlocked mode / pause and restarts a waiting time | No trustworthy clock across reboots – a reboot must never extend a loosening state or skip a waiting time |
+| Autofill disabled app-wide | The guardian code must never be saved on the owner's phone |
+
+## Blocking
+| Decision | Reason |
+|---|---|
+| App blocking mode selectable: Accessibility service (recommended) or Usage access + overlay | Accessibility is instant, battery friendly and needed for website blocking anyway; Usage access is the alternative for users who don't want to grant it. Device Owner rejected (needs reset / adb) |
+| No VPN / DNS blocking | The user's own VPN must always be usable; Private DNS gets overridden by VPNs anyway |
+| Website blocking = URL-bar reading + blocking unsupported browsers | Only option on stock devices without VPN / root / Device Owner |
+| Website blocking and the settings guard always need the Accessibility service | URL bar and settings pages can only be read via Accessibility |
+| Tamper protections (prevent uninstall, settings guard, restart after reboot, notify guardian) – each toggleable | User choice |
+| Main screen lists all missing setup at once (mode, permissions, device admin – assuming the recommended Accessibility mode until one is chosen); accessibility service and device admin are declared ahead of their logic | The user sees everything blocking still needs in one go; components must exist to be enabled and checked |
+| Prominent disclosure before opening the accessibility settings | Google Play policy |
+| Battery-optimization exemption recommended via the system list | OEMs kill background work; the one-tap dialog's permission is restricted on Play |
+
+## Notifications
+| Decision | Reason |
+|---|---|
+| Channels: Telegram, ntfy, email (SMTP), webhook, Matrix | SMS rejected (Play restrictions); Signal and WhatsApp have no API usable for private guardians |
+| No extra network libraries: `HttpsURLConnection` + own minimal SMTP client; HTTPS / TLS only, no redirects | Small, FOSS-clean, credentials never go to another host |
+| `INTERNET` permission only for guardian notifications | Lares itself works offline |
+| Settings UI for blocking mode and protections available before their services exist | Complete settings UI up front |
+
+## Icons
+| Decision | Reason |
+|---|---|
+| No brand logos and no icon fetching: installed app icon, otherwise a letter icon (template brand color, dark letter on light colors, outline on black) | Logos are trademarked / copyrighted (GPL, F-Droid NonFreeAssets, Play IP risk); fetching icons would tell each website about the user |
+| Display names for template apps that aren't installed | Readable labels instead of package names |
+
+## Platform & distribution
+| Decision | Reason |
+|---|---|
+| Kotlin + Compose, minSdk 26 | ~95 % device coverage, modern stack |
+| UI EN + DE, docs EN, strict i18n rules | Easy extension to more languages |
+| Distribute via Google Play and F-Droid | Reach + FOSS audience; implies FOSS-only deps, no Play Services, no `QUERY_ALL_PACKAGES` |
+| License GPL-3.0-or-later | Keeps forks open source (no closed / tracking re-releases); compatible with the Apache-2.0 dependencies |
+| License notices via AboutLibraries (offline); GPL text bundled from `LICENSE` at build time | Apache-2.0 / GPL require shipping the license texts; covers all transitive libraries |
+| Android backup and device-to-device transfer disabled | Keystore-bound secrets can't be restored elsewhere; rules move via the explicit export |
+| App bundle not split by language | In-app language switch and guardian messages in another language need all languages; Play Core isn't FOSS |
+| Whole-app R8 optimization in release builds | Partial optimization scopes broke Kotlin's package-private classes |
+| Pre-release: no DB migrations or compatibility code; schema changed in place | No released version, no user data to keep; migrations start with the first release |

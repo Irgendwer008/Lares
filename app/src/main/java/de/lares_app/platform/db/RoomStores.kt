@@ -5,11 +5,13 @@
  */
 package de.lares_app.platform.db
 
+import de.lares_app.core.data.GroupStore
 import de.lares_app.core.data.RuleStore
 import de.lares_app.core.data.TamperEvent
 import de.lares_app.core.data.TamperEventType
 import de.lares_app.core.data.TamperLog
 import de.lares_app.core.policy.Rule
+import de.lares_app.core.policy.RuleGroup
 import de.lares_app.core.policy.RuleType
 import de.lares_app.core.time.Clock
 import kotlinx.coroutines.flow.Flow
@@ -34,15 +36,33 @@ class RoomRuleStore(
 
     override suspend fun delete(id: Long) = dao.delete(id)
 
-    override suspend fun replaceAll(rules: List<Rule>) {
-        val now = clock.wallMillis()
-        dao.replaceAll(rules.mapIndexed { i, r -> r.toEntity(now + i).copy(id = 0) })
-    }
-
-    private fun RuleEntity.toRule() = Rule(id, RuleType.valueOf(type), target, limitMinutesPerDay, enabled)
+    private fun RuleEntity.toRule() = Rule(id, RuleType.valueOf(type), target, limitMinutesPerDay, enabled, groupId)
 
     private fun Rule.toEntity(createdAt: Long) =
-        RuleEntity(id, type.name, target, limitMinutesPerDay, enabled, createdAt)
+        RuleEntity(id, type.name, target, limitMinutesPerDay, enabled, createdAt, groupId)
+}
+
+class RoomGroupStore(
+    private val dao: GroupDao,
+    private val clock: Clock,
+) : GroupStore {
+    override val groups: Flow<List<RuleGroup>> = dao.observeAll().map { list -> list.map { it.toGroup() } }
+
+    override suspend fun all(): List<RuleGroup> = dao.all().map { it.toGroup() }
+
+    override suspend fun get(id: Long): RuleGroup? = dao.get(id)?.toGroup()
+
+    override suspend fun insert(group: RuleGroup): Long =
+        dao.insert(RuleGroupEntity(0, group.name, group.limitMinutesPerDay, group.enabled, clock.wallMillis()))
+
+    override suspend fun update(group: RuleGroup) {
+        val existing = dao.get(group.id) ?: return
+        dao.update(existing.copy(name = group.name, limitMinutesPerDay = group.limitMinutesPerDay, enabled = group.enabled))
+    }
+
+    override suspend fun deleteWithMembers(id: Long) = dao.deleteWithMembers(id)
+
+    private fun RuleGroupEntity.toGroup() = RuleGroup(id, name, limitMinutesPerDay, enabled)
 }
 
 class RoomTamperLog(

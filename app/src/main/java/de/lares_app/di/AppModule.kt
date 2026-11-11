@@ -12,7 +12,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import de.lares_app.core.data.EditSessionGate
+import de.lares_app.core.alerts.AlertChannelRepository
+import de.lares_app.core.alerts.AlertSender
+import de.lares_app.core.data.UnlockGate
+import de.lares_app.core.data.GroupStore
 import de.lares_app.core.data.RuleRepository
 import de.lares_app.core.data.RuleStore
 import de.lares_app.core.data.SecretCipher
@@ -21,11 +24,15 @@ import de.lares_app.core.data.StateStore
 import de.lares_app.core.data.TamperLog
 import de.lares_app.core.time.Clock
 import de.lares_app.core.unlock.UnlockManager
+import de.lares_app.platform.AlertMessages
 import de.lares_app.platform.AndroidClock
+import de.lares_app.platform.NetworkAlertSender
+import de.lares_app.platform.PermissionStatus
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.DataStoreStateStore
 import de.lares_app.platform.KeystoreSecretCipher
 import de.lares_app.platform.db.LaresDatabase
+import de.lares_app.platform.db.RoomGroupStore
 import de.lares_app.platform.db.RoomRuleStore
 import de.lares_app.platform.db.RoomTamperLog
 import javax.inject.Singleton
@@ -51,16 +58,31 @@ object AppModule {
     fun ruleStore(db: LaresDatabase, clock: Clock): RuleStore = RoomRuleStore(db.ruleDao(), clock)
 
     @Provides @Singleton
+    fun groupStore(db: LaresDatabase, clock: Clock): GroupStore = RoomGroupStore(db.groupDao(), clock)
+
+    @Provides @Singleton
     fun tamperLog(db: LaresDatabase, clock: Clock): TamperLog = RoomTamperLog(db.tamperEventDao(), clock)
 
     @Provides @Singleton
-    fun editSessionGate(store: StateStore, clock: Clock) = EditSessionGate(store, clock)
+    fun unlockGate(store: StateStore, clock: Clock) = UnlockGate(store, clock)
 
     @Provides @Singleton
-    fun ruleRepository(store: RuleStore, gate: EditSessionGate) = RuleRepository(store, gate)
+    fun ruleRepository(store: RuleStore, groups: GroupStore, gate: UnlockGate) = RuleRepository(store, groups, gate)
 
     @Provides @Singleton
-    fun settingsRepository(store: StateStore, gate: EditSessionGate, clock: Clock) = SettingsRepository(store, gate, clock)
+    fun settingsRepository(store: StateStore, gate: UnlockGate, clock: Clock) = SettingsRepository(store, gate, clock)
+
+    @Provides @Singleton
+    fun alertSender(): AlertSender = NetworkAlertSender()
+
+    @Provides @Singleton
+    fun alertMessages(@ApplicationContext context: Context) = AlertMessages(context)
+
+    @Provides @Singleton
+    fun alertChannels(store: StateStore, gate: UnlockGate, cipher: SecretCipher) = AlertChannelRepository(store, gate, cipher)
+
+    @Provides @Singleton
+    fun permissionStatus(@ApplicationContext context: Context) = PermissionStatus(context)
 
     @Provides @Singleton
     fun appCatalog(@ApplicationContext context: Context) = AppCatalog(context)

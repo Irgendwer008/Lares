@@ -12,6 +12,8 @@ enum class RuleType { APP, WEBSITE }
  * path prefix, e.g. `youtube.com/shorts`).
  *
  * @property limitMinutesPerDay `null` = always blocked, otherwise allowed minutes per usage day.
+ *   Ignored while the rule belongs to a group (the group's limit applies).
+ * @property groupId group this rule belongs to, or null for a standalone rule.
  */
 data class Rule(
     val id: Long,
@@ -19,6 +21,7 @@ data class Rule(
     val target: String,
     val limitMinutesPerDay: Int? = null,
     val enabled: Boolean = true,
+    val groupId: Long? = null,
 ) {
     init {
         require(limitMinutesPerDay == null || limitMinutesPerDay >= 0) { "limit must be >= 0" }
@@ -26,7 +29,7 @@ data class Rule(
 
     val isAlwaysOn: Boolean get() = limitMinutesPerDay == null
 
-    /** Identity used to match rules across devices (import) independent of the database id. */
+    /** Identity of the blocked target independent of the database id (duplicate detection, import). */
     val key: RuleKey
         get() = RuleKey(
             type,
@@ -38,3 +41,31 @@ data class Rule(
 }
 
 data class RuleKey(val type: RuleType, val normalizedTarget: String)
+
+/**
+ * Several apps / websites sharing one limit: their foreground time is summed up, and the group
+ * switch turns all members on or off at once.
+ *
+ * @property limitMinutesPerDay `null` = always blocked, otherwise combined minutes per usage day.
+ */
+data class RuleGroup(
+    val id: Long,
+    val name: String,
+    val limitMinutesPerDay: Int? = null,
+    val enabled: Boolean = true,
+) {
+    init {
+        require(limitMinutesPerDay == null || limitMinutesPerDay >= 0) { "limit must be >= 0" }
+    }
+}
+
+/**
+ * The rule as it is actually enforced: inside a group, the group's switch and limit apply.
+ * Returns null if the rule is not active at all.
+ */
+fun Rule.effective(groups: Map<Long, RuleGroup>): Rule? {
+    if (!enabled) return null
+    val group = groupId?.let { groups[it] } ?: return this
+    if (!group.enabled) return null
+    return copy(limitMinutesPerDay = group.limitMinutesPerDay)
+}
