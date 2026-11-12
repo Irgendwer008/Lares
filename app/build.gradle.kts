@@ -9,13 +9,15 @@ import org.gradle.api.tasks.TaskAction
 import java.util.Properties
 
 /**
- * Version: semantic `major.minor.patch`; the version code is derived from it
- * (major × 10 000 + minor × 100 + patch), so it always grows with the name. See docs/distribution.md.
+ * Version: semantic `major.minor.patch`; the version code is major × 10 000 + minor × 100 + patch,
+ * so it always grows with the name. Both are written out as literals (F-Droid's update check reads
+ * them from this file); the build fails if they don't match. See docs/distribution.md.
  */
-val appVersion = "0.1.0"
-val appVersionCode = appVersion.split('.').map(String::toInt).let { (major, minor, patch) ->
+val appVersion = "1.0.0"
+val appVersionCode = 10000
+appVersion.split('.').map(String::toInt).let { (major, minor, patch) ->
     require(minor < 100 && patch < 100) { "minor / patch must stay below 100" }
-    major * 10_000 + minor * 100 + patch
+    require(appVersionCode == major * 10_000 + minor * 100 + patch) { "appVersionCode doesn't match appVersion" }
 }
 
 /**

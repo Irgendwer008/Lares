@@ -1,0 +1,32 @@
+# F-Droid build recipe – goes to https://gitlab.com/fdroid/fdroiddata as metadata/de.lares_app.yml.
+# Descriptions, screenshots and graphics come from fastlane/metadata in the Lares repository.
+Categories:
+  - System
+License: GPL-3.0-or-later
+SourceCode: https://github.com/Irgendwer008/Lares
+IssueTracker: https://github.com/Irgendwer008/Lares/issues
+Changelog: https://github.com/Irgendwer008/Lares/tree/master/fastlane/metadata/android/en-US/changelogs
+
+AutoName: Lares
+
+AntiFeatures:
+  NonFreeNet:
+    en-US: Guardian notifications can optionally be sent via Telegram, a non-free network service.
+    de-DE: Guardian-Benachrichtigungen können optional über Telegram gesendet werden, einen nicht freien Netzwerkdienst.
+
+RepoType: git
+Repo: https://github.com/Irgendwer008/Lares.git
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 10000
+    commit: v1.0.0
+    subdir: app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+UpdateCheckData: app/build.gradle.kts|appVersionCode = (\d+)|.|appVersion = "([^"]+)"
+CurrentVersion: 1.0.0
+CurrentVersionCode: 10000

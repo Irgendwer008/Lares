@@ -33,6 +33,12 @@ only if a store forces divergence – currently none is planned.
 - Likely anti-feature tag: `NonFreeNet` (optional Telegram channel; also possible for the
   other optional channels depending on the service). Acceptable.
 - Metadata in `fastlane/metadata/android/<locale>/` (also usable for Play) – EN + DE.
+- **Build recipe** for fdroiddata: [`docs/fdroid/de.lares_app.yml`](fdroid/de.lares_app.yml)
+  (builds tag `v<versionName>`, update check by tags reading `appVersion` / `appVersionCode`).
+- **Reproducible:** two clean release builds (no caches) and a build in another directory give
+  byte-identical APKs; the only possible difference is `META-INF/version-control-info.textproto`
+  (the git commit, so it matches when built from the same tag). Gradle runs on the installed JDK
+  (17 or newer) – no JDK is downloaded during the build (no daemon-JVM criteria).
 
 ## Build types
 - `debug` – development (slow Compose, debuggable).
@@ -41,9 +47,10 @@ only if a store forces divergence – currently none is planned.
 - `release` – unsigned unless `keystore.properties` exists (then signed with the Play upload key).
 
 ## Versioning
-- `versionName` is semantic `major.minor.patch`, set once in `app/build.gradle.kts`
-  (`appVersion`). The `versionCode` is derived: major × 10 000 + minor × 100 + patch (0.1.0 → 100,
-  1.2.3 → 10203), so it always grows; minor and patch stay below 100.
+- `versionName` is semantic `major.minor.patch` (`appVersion` in `app/build.gradle.kts`); the
+  `versionCode` (`appVersionCode`) is major × 10 000 + minor × 100 + patch (1.0.0 → 10000,
+  1.2.3 → 10203), so it always grows; minor and patch stay below 100. Both are literals (F-Droid's
+  update check reads them); the build fails if they don't match.
 - Each release gets a git tag `v<versionName>` (F-Droid's update check can follow tags) and a
   changelog file `fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt`.
 

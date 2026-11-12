@@ -37,9 +37,10 @@ Pre-release milestones, in order. Done milestones are summarized in
   - Google Play: store listing (EN / DE texts, screenshots, feature graphic from the wordmark),
     Accessibility API declaration (incl. video), special-use foreground service declaration,
     data safety form, privacy policy URL, check of the current device-admin policy.
-  - F-Droid: `fastlane/metadata` (descriptions, screenshots), reproducible-build check.
+  - F-Droid: `fastlane/metadata` (descriptions, screenshots), reproducible-build check – done;
+    build recipe in `docs/fdroid/de.lares_app.yml`.
   - Done: store texts EN / DE in `fastlane/metadata/android/`, Play Console answers in
-    [Play Console](play-console.md). Open: screenshots, device-admin policy check.
+    [Play Console](play-console.md). Screenshots done. Open: device-admin policy check.
 - Make the GitHub repository more user and contributor friendly – `README.md` and
   `CONTRIBUTING.md` done; screenshots follow with the store listing.
 - On-device tests: settings guard on other manufacturers (Samsung, Pixel), a real guardian alert

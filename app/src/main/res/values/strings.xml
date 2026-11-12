@@ -216,7 +216,7 @@
 
     <!-- Info -->
     <string name="about_title">About Lares</string>
-    <!-- %1$s = version, e.g. "0.1.0" -->
+    <!-- %1$s = version, e.g. "1.0.0" -->
     <string name="about_version">Version %1$s</string>
     <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Adding restrictions is always possible – loosening them needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>

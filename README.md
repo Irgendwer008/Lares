@@ -9,7 +9,7 @@ apps and websites to block, always or after a daily time limit. Adding restricti
 possible; removing or loosening them needs a code that only a trusted person – your **guardian**,
 e.g. a friend or family member – knows.
 
-> **Status:** pre-release, preparing the first release on Google Play and F-Droid.
+> **Status:** version 1.0.0, the first release – coming to Google Play and F-Droid.
 
 ## Features
 - **Privacy first** – Lares only asks for the permissions your current settings need. It doesn't
