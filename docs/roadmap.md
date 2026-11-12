@@ -43,7 +43,7 @@ Pre-release milestones, in order. Done milestones are summarized in
     [Play Console](play-console.md). Screenshots done. Open: device-admin policy check.
 - Make the GitHub repository more user and contributor friendly – `README.md` and
   `CONTRIBUTING.md` done; screenshots follow with the store listing.
-- On-device tests: settings guard on other manufacturers (Samsung, Pixel), a real guardian alert
-  end to end, Usage access mode on a manufacturer with aggressive background limits.
+- On-device test of 1.0.0 – done (Motorola). Still open: settings guard on other manufacturers
+  (Samsung, Pixel), Usage access mode on a manufacturer with aggressive background limits.
 - Publish the app on Google Play.
 - Publish the app in F-Droid.
