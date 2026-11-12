@@ -17,9 +17,12 @@ import de.lares_app.core.policy.PolicyEngine
 import de.lares_app.core.policy.PolicySnapshot
 import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
+import de.lares_app.core.policy.RuleType
+import de.lares_app.core.policy.SupportedBrowsers
 import de.lares_app.core.time.Clock
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.ExemptApps
+import de.lares_app.platform.InstalledBrowsers
 import de.lares_app.platform.LimitNotifier
 import de.lares_app.platform.UsageRepository
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +44,8 @@ data class BlockInfo(
     val groupName: String?,
     /** When the daily limits restart (wall clock), for "limit reached". */
     val resetAtMillis: Long,
+    /** A website rule (not the browser app) was hit: the block screen offers to open the neutral page. */
+    val website: Boolean = false,
 )
 
 /** Effects the controller asks its host (the accessibility service) to perform. */
@@ -49,6 +54,9 @@ interface BlockingHost {
 
     /** Countdown overlay: [remainingMillis] = null hides it. */
     fun showTimer(remainingMillis: Long?)
+
+    /** Go to the home screen after [delayMillis] (lets another app's activity start first). */
+    fun goHome(delayMillis: Long)
 }
 
 /**
@@ -56,12 +64,19 @@ interface BlockingHost {
  * screen, the countdown overlay during the last 5 minutes and the optional warnings.
  * Driven by [onForeground] / [onScreen] events from the accessibility service.
  */
+/**
+ * Neutral page the website block screen opens in the browser, so the blocked page is no longer the
+ * open tab. Placeholder until Lares has its own page.
+ */
+const val SAFE_PAGE_URL = "https://www.google.com/"
+
 class BlockingController(
     private val ruleStore: RuleStore,
     private val groupStore: GroupStore,
     private val store: StateStore,
     private val usage: UsageRepository,
     private val exemptApps: ExemptApps,
+    private val browsers: InstalledBrowsers,
     private val catalog: AppCatalog,
     private val notifier: LimitNotifier,
     private val clock: Clock,
@@ -77,7 +92,17 @@ class BlockingController(
 
     @Volatile private var exempt: Set<String> = emptySet()
 
+    @Volatile private var installedBrowsers: Set<String> = emptySet()
+
+    /** Last committed address-bar URL of the foreground browser (and which browser it belongs to). */
+    @Volatile private var url: Pair<String, String>? = null
+
     @Volatile private var foreground: String? = null
+
+    /** URL of the last blocked page (browser, URL), and an ignored URL while the neutral page loads. */
+    @Volatile private var blockedUrl: Pair<String, String>? = null
+
+    @Volatile private var ignoredUrl: Pair<Pair<String, String>, Long>? = null
 
     @Volatile private var screenOn = true
 
@@ -93,6 +118,7 @@ class BlockingController(
         val s = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
         scope = s
         exempt = exemptApps.packages()
+        installedBrowsers = browsers.packages()
         s.launch {
             combine(ruleStore.rules, groupStore.groups, store.state) { r, g, st -> Triple(r, g, st) }.collect { (r, g, st) ->
                 rules = r
@@ -126,6 +152,7 @@ class BlockingController(
         if (packageName == foreground) return
         BlockingLog.d { "foreground: $packageName" }
         foreground = packageName
+        if (url?.first != packageName) url = null
         scope?.launch { evaluate(countMillis = 0) }
     }
 
@@ -135,9 +162,35 @@ class BlockingController(
         lastTickElapsed = clock.elapsedMillis()
     }
 
-    /** Installed apps changed (new launcher, keyboard …). */
+    /** Installed apps changed (new launcher, keyboard, browser …). */
     fun refreshExemptApps() {
         exempt = exemptApps.packages()
+        installedBrowsers = browsers.packages()
+    }
+
+    /** Address bars are only read while website blocking is on (and blocking is active at all). */
+    val readsUrls: Boolean
+        get() = state.settings.let { it.websiteBlocking && it.setupComplete && it.blockingMode == BlockingMode.ACCESSIBILITY }
+
+    /** The address bar of a supported browser shows [newUrl] (only committed URLs, not while typing). */
+    fun onUrl(browserPackage: String, newUrl: String) {
+        if (url == browserPackage to newUrl) return
+        ignoredUrl?.let { (ignored, until) ->
+            if (clock.elapsedMillis() > until) ignoredUrl = null else if (ignored == browserPackage to newUrl) return
+        }
+        BlockingLog.d { "url: $browserPackage → $newUrl" }
+        url = browserPackage to newUrl
+        scope?.launch { evaluate(countMillis = 0) }
+    }
+
+    /**
+     * The block screen opened [SAFE_PAGE_URL] in [browserPackage]: until it loaded, the address bar
+     * may still show the blocked page – don't block that again for a few seconds.
+     * [thenHome]: "Close browser" – go home once the browser took the link.
+     */
+    fun onSafePageOpened(browserPackage: String, thenHome: Boolean) {
+        blockedUrl?.takeIf { it.first == browserPackage }?.let { ignoredUrl = it to clock.elapsedMillis() + SAFE_PAGE_GRACE_MILLIS }
+        if (thenHome) host?.goHome(HOME_DELAY_MILLIS)
     }
 
     private suspend fun tick() {
@@ -164,11 +217,13 @@ class BlockingController(
             groups = groups,
             groupUsedMillis = snapshot.groupMillis,
             pauseActive = st.unlock.pause?.isActive(clock) == true,
-            // Website blocking (URL bar) follows in the next step; browsers aren't evaluated yet.
-            websiteBlockingEnabled = false,
+            websiteBlockingEnabled = st.settings.websiteBlocking,
+            supportedBrowsers = SupportedBrowsers.packages,
+            installedBrowsers = installedBrowsers,
             exemptPackages = exempt,
         )
-        val decision = PolicyEngine.evaluate(pkg, null, policy)
+        val currentUrl = url?.takeIf { it.first == pkg }?.second
+        val decision = PolicyEngine.evaluate(pkg, currentUrl, policy)
         if (countMillis == 0L || decision is Decision.Block) BlockingLog.d { "$pkg → $decision" }
         when (decision) {
             is Decision.Block -> {
@@ -189,13 +244,16 @@ class BlockingController(
         val now = clock.elapsedMillis()
         lastBlocked?.let { (p, at) -> if (p == pkg && now - at < BLOCK_DEBOUNCE_MILLIS) return }
         lastBlocked = pkg to now
+        val websiteRule = rules.firstOrNull { it.id == decision.ruleId }?.takeIf { it.type == RuleType.WEBSITE }
+        blockedUrl = if (websiteRule != null) url else null
         host?.showBlockScreen(
             BlockInfo(
                 packageName = pkg,
-                label = catalog.describeOrFallback(pkg).label,
+                label = websiteRule?.target ?: catalog.describeOrFallback(pkg).label,
                 reason = decision.reason,
                 groupName = decision.groupId?.let { groups[it]?.name },
                 resetAtMillis = periodEndMillis,
+                website = websiteRule != null,
             ),
         )
     }
@@ -215,5 +273,7 @@ class BlockingController(
         const val TICK_MILLIS = 1_000L
         const val MAX_STEP_MILLIS = 2_000L
         const val BLOCK_DEBOUNCE_MILLIS = 2_000L
+        const val SAFE_PAGE_GRACE_MILLIS = 5_000L
+        const val HOME_DELAY_MILLIS = 700L
     }
 }

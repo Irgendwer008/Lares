@@ -19,8 +19,9 @@ Lares works entirely on your phone.
 
 ## System permissions
 - If the user turns on the Accessibility service or usage access, Lares uses them only to detect
-  which app (or website) is in the foreground. This is processed on the phone in the moment and is
-  neither stored nor transmitted.
+  which app is in the foreground – and, while website blocking is on, the address shown in the
+  address bar of supported browsers (no other screen content). This is processed on the phone in
+  the moment and is neither stored nor transmitted.
 - The optional device administrator role is used only to prevent uninstalling Lares; no other
   administrator rights are used.
 
@@ -31,5 +32,7 @@ Lares works entirely on your phone.
 - A notification contains only its text (e.g. a test message or "protection was disabled") and
   the phone model. The data processing of the chosen service (e.g. Telegram) is subject to that
   service's own privacy policy.
+- When a website is blocked, Lares can open a neutral page (currently google.com) in your browser
+  like a normal link; the browser loads it, Lares itself sends nothing.
 - Channel tokens and email passwords are stored encrypted with an Android Keystore key on the phone.
 - Exported rule files contain rules and groups only – no codes, tokens or usage data.

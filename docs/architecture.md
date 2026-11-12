@@ -63,6 +63,7 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 - `TimedSession` – unlocked mode, pause, wrong-code waiting time on `elapsedRealtime`; on reboot
   either ends (`END`) or starts over (`RESTART`).
 - `RuleTemplates` – templates incl. brand colors and display names of template apps.
+- `SupportedBrowsers` – browser packages and their address-bar view ids.
 
 `core/unlock`
 - `PasswordHasher` – PBKDF2-HMAC-SHA256, `pbkdf2-sha256$iter$salt$hash` format.
@@ -94,19 +95,21 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 
 `blocking` (Accessibility mode)
 - `LaresAccessibilityService` – reports the foreground app (`TYPE_WINDOW_STATE_CHANGED` of
-  activities only, package name only, no window content) and screen on / off; hosts the block
-  screen and countdown. `BlockingLog` – diagnostics in debuggable builds only.
+  activities only) and screen on / off; while website blocking is on, reads the address bar of
+  supported browsers (nothing else of the window). Hosts the block screen and countdown.
+  `BlockingLog` – diagnostics in debuggable builds only.
 - `BlockingController` – one-second loop on a single thread: `PolicyEngine` decision for the
   foreground app, time counting via `UsageRepository`, block screen (debounced), countdown overlay
   in the last 5 minutes, optional warnings. Active only when setup is complete and the mode is
   Accessibility; blocking stays active in unlocked mode.
-- `BlockActivity` – full block screen (reason, reset time, "Close", "Enter guardian code").
+- `BlockActivity` – full block screen (reason, reset time, "Close", "Go to Lares").
 - `TimerOverlay` – accessibility overlay pill (no extra permission, not touchable).
 - `LaresDeviceAdminReceiver` – declared for "prevent uninstalling"; reporting follows.
 
 `platform` (blocking)
 - `UsageRepository` – counts in memory, writes to Room at most every 15 s and on period change,
   advances the tracked period via `ResetSchedule.advance()`, drops older periods.
+- `InstalledBrowsers` – apps with a generic web-link filter (blocked if unsupported).
 - `ExemptApps` – Lares, launchers, dialers, keyboards, system UI, Settings, permission / install
   dialogs (never blocked, hidden when adding rules).
 - `LimitNotifier` – warning notifications; permission requested only when a warning is switched
@@ -121,7 +124,6 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 ## Planned (rest of the blocking milestone)
 | Component | Responsibility |
 |---|---|
-| URL-bar reading (B) | Website blocking in supported browsers, blocking unsupported browsers |
 | `UsageMonitorService` (C) | Foreground service polling `UsageStatsManager`, overlay block screen (Usage access mode) |
 | Settings guard (D) | Blocking Lares' sensitive system-settings pages |
 | `BootReceiver` | `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` → restart monitoring |

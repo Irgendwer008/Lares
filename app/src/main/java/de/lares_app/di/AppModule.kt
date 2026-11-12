@@ -32,6 +32,7 @@ import de.lares_app.platform.PermissionStatus
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.DataStoreStateStore
 import de.lares_app.platform.ExemptApps
+import de.lares_app.platform.InstalledBrowsers
 import de.lares_app.platform.LimitNotifier
 import de.lares_app.platform.UsageRepository
 import de.lares_app.platform.KeystoreSecretCipher
@@ -108,7 +109,8 @@ object AppModule {
         catalog: AppCatalog,
         notifier: LimitNotifier,
         clock: Clock,
-    ) = BlockingController(rules, groups, store, usage, exempt, catalog, notifier, clock)
+        @ApplicationContext context: Context,
+    ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, clock)
 
     @Provides @Singleton
     fun appCatalog(@ApplicationContext context: Context) = AppCatalog(context)

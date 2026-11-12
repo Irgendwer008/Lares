@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Foreground app detection. Not an accessibility tool (Play policy; the flag is read on API 31+). Window content access will
-     be enabled together with website blocking. -->
+<!-- Foreground app detection and, for website blocking, the address bar of supported browsers
+     (window content + view ids). Not an accessibility tool (Play policy; the flag is read on API 31+). -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFlags="flagReportViewIds"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:canRetrieveWindowContent="false"
+    android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_service_description"
     android:isAccessibilityTool="false"
     tools:ignore="UnusedAttribute"

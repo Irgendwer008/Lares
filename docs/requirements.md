@@ -51,7 +51,7 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
     needs) and recommends the battery-optimization exemption.
 18. Opening a blocked app (or reaching its limit while using it) shows a **full block screen**
     immediately: what is blocked and why, time until the next reset, "Close" (home screen) and
-    "Enter guardian code". Blocking stays active in unlocked mode (only a pause suspends it).
+    "Go to Lares". Blocking stays active in unlocked mode (only a pause suspends it).
 19. **Limit countdown:** during the last 5 minutes of a limit, a small timer is shown in a corner
     over the app (can be switched off in the settings). Optional **notifications** 5 and/or 1
     minute before the limit ends; the notification permission is only requested when one of them

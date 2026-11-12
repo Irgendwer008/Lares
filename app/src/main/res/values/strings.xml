@@ -205,7 +205,7 @@
     <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Adding restrictions is always possible – loosening them needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>
     <string name="privacy_summary">Everything stays on this phone</string>
-    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking.\n• No data is sold or shared with third parties.\n• Your rules, usage times and settings are stored only on this phone. They are excluded from Android backups and device transfers.\\\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app (or website) is open. This is processed only on the phone at any given time and neither stored nor sent.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). These messages contain only the notification text (e.g. “protection was disabled”) and the phone model; tokens are stored encrypted on the phone.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app).\n• Lares blocks password managers, so the guardian code is never saved on the phone.</string>
+    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking.\n• No data is sold or shared with third parties.\n• Your rules, usage times and settings are stored only on this phone. They are excluded from Android backups and device transfers.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers (nothing else of the screen). This is processed only on the phone at any given time and neither stored nor sent.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). These messages contain only the notification text (e.g. “protection was disabled”) and the phone model; tokens are stored encrypted on the phone. When a website is blocked, Lares can open a neutral page (currently google.com) in your browser like a normal link.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app).\n• Lares blocks password managers, so the guardian code is never saved on the phone.</string>
     <string name="license_title">License</string>
     <string name="license_summary">GNU GPL, version 3 or later</string>
     <string name="license_body">Lares is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nLares is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
@@ -342,10 +342,14 @@
     <string name="block_title">%1$s is blocked</string>
     <string name="block_reason_always">This app is always blocked.</string>
     <!-- %1$s = time when the daily limits restart, e.g. "00:00" -->
+    <string name="block_reason_always_website">This website is always blocked.</string>
     <string name="block_reason_limit">The daily limit is used up. Available again at %1$s.</string>
     <string name="block_reason_browser">Website blocking is on, and this browser isn’t supported. Use a supported browser.</string>
     <!-- %1$s = group name -->
     <string name="block_group">Limit of the group “%1$s”</string>
+    <string name="block_open_lares">Go to Lares</string>
+    <string name="block_stay_in_browser">Stay in browser</string>
+    <string name="block_close_browser">Close browser</string>
     <string name="block_close">Close</string>
 
     <!-- Limit countdown & warnings -->

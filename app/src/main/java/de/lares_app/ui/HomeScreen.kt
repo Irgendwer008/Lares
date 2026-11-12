@@ -75,8 +75,6 @@ import de.lares_app.core.policy.RuleGroup
 fun HomeScreen(
     onAddRule: (groupId: Long?) -> Unit,
     onOpenSettings: (SettingsHighlight?) -> Unit,
-    openUnlock: Boolean = false,
-    onUnlockOpened: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val content by vm.content.collectAsStateWithLifecycle()
@@ -101,12 +99,6 @@ fun HomeScreen(
     val session by vm.session.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var showUnlock by remember { mutableStateOf(false) }
-    LaunchedEffect(openUnlock) {
-        if (openUnlock) {
-            showUnlock = true
-            onUnlockOpened()
-        }
-    }
     var showPause by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<RuleItem?>(null) }
     var editingGroup by remember { mutableStateOf<RuleGroup?>(null) }

@@ -52,8 +52,7 @@ private object Routes {
 
 /** Shows setup until the unlock method is configured, then the main navigation. */
 @Composable
-/** @param openUnlock show the code dialog on the main screen (from the block screen). */
-fun LaresRoot(openUnlock: Boolean = false, onUnlockOpened: () -> Unit = {}, main: MainViewModel = hiltViewModel()) {
+fun LaresRoot(main: MainViewModel = hiltViewModel()) {
     val gate by main.gate.collectAsStateWithLifecycle()
     when (val g = gate) {
         AppGate.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -73,8 +72,6 @@ fun LaresRoot(openUnlock: Boolean = false, onUnlockOpened: () -> Unit = {}, main
             ) {
                 composable(Routes.HOME) {
                     HomeScreen(
-                        openUnlock = openUnlock,
-                        onUnlockOpened = onUnlockOpened,
                         onAddRule = { groupId -> nav.navigate(Routes.addRule(groupId)) },
                         onOpenSettings = { highlight -> nav.navigate(Routes.settings(highlight)) },
                     )

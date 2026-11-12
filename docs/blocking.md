@@ -1,8 +1,8 @@
 # Blocking
 
-Design of the blocking services. **Implemented:** app blocking in Accessibility mode with block
-screen, time limits (incl. groups), countdown overlay and optional warnings. **Next:** website
-blocking, Usage access mode, settings guard / tamper detection.
+Design of the blocking services. **Implemented:** app and website blocking in Accessibility mode
+with block screen, time limits (incl. groups), countdown overlay and optional warnings.
+**Next:** Usage access mode, settings guard / tamper detection.
 
 ## App blocking modes
 
@@ -34,20 +34,27 @@ blocking, Usage access mode, settings guard / tamper detection.
   permission) and links manufacturer tips (dontkillmyapp.com, opened in the browser).
 
 ## Website blocking (requires Accessibility Service)
-- Read the address bar node of **supported browsers** by view ID, e.g.
-  - Chrome: `com.android.chrome:id/url_bar`
-  - Firefox: `org.mozilla.firefox:id/mozac_browser_toolbar_url_view`
-  - Samsung Internet: `com.sec.android.app.sbrowser:id/location_bar_edit_text`
-  - Brave: `com.brave.browser:id/url_bar`, Edge: `com.microsoft.emmx:id/url_bar`
-  (IDs must be verified per browser version; keep them in a data table, not in code.)
-- Match normalized host (strip `www.`, scheme) against domain rules incl. subdomains;
-  path rules (e.g. `youtube.com/shorts`) match by prefix.
-- **Unsupported browsers:** list all apps handling `ACTION_VIEW https://…` and block every
-  one without an adapter while website blocking is on.
-- Custom Tabs are rendered by the host browser → covered. In-app WebViews are only
-  partially detectable → documented limitation.
-- Ignore the URL bar while it is being edited (only evaluate committed URLs) to avoid
-  false blocks while typing.
+- Reads only the address bar of **supported browsers** by view id (`SupportedBrowsers` table:
+  Chromium family `url_bar` – Chrome, Brave, Edge, Vivaldi, Kiwi, Cromite / Bromite; Samsung
+  Internet `location_bar_edit_text`; Firefox family `mozac_browser_toolbar_url_view` – Firefox,
+  Beta, Nightly, Fennec F-Droid, Mull; DuckDuckGo `omnibarTextInput`; Opera `url_field`).
+  Ids can change with browser updates → verify on devices and adjust the table.
+- Read on window-content changes of a supported browser, bundled to one read per 300 ms; only
+  while website blocking is on. While the bar is focused (user typing), nothing is evaluated.
+- Matching via `UrlMatcher`: host incl. subdomains, `www.` / scheme ignored, path rules by segment.
+  Browsers that show only the domain (e.g. Firefox) can't distinguish path rules like
+  `youtube.com/shorts` – domain rules work everywhere.
+- On a blocked website: block screen over the browser ("reddit.com is blocked") with "Stay in
+  browser" (opens a neutral page – `SAFE_PAGE_URL`, google.com until Lares has its own page – in the
+  same browser like a normal link; Chromium browsers reuse one tab for it), "Close browser" (same,
+  then the home screen) and "Go to Lares". So the blocked page is no longer the open tab when the
+  browser is opened again; for 5 s the old URL is ignored while the neutral page loads. Time limits count while a
+  matching site is shown.
+- **Unsupported browsers:** apps that open a neutral `https://example.com/` link (generic web
+  filter, so not apps that only handle their own domain) and have no adapter are blocked
+  completely while website blocking is on.
+- Custom Tabs are rendered by the host browser → covered. In-app WebViews are not detectable →
+  limitation.
 
 ## Daily time limits
 - `UsageTracker` accumulates foreground time per rule; for websites the time a matching
@@ -64,7 +71,7 @@ blocking, Usage access mode, settings guard / tamper detection.
 
 ## Block screen
 - Shows what is blocked and why (always blocked / limit reached, group if any), when the limits
-  restart, "Close" (home screen) and "Enter guardian code" (opens Lares with the code dialog).
+  restart, "Close" (home screen) and "Go to Lares" (opens the app).
 
 ## Exempt apps
 - Never blocked: Lares, launchers, dialers / emergency, keyboards, system UI, the Settings app as a

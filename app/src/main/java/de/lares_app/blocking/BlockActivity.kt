@@ -5,9 +5,12 @@
  */
 package de.lares_app.blocking
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import androidx.core.net.toUri
 import android.os.Bundle
+import android.provider.Browser
 import android.text.format.DateFormat
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -32,14 +35,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dagger.hilt.android.AndroidEntryPoint
 import de.lares_app.MainActivity
 import de.lares_app.R
 import de.lares_app.core.policy.BlockReason
 import de.lares_app.ui.theme.LaresTheme
 import java.util.Date
+import javax.inject.Inject
 
 /** Full-screen "this is blocked" page, shown by the accessibility service over a blocked app. */
+@AndroidEntryPoint
 class BlockActivity : AppCompatActivity() {
+
+    @Inject lateinit var controller: BlockingController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -50,6 +58,8 @@ class BlockActivity : AppCompatActivity() {
         val label = intent.getStringExtra(EXTRA_LABEL).orEmpty()
         val reason = intent.getStringExtra(EXTRA_REASON)?.let { runCatching { BlockReason.valueOf(it) }.getOrNull() } ?: BlockReason.ALWAYS_ON
         val group = intent.getStringExtra(EXTRA_GROUP)
+        val website = intent.getBooleanExtra(EXTRA_WEBSITE, false)
+        val browser = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
         val resetAt = intent.getLongExtra(EXTRA_RESET_AT, 0L)
         val resetText = if (resetAt > 0) DateFormat.getTimeFormat(this).format(Date(resetAt)) else ""
         setContent {
@@ -57,13 +67,14 @@ class BlockActivity : AppCompatActivity() {
                 BlockScreen(
                     label = label,
                     reason = reason,
+                    website = website,
                     group = group,
                     resetText = resetText,
-                    onClose = ::goHome,
-                    onUnlock = {
+                    onClose = { if (website) openSafePage(browser, thenHome = true) else goHome() },
+                    onStay = { openSafePage(browser, thenHome = false) },
+                    onOpenLares = {
                         startActivity(
                             Intent(this, MainActivity::class.java)
-                                .putExtra(MainActivity.EXTRA_OPEN_UNLOCK, true)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                         )
                         finish()
@@ -73,22 +84,45 @@ class BlockActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Opens [SAFE_PAGE_URL] in the browser like a normal link, so the blocked page is no longer the
+     * open tab when the browser is opened again. Chromium browsers reuse one tab for Lares' links.
+     */
+    private fun openSafePage(browser: String, thenHome: Boolean) {
+        val link = Intent(Intent.ACTION_VIEW, SAFE_PAGE_URL.toUri())
+            .setPackage(browser.ifEmpty { null })
+            .putExtra(Browser.EXTRA_APPLICATION_ID, packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(link)
+        } catch (_: ActivityNotFoundException) {
+            goHome()
+            return
+        }
+        controller.onSafePageOpened(browser, thenHome)
+        finish()
+    }
+
     private fun goHome() {
         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         finish()
     }
 
     companion object {
+        private const val EXTRA_PACKAGE = "package"
         private const val EXTRA_LABEL = "label"
         private const val EXTRA_REASON = "reason"
         private const val EXTRA_GROUP = "group"
         private const val EXTRA_RESET_AT = "resetAt"
+        private const val EXTRA_WEBSITE = "website"
 
         fun intent(context: Context, info: BlockInfo): Intent = Intent(context, BlockActivity::class.java)
+            .putExtra(EXTRA_PACKAGE, info.packageName)
             .putExtra(EXTRA_LABEL, info.label)
             .putExtra(EXTRA_REASON, info.reason.name)
             .putExtra(EXTRA_GROUP, info.groupName)
             .putExtra(EXTRA_RESET_AT, info.resetAtMillis)
+            .putExtra(EXTRA_WEBSITE, info.website)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
     }
 }
@@ -97,10 +131,12 @@ class BlockActivity : AppCompatActivity() {
 private fun BlockScreen(
     label: String,
     reason: BlockReason,
+    website: Boolean,
     group: String?,
     resetText: String,
     onClose: () -> Unit,
-    onUnlock: () -> Unit,
+    onStay: () -> Unit,
+    onOpenLares: () -> Unit,
 ) {
     Scaffold { padding ->
         Column(
@@ -122,17 +158,29 @@ private fun BlockScreen(
             val text = when (reason) {
                 BlockReason.LIMIT_REACHED -> stringResource(R.string.block_reason_limit, resetText)
                 BlockReason.UNSUPPORTED_BROWSER -> stringResource(R.string.block_reason_browser)
-                BlockReason.ALWAYS_ON -> stringResource(R.string.block_reason_always)
+                BlockReason.ALWAYS_ON -> stringResource(if (website) R.string.block_reason_always_website else R.string.block_reason_always)
             }
             Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
             group?.let {
                 Text(stringResource(R.string.block_group, it), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
             }
-            Button(onClick = onClose, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                Text(stringResource(R.string.block_close))
+            if (website) {
+                // Websites: both replace the blocked page with the neutral page; "close" then goes home.
+                Button(onClick = onStay, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    Text(stringResource(R.string.block_stay_in_browser))
+                }
+                Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.block_close_browser))
+                }
+            } else {
+                Button(onClick = onClose, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    Text(stringResource(R.string.block_close))
+                }
             }
-            OutlinedButton(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.home_unlock))
+            // Opens Lares (e.g. to unlock, start a pause or check the limits) – the code may already
+            // have been entered, since unlocked mode doesn't suspend blocking.
+            OutlinedButton(onClick = onOpenLares, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.block_open_lares))
             }
         }
     }

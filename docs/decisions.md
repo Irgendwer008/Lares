@@ -34,11 +34,13 @@ updated in place.
 | App blocking mode selectable: Accessibility service (recommended) or Usage access + overlay | Accessibility is instant, battery friendly and needed for website blocking anyway; Usage access is the alternative for users who don't want to grant it. Device Owner rejected (needs reset / adb) |
 | No VPN / DNS blocking | The user's own VPN must always be usable; Private DNS gets overridden by VPNs anyway |
 | Website blocking = URL-bar reading + blocking unsupported browsers | Only option on stock devices without VPN / root / Device Owner |
+| Address bar read only while website blocking is on; only the address-bar node, never other content | Least access to window content |
+| Blocked website: both block screen buttons ("Stay in browser", "Close browser") open a neutral page in the browser as a normal link | Otherwise the blocked page stays the open tab and blocks the browser again on every start; back presses depend on the history (several blocked pages, closing the browser) |
 | Website blocking and the settings guard always need the Accessibility service | URL bar and settings pages can only be read via Accessibility |
 | Tamper protections (prevent uninstall, settings guard, restart after reboot, notify guardian) – each toggleable | User choice |
 | Main screen lists all missing setup at once (mode, permissions, device admin – assuming the recommended Accessibility mode until one is chosen); accessibility service and device admin are declared ahead of their logic | The user sees everything blocking still needs in one go; components must exist to be enabled and checked |
 | Prominent disclosure before opening the accessibility settings | Google Play policy |
-| Full block screen (not just a jump to the home screen) | Clear reason and next steps; "Enter guardian code" directly from there |
+| Full block screen (not just a jump to the home screen) | Clear reason and next steps; "Go to Lares" opens the app (to unlock or pause – the code may already be entered, since unlocked mode keeps blocking) |
 | Blocking stays active in unlocked mode | Unlocked mode is for changing rules; using blocked apps needs an explicit pause |
 | Limit countdown overlay in the last 5 minutes (switchable); warning notifications opt-in | Unobtrusive heads-up without needing the notification permission by default |
 | Notification permission requested only when a warning is switched on, returned (`revokeSelfPermissionOnKill`, Android 13+) when all are off | Least privilege |
