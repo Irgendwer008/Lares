@@ -1,0 +1,5 @@
+# GitHub Pages (Settings → Pages → Deploy from branch, folder /docs).
+# Serves the privacy policy (privacy-policy.html) and the neutral page Lares opens instead of a
+# blocked website (blocked/). The other wiki pages are rendered too – they're public anyway.
+title: Lares
+description: Blocks distracting apps and websites – loosening needs a guardian code.

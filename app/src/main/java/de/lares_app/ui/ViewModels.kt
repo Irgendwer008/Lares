@@ -12,6 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.lares_app.ui.theme.wallpaperColorsAvailable
 import de.lares_app.blocking.BlockingController
 import de.lares_app.core.alerts.AlertChannelConfig
 import de.lares_app.core.alerts.AlertChannelRepository
@@ -19,6 +20,7 @@ import de.lares_app.core.alerts.AlertSender
 import de.lares_app.core.alerts.ChannelDraft
 import de.lares_app.core.alerts.ChannelType
 import de.lares_app.core.data.AppSettings
+import de.lares_app.core.data.AppTheme
 import de.lares_app.core.data.BackupCodec
 import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.data.ImportResult
@@ -102,7 +104,13 @@ class MainViewModel @Inject constructor(store: StateStore) : ViewModel() {
 // ---- Setup ---------------------------------------------------------------------------------------
 
 sealed interface SetupStep {
+    /** First setup only, Android 12+: Lares colors or wallpaper colors. */
+    data object Theme : SetupStep
+
     data object Intro : SetupStep
+
+    /** First setup only: the guardian may already choose the blocking mode (or decide later). */
+    data object BlockingMode : SetupStep
 
     data object ChooseMethod : SetupStep
 
@@ -118,9 +126,21 @@ enum class PasswordError { TOO_SHORT, MISMATCH }
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val unlock: UnlockManager,
+    private val settings: SettingsRepository,
+    store: StateStore,
 ) : ViewModel() {
-    private val _step = MutableStateFlow<SetupStep>(SetupStep.Intro)
-    val step: StateFlow<SetupStep> = _step.asStateFlow()
+    /** Colors, chosen on the first screen (before handing the phone to the guardian). */
+    private val settingsState = store.state.map { it.settings }
+
+    val theme: StateFlow<AppTheme> = settingsState.map { it.theme }.stateIn(viewModelScope, WhileSubscribed, AppTheme.LARES)
+
+    fun setTheme(theme: AppTheme) {
+        viewModelScope.launch { settings.setTheme(theme) }
+    }
+
+    /** null until [start] – nothing is shown before, so no wrong step flashes up for a frame. */
+    private val _step = MutableStateFlow<SetupStep?>(null)
+    val step: StateFlow<SetupStep?> = _step.asStateFlow()
 
     private var startedMode: SetupMode? = null
     private var finished = false
@@ -137,7 +157,11 @@ class SetupViewModel @Inject constructor(
         if (startedMode == mode && !finished) return
         startedMode = mode
         finished = false
-        _step.value = if (mode == SetupMode.FIRST) SetupStep.Intro else SetupStep.ChooseMethod
+        _step.value = when {
+            mode != SetupMode.FIRST -> SetupStep.ChooseMethod
+            wallpaperColorsAvailable -> SetupStep.Theme
+            else -> SetupStep.Intro
+        }
     }
 
     /** True while hashing / storing runs (shows a progress indicator, blocks double taps). */
@@ -152,14 +176,36 @@ class SetupViewModel @Inject constructor(
         _needsCode.value = false
     }
 
+    /** Chosen blocking mode (null = not yet), to mark the current choice. */
+    val blockingMode: StateFlow<BlockingMode?> = settingsState.map { it.blockingMode }.stateIn(viewModelScope, WhileSubscribed, null)
+
+    /** Choosing the mode during the first setup is free (nothing is protected yet). */
+    fun chooseBlockingMode(mode: BlockingMode) {
+        viewModelScope.launch {
+            runCatching { settings.setBlockingMode(mode) } // a code set meanwhile: keep the earlier choice
+            if (_step.value == SetupStep.BlockingMode) _step.value = SetupStep.ChooseMethod
+        }
+    }
+
+    fun skipBlockingMode() {
+        if (_step.value == SetupStep.BlockingMode) _step.value = SetupStep.ChooseMethod
+    }
+
+    fun themeChosen() {
+        if (_step.value == SetupStep.Theme) _step.value = SetupStep.Intro
+    }
+
     fun skipIntro() {
-        if (_step.value == SetupStep.Intro) _step.value = SetupStep.ChooseMethod
+        if (_step.value == SetupStep.Intro) _step.value = SetupStep.BlockingMode
     }
 
     fun back() {
         if (_busy.value) return
         _step.value = when (_step.value) {
             is SetupStep.Password, is SetupStep.Totp -> SetupStep.ChooseMethod
+            SetupStep.ChooseMethod -> if (startedMode == SetupMode.FIRST) SetupStep.BlockingMode else SetupStep.ChooseMethod
+            SetupStep.BlockingMode -> SetupStep.Intro
+            SetupStep.Intro -> if (wallpaperColorsAvailable) SetupStep.Theme else SetupStep.Intro
             else -> SetupStep.Intro
         }
     }
@@ -287,6 +333,9 @@ class HomeViewModel @Inject constructor(
     fun appDetailsIntent(issue: SetupIssue) = permissions.appDetailsIntent().also { allowSettingsUntilFixed(issue) }
 
     private fun allowSettingsUntilFixed(issue: SetupIssue) {
+        // The battery list and its per-app dialog aren't guarded pages – and this issue can be
+        // left unfixed forever, so it must not open the guard for anything else.
+        if (issue == SetupIssue.BATTERY_OPTIMIZATION) return
         blocking.allowSettingsWhile { settings -> issue in SetupRequirements.missing(settings, permissions.current()) }
     }
 
@@ -512,6 +561,7 @@ data class SettingsUi(
     val limitTimer: Boolean = true,
     val warnFiveMinutes: Boolean = false,
     val warnOneMinute: Boolean = false,
+    val theme: AppTheme = AppTheme.LARES,
 )
 
 sealed interface SettingsEvent {
@@ -533,7 +583,6 @@ class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val unlock: UnlockManager,
     private val rules: RuleRepository,
-    private val channels: AlertChannelRepository,
     private val notifier: LimitNotifier,
     clock: Clock,
     savedState: SavedStateHandle,
@@ -570,6 +619,7 @@ class SettingsViewModel @Inject constructor(
             limitTimer = s.settings.limitTimer,
             warnFiveMinutes = s.settings.warnFiveMinutes,
             warnOneMinute = s.settings.warnOneMinute,
+            theme = s.settings.theme,
         )
     }.stateIn(viewModelScope, WhileSubscribed, SettingsUi())
 
@@ -603,6 +653,8 @@ class SettingsViewModel @Inject constructor(
     fun setProtection(protection: Protection, enabled: Boolean) = guarded { settings.setProtection(protection, enabled) }
 
     fun setLimitTimer(enabled: Boolean) = guarded { settings.setLimitTimer(enabled) }
+
+    fun setTheme(theme: AppTheme) = guarded { settings.setTheme(theme) }
 
     /** True if switching a warning on first needs the notification permission from the user. */
     fun warningNeedsPermission(): Boolean = !notifier.hasPermission()
@@ -649,6 +701,9 @@ sealed interface TestState {
     data object Ok : TestState
 
     data class Failed(val reason: String?) : TestState
+
+    /** Telegram "Detect chat ID" found no message to the bot (nothing was sent). */
+    data object ChatNotFound : TestState
 }
 
 sealed interface ChannelEvent {
@@ -714,7 +769,7 @@ class ChannelEditorViewModel @Inject constructor(
         viewModelScope.launch {
             sender.detectTelegramChatId(token)
                 .onSuccess { id -> update { it.copy(address = id) } }
-                .onFailure { _test.value = TestState.Failed(null) }
+                .onFailure { _test.value = TestState.ChatNotFound }
             _detecting.value = false
         }
     }
@@ -731,7 +786,9 @@ class ChannelEditorViewModel @Inject constructor(
 
     fun save() {
         val d = _draft.value
-        if (!d.isComplete) return
+        // Checked as it will be stored (trimmed), so the only IllegalArgumentException left below
+        // is "channel deleted meanwhile".
+        if (!d.trimmed().isComplete) return
         viewModelScope.launch {
             try {
                 if (channelId == null) channels.add(d) else channels.update(channelId, d)

@@ -5,6 +5,28 @@
  */
 package de.lares_app.ui
 
+import android.app.Activity
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,6 +67,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.lares_app.R
+import de.lares_app.ui.theme.previewColorScheme
+import de.lares_app.ui.theme.wallpaperColorsAvailable
+import de.lares_app.core.data.AppTheme
+import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.unlock.UnlockManager
 import de.lares_app.platform.RecoveryExport
 import java.text.DateFormat
@@ -63,8 +89,19 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
     var showUnlock by remember { mutableStateOf(false) }
     LaunchedEffect(mode) { vm.start(mode) }
     LaunchedEffect(Unit) { vm.done.collect { onDone() } }
-    BackHandler(enabled = step is SetupStep.Password || step is SetupStep.Totp) { vm.back() }
-    BackHandler(enabled = mode == SetupMode.CHANGE && step == SetupStep.ChooseMethod) { onCancel() }
+    // One page back – the same for the back arrow and the system back gesture. None on the first
+    // page, and none on the recovery code (the new code is already stored: leaving would lose it).
+    val goBack: (() -> Unit)? = when {
+        busy -> null
+        step is SetupStep.Password || step is SetupStep.Totp || step == SetupStep.BlockingMode -> vm::back
+        step == SetupStep.Intro && wallpaperColorsAvailable -> vm::back
+        step == SetupStep.ChooseMethod && mode == SetupMode.FIRST -> vm::back
+        step == SetupStep.ChooseMethod && mode == SetupMode.CHANGE -> onCancel
+        else -> null
+    }
+    // While storing, back is swallowed (leaving mid-store could lose the new recovery code).
+    BackHandler(enabled = busy || goBack != null) { goBack?.invoke() }
+    BackHandler(enabled = step is SetupStep.Recovery) {}
 
     Scaffold { padding ->
         Column(
@@ -79,20 +116,32 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
                 ErrorText(stringResource(R.string.setup_unlock_expired))
                 OutlinedButton(onClick = { showUnlock = true }) { Text(stringResource(R.string.home_unlock)) }
             }
-            when (val s = step) {
-                SetupStep.Intro -> Intro(onStart = vm::skipIntro)
+            when (val s = step ?: return@Column) {
+                SetupStep.Theme -> {
+                    val theme by vm.theme.collectAsStateWithLifecycle()
+                    ChooseTheme(theme, onSelect = vm::setTheme, onContinue = vm::themeChosen)
+                }
+                SetupStep.Intro -> Intro(showWordmark = !wallpaperColorsAvailable, onBack = goBack, onStart = vm::skipIntro)
+                SetupStep.BlockingMode -> {
+                    val current by vm.blockingMode.collectAsStateWithLifecycle()
+                    ChooseBlockingMode(current, onBack = goBack, onChoose = vm::chooseBlockingMode, onLater = vm::skipBlockingMode)
+                }
                 SetupStep.ChooseMethod -> ChooseMethod(mode, onPassword = vm::choosePassword, onTotp = vm::chooseTotp, onCancel = onCancel)
                 is SetupStep.Password -> PasswordStep(s.error, busy, onSubmit = vm::submitPassword, onBack = vm::back)
                 is SetupStep.Totp -> TotpStep(s, busy, onConfirm = vm::confirmTotp, onBack = vm::back)
                 is SetupStep.Recovery -> RecoveryStep(s.code, busy, onFinish = vm::finish)
             }
+            // "Back" like on the password page (which, like the authenticator page, has its own;
+            // changing the code has "Cancel" instead).
+            val ownBackButton = step is SetupStep.Password || step is SetupStep.Totp || step == SetupStep.Intro ||
+                step == SetupStep.BlockingMode || (step == SetupStep.ChooseMethod && mode == SetupMode.CHANGE)
+            if (goBack != null && !ownBackButton) {
+                TextButton(onClick = goBack) { Text(stringResource(R.string.setup_back)) }
+            }
         }
     }
     if (showUnlock) {
-        UnlockDialog(onDismiss = {
-            showUnlock = false
-            vm.codeEntered()
-        })
+        UnlockDialog(onDismiss = { showUnlock = false }, onUnlocked = vm::codeEntered)
     }
 }
 
@@ -100,12 +149,107 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
 private fun Title(text: String) = Text(text, style = MaterialTheme.typography.headlineMedium)
 
 @Composable
-private fun Intro(onStart: () -> Unit) {
-    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displaySmall)
+private fun Wordmark() {
+    Image(
+        painterResource(R.drawable.logo_wordmark),
+        contentDescription = stringResource(R.string.app_name),
+        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+        modifier = Modifier.width(170.dp),
+    )
     Text(stringResource(R.string.home_tagline), style = MaterialTheme.typography.titleMedium)
+}
+
+/**
+ * First screen (Android 12+): the user's own choice of colors, before the phone is handed to the
+ * guardian. Two previews side by side, like the code method cards; the choice applies right away.
+ */
+@Composable
+private fun ChooseTheme(selected: AppTheme, onSelect: (AppTheme) -> Unit, onContinue: () -> Unit) {
+    Wordmark()
+    Title(stringResource(R.string.setup_theme_title))
+    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ThemePreviewCard(AppTheme.LARES, R.string.theme_lares, selected == AppTheme.LARES, Modifier.weight(1f)) { onSelect(AppTheme.LARES) }
+        ThemePreviewCard(AppTheme.WALLPAPER, R.string.theme_wallpaper, selected == AppTheme.WALLPAPER, Modifier.weight(1f)) {
+            onSelect(AppTheme.WALLPAPER)
+        }
+    }
+    Text(stringResource(R.string.setup_theme_hint), style = MaterialTheme.typography.bodySmall)
+    Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.setup_continue)) }
+}
+
+/** A tiny mock screen (app bar, card, button, accent dots) in the colors of [theme]. */
+@Composable
+private fun ThemePreviewCard(theme: AppTheme, label: Int, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val c = previewColorScheme(theme)
+    OutlinedCard(
+        modifier = modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        border = BorderStroke(if (selected) 3.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(8.dp)).background(c.background).padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(Modifier.fillMaxWidth(0.55f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(c.onBackground))
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(c.primaryContainer).padding(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Box(Modifier.fillMaxWidth(0.7f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(c.onPrimaryContainer))
+                    Box(Modifier.fillMaxWidth(0.45f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(c.onPrimaryContainer.copy(alpha = 0.5f)))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(width = 40.dp, height = 14.dp).clip(RoundedCornerShape(7.dp)).background(c.primary))
+                    Box(Modifier.size(10.dp).clip(CircleShape).background(c.secondary))
+                    Box(Modifier.size(10.dp).clip(CircleShape).background(c.tertiary))
+                }
+                Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(c.surfaceVariant)) {
+                    Box(Modifier.fillMaxWidth(0.4f).height(10.dp).background(c.primaryContainer))
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = selected, onClick = null)
+                Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun Intro(showWordmark: Boolean, onBack: (() -> Unit)?, onStart: () -> Unit) {
+    // Without a theme step (Android < 12), the intro is the first screen and shows the wordmark.
+    if (showWordmark) Wordmark()
     Title(stringResource(R.string.setup_intro_title))
     Text(stringResource(R.string.setup_intro_body))
-    Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.setup_intro_start)) }
+    BackAndNext(onBack) { Button(onClick = onStart) { Text(stringResource(R.string.setup_intro_start)) } }
+}
+
+/** "Back" on the left (if any), the page's main action on the right – like [NavButtons]. */
+@Composable
+private fun BackAndNext(onBack: (() -> Unit)?, next: @Composable () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        if (onBack != null) TextButton(onClick = onBack) { Text(stringResource(R.string.setup_back)) } else Spacer(Modifier)
+        next()
+    }
+}
+
+/** First setup: the guardian may already choose how Lares detects apps (free now, code later). */
+@Composable
+private fun ChooseBlockingMode(current: BlockingMode?, onBack: (() -> Unit)?, onChoose: (BlockingMode) -> Unit, onLater: () -> Unit) {
+    Title(stringResource(R.string.setup_mode_title))
+    Text(stringResource(R.string.setup_mode_body))
+    MethodCard(
+        stringResource(R.string.blocking_mode_accessibility_recommended),
+        stringResource(R.string.blocking_mode_accessibility_desc),
+        selected = current == BlockingMode.ACCESSIBILITY,
+    ) { onChoose(BlockingMode.ACCESSIBILITY) }
+    MethodCard(
+        stringResource(R.string.blocking_mode_usage_stats),
+        stringResource(R.string.blocking_mode_usage_stats_desc),
+        selected = current == BlockingMode.USAGE_STATS,
+    ) { onChoose(BlockingMode.USAGE_STATS) }
+    Text(stringResource(R.string.blocking_mode_hint), style = MaterialTheme.typography.bodySmall)
+    BackAndNext(onBack) { OutlinedButton(onClick = onLater) { Text(stringResource(R.string.setup_mode_later)) } }
 }
 
 @Composable
@@ -117,14 +261,18 @@ private fun ChooseMethod(mode: SetupMode, onPassword: () -> Unit, onTotp: () -> 
     }
     Title(stringResource(R.string.setup_method_title))
     Text(stringResource(R.string.setup_method_body))
-    MethodCard(stringResource(R.string.setup_method_password_title), stringResource(R.string.setup_method_password_desc), onPassword)
-    MethodCard(stringResource(R.string.setup_method_totp_title), stringResource(R.string.setup_method_totp_desc), onTotp)
+    MethodCard(stringResource(R.string.setup_method_password_title), stringResource(R.string.setup_method_password_desc), onClick = onPassword)
+    MethodCard(stringResource(R.string.setup_method_totp_title), stringResource(R.string.setup_method_totp_desc), onClick = onTotp)
     if (mode == SetupMode.CHANGE) TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
 }
 
 @Composable
-private fun MethodCard(title: String, description: String, onClick: () -> Unit) {
-    OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+private fun MethodCard(title: String, description: String, selected: Boolean = false, onClick: () -> Unit) {
+    OutlinedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().semantics { this.selected = selected },
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else CardDefaults.outlinedCardBorder(),
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(description, style = MaterialTheme.typography.bodyMedium)
@@ -205,8 +353,11 @@ private fun RecoveryStep(code: String, busy: Boolean, onFinish: () -> Unit) {
     val clipLabel = stringResource(R.string.setup_recovery_title)
     val shareTitle = stringResource(R.string.setup_recovery_share_title)
 
-    // The temporary share file is removed as soon as this step is left.
-    DisposableEffect(Unit) { onDispose { RecoveryExport.deleteSharedFile(context) } }
+    // The temporary share file is removed as soon as this step is left (not on rotation – a share
+    // target may still be reading it; LaresApp also cleans up at the next start).
+    DisposableEffect(Unit) {
+        onDispose { if ((context as? Activity)?.isChangingConfigurations != true) RecoveryExport.deleteSharedFile(context) }
+    }
 
     Title(stringResource(R.string.setup_recovery_title))
     Text(stringResource(R.string.setup_recovery_body))
@@ -228,8 +379,11 @@ private fun RecoveryStep(code: String, busy: Boolean, onFinish: () -> Unit) {
     }
     status?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
     Text(stringResource(R.string.setup_recovery_export_warning), style = MaterialTheme.typography.bodySmall)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = stored, onCheckedChange = { stored = it })
+    Row(
+        Modifier.fillMaxWidth().toggleable(value = stored, role = Role.Checkbox, onValueChange = { stored = it }),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = stored, onCheckedChange = null)
         Text(stringResource(R.string.setup_recovery_confirm))
     }
     ProgressButton(

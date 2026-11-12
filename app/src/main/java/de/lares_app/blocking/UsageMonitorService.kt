@@ -28,6 +28,7 @@ import de.lares_app.MainActivity
 import de.lares_app.R
 import de.lares_app.core.blocking.ForegroundTracker
 import de.lares_app.core.data.BlockingMode
+import de.lares_app.platform.ProtectionMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,11 +48,16 @@ class UsageMonitorService : Service(), BlockingHost {
 
     @Inject lateinit var controller: BlockingController
 
+    @Inject lateinit var monitor: ProtectionMonitor
+
     private val main = Handler(Looper.getMainLooper())
     private var scope: CoroutineScope? = null
     private var timer: TimerOverlay? = null
 
     @Volatile private var screenOn = true
+
+    /** False if starting in the foreground was refused (then nothing else was set up). */
+    private var started = true
 
     private val events = SystemEvents(
         context = this,
@@ -60,22 +66,34 @@ class UsageMonitorService : Service(), BlockingHost {
             controller.onScreen(it)
         },
         onPackagesChanged = { controller.refreshExemptApps() },
+        onShutdown = { monitor.onShutdown() },
     )
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        ServiceCompat.startForeground(
-            this,
-            NOTIFICATION_ID,
-            notification(),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0,
-        )
+        try {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                notification(),
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0,
+            )
+        } catch (e: RuntimeException) {
+            // Not allowed right now (e.g. sticky restart from the background on Android 12+):
+            // don't crash the process (it also runs the Accessibility service); started again
+            // when Lares is opened.
+            BlockingLog.d { "usage monitor: startForeground refused: $e" }
+            started = false
+            stopSelf()
+            return
+        }
         timer = TimerOverlay(this, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
         screenOn = getSystemService(PowerManager::class.java).isInteractive
         events.register()
         controller.attach(BlockingMode.USAGE_STATS, this)
+        controller.onScreen(screenOn)
         val s = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         scope = s
         s.launch { poll() }
@@ -85,6 +103,7 @@ class UsageMonitorService : Service(), BlockingHost {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
+        if (!started) return super.onDestroy()
         scope?.cancel()
         scope = null
         controller.detach(BlockingMode.USAGE_STATS)
@@ -131,7 +150,7 @@ class UsageMonitorService : Service(), BlockingHost {
             PendingIntent.FLAG_IMMUTABLE,
         )
         NotificationCompat.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_lock)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.blocking_service_title))
             .setContentText(getString(R.string.blocking_service_text))
             .setContentIntent(open)

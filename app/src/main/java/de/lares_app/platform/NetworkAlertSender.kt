@@ -104,7 +104,6 @@ class NetworkAlertSender(private val smtp: SmtpMailer = SmtpMailer()) : AlertSen
         method: String,
         url: String,
         json: JsonObject? = null,
-        body: String? = null,
         headers: Map<String, String> = emptyMap(),
     ): String {
         require(url.startsWith("https://", ignoreCase = true)) { "HTTPS required" }
@@ -115,11 +114,10 @@ class NetworkAlertSender(private val smtp: SmtpMailer = SmtpMailer()) : AlertSen
             connection.readTimeout = TIMEOUT_MILLIS
             connection.instanceFollowRedirects = false // never forward credentials to another host
             headers.forEach { (k, v) -> connection.setRequestProperty(k, v) }
-            val payload = json?.toString() ?: body
-            if (payload != null) {
+            if (json != null) {
                 connection.doOutput = true
-                connection.setRequestProperty("Content-Type", if (json != null) "application/json; charset=utf-8" else "text/plain; charset=utf-8")
-                connection.outputStream.use { it.write(payload.encodeToByteArray()) }
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                connection.outputStream.use { it.write(json.toString().encodeToByteArray()) }
             }
             val code = connection.responseCode
             if (code !in 200..299) throw IOException("HTTP $code")

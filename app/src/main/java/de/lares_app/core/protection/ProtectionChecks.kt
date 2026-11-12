@@ -84,6 +84,17 @@ object GapCheck {
     }
 
     /**
+     * Minutes from the last heartbeat of an earlier boot to the start of this boot, if it came
+     * with the screen on – a clean shutdown marks the heartbeat "screen off" first. So: protection
+     * stopped while in use (e.g. force stop), the phone used further, then restarted.
+     */
+    fun stoppedBeforeReboot(last: Heartbeat?, bootStartWallMillis: Long, bootCount: Int): Long? {
+        if (last == null || last.bootCount == bootCount || !last.screenOn || !last.reportable) return null
+        val gap = bootStartWallMillis - last.wallMillis
+        return if (gap > STOP_THRESHOLD_MILLIS) gap / 60_000L else null
+    }
+
+    /**
      * Phone starts in which Lares didn't run at all (e.g. safe mode: third-party apps don't run).
      * Lares starts on every normal boot, so the boot counter must have grown by exactly one.
      */

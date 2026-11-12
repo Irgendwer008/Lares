@@ -58,21 +58,35 @@ data class ResetSchedule(
 
     /**
      * Advances the tracked period monotonically. A period only ends when its stored end is
-     * reached, so changing the time zone or setting the clock back never grants a fresh quota
-     * (those are reported as tamper events separately).
+     * reached, so setting the clock back never grants a fresh quota; setting it forward or
+     * switching time zones doesn't either (both are also reported as tamper events):
+     * - [elapsedSinceStartMillis] (monotonic time since the current period started, null if
+     *   unknown – e.g. another boot): a period can't end before most of its length really passed.
+     * - A period that follows directly (time-zone change near the end) lasts at least
+     *   [MIN_FOLLOWING_PERIOD_MILLIS], so repeated zone changes can't chain short periods.
      */
-    fun advance(current: UsagePeriod?, now: Instant, zone: ZoneId): UsagePeriod {
+    fun advance(current: UsagePeriod?, now: Instant, zone: ZoneId, elapsedSinceStartMillis: Long? = null): UsagePeriod {
         if (current != null && now < current.end) return current
+        if (current != null && elapsedSinceStartMillis != null) {
+            val length = current.end.toEpochMilli() - current.start.toEpochMilli()
+            if (elapsedSinceStartMillis < length - CLOCK_TOLERANCE_MILLIS) return current // clock set forward
+        }
         val next = periodAt(now, zone)
         return if (current != null && next.start < current.end) {
             // Never overlap the previous period (e.g. after a time-zone change).
-            UsagePeriod(current.end, maxOf(next.end, current.end.plusSeconds(1)))
+            UsagePeriod(current.end, maxOf(next.end, current.end.plusMillis(MIN_FOLLOWING_PERIOD_MILLIS)))
         } else {
             next
         }
     }
 
     companion object {
+        /** Daylight saving time can make a day an hour shorter; small clock corrections. */
+        const val CLOCK_TOLERANCE_MILLIS = 2 * 60 * 60_000L
+
+        /** Shortest regular day (DST) – a period after a zone change is never shorter. */
+        const val MIN_FOLLOWING_PERIOD_MILLIS = 23 * 60 * 60_000L
+
         internal fun latestOccurrence(time: LocalTime, now: Instant, zone: ZoneId): Instant {
             val local = now.atZone(zone)
             var candidate = ZonedDateTime.of(local.toLocalDate(), time, zone)

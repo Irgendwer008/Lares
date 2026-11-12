@@ -62,6 +62,7 @@ class RuleRepository(
     private val store: RuleStore,
     private val groupStore: GroupStore,
     private val gate: UnlockGate,
+    private val usage: UsageTransfer = UsageTransfer.None,
 ) {
     val rules: Flow<List<Rule>> = store.rules
     val groups: Flow<List<RuleGroup>> = groupStore.groups
@@ -103,16 +104,12 @@ class RuleRepository(
         require(new.groupId == null || groupStore.get(new.groupId) != null) { "unknown group ${new.groupId}" }
         gate.check(ChangePolicy.classifyInGroups(old, new, groupMap()))
         store.update(new)
+        if (old.groupId != new.groupId) usage.ruleMoved(new.id, old.groupId, new.groupId)
     }
 
     suspend fun setEnabled(id: Long, enabled: Boolean) {
         val old = store.get(id) ?: return
         update(old.copy(enabled = enabled))
-    }
-
-    suspend fun setLimit(id: Long, limitMinutesPerDay: Int?) {
-        val old = store.get(id) ?: return
-        update(old.copy(limitMinutesPerDay = limitMinutesPerDay))
     }
 
     /** Limit and on/off in one atomic change (one policy check for both). */
@@ -224,5 +221,18 @@ class RuleRepository(
             RuleType.APP -> target.trim().takeIf { PACKAGE_NAME.matches(it) }
             RuleType.WEBSITE -> UrlMatcher.normalizeRule(target)?.toString()
         }
+    }
+}
+
+/**
+ * Moves the time already used along with a rule that changes group (see
+ * [de.lares_app.core.blocking.UsageCounter.carryOver]) – otherwise moving it into a fresh group
+ * with a lower limit would be "tightening" and still start a new quota.
+ */
+fun interface UsageTransfer {
+    suspend fun ruleMoved(ruleId: Long, fromGroup: Long?, toGroup: Long?)
+
+    companion object {
+        val None = UsageTransfer { _, _, _ -> }
     }
 }

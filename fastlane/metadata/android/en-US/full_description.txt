@@ -1,0 +1,28 @@
+Lares helps you use social media less. You choose the apps and websites to block – always, or after a daily time limit. Adding restrictions is always possible; removing or loosening them needs a code that only a trusted person knows: your <b>guardian</b>, for example a friend or family member.
+
+<b>Blocking</b>
+• Block apps and websites always or after a daily time limit, with a clear block screen.
+• Website blocking reads the address bar of supported browsers (Chrome, Firefox, Brave, Edge, Samsung Internet, DuckDuckGo and others); other browsers are blocked while it's on. No VPN – your own VPN keeps working.
+• Groups: several apps and websites share one limit, e.g. the YouTube app, youtube.com and alternative clients.
+• Templates for popular social apps, including alternative clients.
+• A small countdown during the last minutes and optional warnings before a limit runs out.
+
+<b>Guardian code</b>
+• The guardian sets a password or an authenticator app (TOTP), plus a one-time recovery code.
+• A correct code unlocks Lares for 10 minutes to change anything or start a pause.
+• Repeated wrong codes lead to a growing waiting time.
+
+<b>Tamper protection</b>
+• Prevent uninstalling (device administrator).
+• Guard Lares' own pages in the system settings.
+• Notify the guardian about tampering – via Telegram, ntfy, email, Matrix or a webhook: permissions turned off, protection gaps, clock changes, repeated wrong codes.
+
+<b>Privacy</b>
+Lares works entirely on your phone: no account, no analytics, no tracking, no ads. It only connects to the internet to send guardian notifications to the services you set up yourself. It only asks for the permissions your settings need.
+
+<b>Permissions</b>
+• Accessibility service (recommended blocking mode): to detect which app is open, read the address bar of supported browsers and recognize Lares' own settings pages. Nothing else on the screen is read, and nothing is stored or sent.
+• Usage access and "display over other apps": the alternative blocking mode.
+• Device administrator (optional): only to prevent uninstalling Lares.
+
+Lares is free software under the GNU GPL v3 or later. English and German.

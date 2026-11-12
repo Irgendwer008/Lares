@@ -5,6 +5,8 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -154,7 +156,9 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
                 modifier = Modifier.padding(16.dp),
             )
         }
-        items(vm.templates, key = { it.id }) { template ->
+        // Templates with an installed app first (otherwise in their usual order).
+        val sorted = vm.templates.sortedByDescending { t -> t.apps.any { it in installed } }
+        items(sorted, key = { it.id }) { template ->
             val icon = template.apps.firstNotNullOfOrNull { installed[it]?.icon }
             val appsText = pluralStringResource(R.plurals.add_rule_template_apps, template.apps.size, template.apps.size)
             val sitesText = pluralStringResource(R.plurals.add_rule_template_websites, template.websites.size, template.websites.size)
@@ -202,8 +206,11 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
                     }
                     if (group == null) {
                         LimitSelector(limit)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = asGroup, onCheckedChange = { asGroup = it })
+                        Row(
+                            Modifier.fillMaxWidth().toggleable(value = asGroup, role = Role.Checkbox, onValueChange = { asGroup = it }),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = asGroup, onCheckedChange = null)
                             Text(stringResource(R.string.add_rule_template_as_group))
                         }
                         Text(
@@ -335,9 +342,8 @@ private fun NewGroupTab(onCreate: (String, Int?) -> Unit) {
     }
 }
 
-/** Shown when adding website rules while website blocking is switched off in the settings. */
-@Composable
 /** Why website rules don't take effect yet (nothing while website blocking is on). */
+@Composable
 private fun WebsiteBlockingNote(state: WebsiteBlockingState, onEnable: () -> Unit, onOpenBlockingMode: () -> Unit) {
     if (state == WebsiteBlockingState.ON) return
     val unavailable = state == WebsiteBlockingState.UNAVAILABLE

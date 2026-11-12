@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -39,7 +40,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import de.lares_app.MainActivity
 import de.lares_app.R
 import de.lares_app.core.policy.BlockReason
+import de.lares_app.core.data.StateStore
 import de.lares_app.ui.theme.LaresTheme
+import de.lares_app.ui.theme.initialTheme
 import java.util.Date
 import javax.inject.Inject
 
@@ -48,6 +51,8 @@ import javax.inject.Inject
 class BlockActivity : AppCompatActivity() {
 
     @Inject lateinit var controller: BlockingController
+
+    @Inject lateinit var store: StateStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -62,8 +67,9 @@ class BlockActivity : AppCompatActivity() {
         val browser = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
         val resetAt = intent.getLongExtra(EXTRA_RESET_AT, 0L)
         val resetText = if (resetAt > 0) DateFormat.getTimeFormat(this).format(Date(resetAt)) else ""
+        val theme = initialTheme(store)
         setContent {
-            LaresTheme {
+            LaresTheme(store, theme) {
                 BlockScreen(
                     label = label,
                     reason = reason,
@@ -145,10 +151,11 @@ private fun BlockScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
-                painterResource(R.drawable.ic_lock),
+                painterResource(R.drawable.ic_lares),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(56.dp),
+                // Both sides: an Icon keeps its default 24 dp width otherwise, which shrinks the L.
+                modifier = Modifier.size(width = 45.dp, height = 56.dp),
             )
             val settingsPage = reason == BlockReason.PROTECTED_SETTINGS
             Text(

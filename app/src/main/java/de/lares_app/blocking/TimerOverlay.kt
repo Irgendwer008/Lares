@@ -69,6 +69,8 @@ class TimerOverlay(private val service: Context, private val windowType: Int) {
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            // Android 12+ drops touches under opaque overlays of other apps; at most 0.8 they pass.
+            if (windowType == WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY) alpha = 0.8f
             y = dp(56f).toInt() // below the status bar
         }
         // Fails if the overlay permission was taken away – then there's no countdown.

@@ -7,7 +7,7 @@ updated in place.
 | Decision | Reason |
 |---|---|
 | Tightening is free, loosening needs the guardian code | Encourages stricter rules; the guardian only needs to be involved for loosening |
-| Rule types in v1: always blocked or daily time limit | Schedules and open-count limits deferred |
+| Rule types in v1: always blocked or daily time limit | Schedules and open-count limits are not part of v1 |
 | Daily reset time configurable (default 00:00); any change needs the code and applies after the next reset | Night owls; moving the reset in either direction can grant a fresh quota |
 | Groups with a shared daily limit and a common switch; members use the group's limit | Sum up time across app + website + alternative clients; switch related rules at once |
 | A target can be a single rule and a group member at the same time; both limits apply | Adding a group never changes existing rules; the stricter limit always wins |
@@ -20,7 +20,7 @@ updated in place.
 |---|---|
 | Guardian code: static password or TOTP, chosen at setup | Password is simple; TOTP allows remote, non-reusable codes |
 | Recovery code at setup, hashed with salted SHA-256 | Avoids permanent lock-out; 100 random bits can't be brute-forced, so a slow KDF would only add delay |
-| Recovery code is copied or shared, never saved on the phone | Sharing sends it straight to the guardian; a stored file would stay on the owner's phone |
+| Recovery code is copied or shared, never stored in plain text on the phone (only a salted hash) | Sharing sends it straight to the guardian; a stored file would stay on the owner's phone |
 | Correct code → unlocked mode (10 min, "Lock now"); a pause is started from unlocked mode | The guardian unlocks once and can change anything |
 | Pause: presets + custom, no maximum | The guardian decides the length |
 | No guardian notification for unlocking or pauses (only tamper events) | The guardian entered the code, so they already know |
@@ -42,11 +42,14 @@ updated in place.
 | Tamper events only while locked | Whoever changes something in unlocked mode has the guardian code; no false alarms during maintenance |
 | Only losses of working permissions are reported; gaps only if stopped with the screen on | Few false alarms (never granted, phone asleep) – the guardian should be able to trust every message |
 | No switch for "restart after reboot" | The system restarts the Accessibility service anyway, so a switch would promise something it can't do |
-| Settings guard recognizes Lares' pages by title / non-clickable "Lares" text; a setup link opens it only until that issue is fixed (max. 2 min, ends when Lares is opened) | Lists stay usable; setup issues can be fixed while the guard is on, without a time window for anything else |
+| Settings guard recognizes Lares' pages by title / non-clickable "Lares" text (dialogs aren't guarded); a setup link opens it only until that issue is fixed (max. 2 min, ends when Lares is opened; not for the battery recommendation) | Lists stay usable; setup issues can be fixed while the guard is on, without a time window for anything else |
 | One digest message per channel, per-channel delivery cursor | No duplicates when one channel fails; several events don't flood the guardian |
+| Moving a rule between groups carries its used time along | Otherwise moving it into a fresh group with a lower limit would be "tightening" and start a new quota |
+| A usage period can't end before most of it really passed (monotonic time) and lasts at least 23 h after a time-zone change | Setting the clock forward or switching zones never grants extra quota |
+| TOTP: codes older than the highest time step ever seen are rejected | A saved code can't be replayed by setting the clock back |
 | The settings guard always needs the Accessibility service (also in Usage access mode) | Settings pages can only be read via Accessibility |
-| Tamper protections (prevent uninstall, settings guard, restart after reboot, notify guardian) – each toggleable | User choice |
-| Main screen lists all missing setup at once (mode, permissions, device admin – assuming the recommended Accessibility mode until one is chosen); accessibility service and device admin are declared ahead of their logic | The user sees everything blocking still needs in one go; components must exist to be enabled and checked |
+| Tamper protections (prevent uninstall, settings guard, notify guardian) – each toggleable | User choice |
+| Main screen lists all missing setup at once (mode, permissions, device admin – assuming the recommended Accessibility mode until one is chosen) | The user sees everything blocking still needs in one go; components must exist to be enabled and checked |
 | Prominent disclosure before opening the accessibility settings | Google Play policy |
 | Full block screen (not just a jump to the home screen) | Clear reason and next steps; "Go to Lares" opens the app (to unlock or pause – the code may already be entered, since unlocked mode keeps blocking) |
 | Blocking stays active in unlocked mode | Unlocked mode is for changing rules; using blocked apps needs an explicit pause |
@@ -61,7 +64,6 @@ updated in place.
 | Channels: Telegram, ntfy, email (SMTP), webhook, Matrix | SMS rejected (Play restrictions); Signal and WhatsApp have no API usable for private guardians |
 | No extra network libraries: `HttpsURLConnection` + own minimal SMTP client; HTTPS / TLS only, no redirects | Small, FOSS-clean, credentials never go to another host |
 | `INTERNET` permission only for guardian notifications | Lares itself works offline |
-| Settings UI for blocking mode and protections available before their services exist | Complete settings UI up front |
 
 ## Icons & look
 | Decision | Reason |

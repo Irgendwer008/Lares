@@ -9,6 +9,8 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.view.View
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -66,6 +68,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import de.lares_app.R
+import de.lares_app.core.data.AppTheme
 import de.lares_app.core.policy.RuleType
 import kotlin.math.PI
 import kotlin.math.ceil
@@ -140,8 +143,14 @@ class LimitState(initial: Int?) {
     val limit: Int? get() = if (alwaysOn) null else minutesText.toIntOrNull()
 }
 
+/** Survives rotation (otherwise a group could be created with a limit the user didn't choose). */
 @Composable
-fun rememberLimitState(initial: Int?) = remember { LimitState(initial) }
+fun rememberLimitState(initial: Int?) = rememberSaveable(saver = LimitStateSaver) { LimitState(initial) }
+
+private val LimitStateSaver = listSaver<LimitState, Any>(
+    save = { listOf(it.alwaysOn, it.minutesText) },
+    restore = { saved -> LimitState(null).apply { alwaysOn = saved[0] as Boolean; minutesText = saved[1] as String } },
+)
 
 @Composable
 fun LimitSelector(state: LimitState, modifier: Modifier = Modifier) {
@@ -288,4 +297,11 @@ fun QrCode(content: String, contentDescription: String, modifier: Modifier = Mod
         filterQuality = FilterQuality.None,
         modifier = modifier.size(240.dp).background(Color.White),
     )
+}
+
+/** Lares colors / wallpaper colors (setup and settings). */
+@Composable
+fun ThemeOptions(selected: AppTheme, onSelect: (AppTheme) -> Unit) {
+    RadioRow(stringResource(R.string.theme_lares), selected == AppTheme.LARES) { onSelect(AppTheme.LARES) }
+    RadioRow(stringResource(R.string.theme_wallpaper), selected == AppTheme.WALLPAPER) { onSelect(AppTheme.WALLPAPER) }
 }

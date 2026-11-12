@@ -6,6 +6,7 @@
 package de.lares_app.core.policy
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -78,5 +79,29 @@ class ResetScheduleTest {
         val ny = ZoneId.of("America/New_York")
         val next = s.advance(p, at("2026-11-12T00:00"), ny)
         assertEquals(p.end, next.start)
+    }
+
+    @Test fun zoneChangesCantChainShortPeriods() {
+        val s = ResetSchedule()
+        val p = s.advance(null, at("2026-11-11T10:00"), berlin)
+        // Just before the end, switch to a zone where it's already 23:00 local: the following
+        // period still lasts at least 23 h (not 1 h with a full quota).
+        val tokyo = ZoneId.of("Asia/Tokyo")
+        val next = s.advance(p, p.end, tokyo)
+        assertEquals(p.end, next.start)
+        assertTrue(next.end.toEpochMilli() - next.start.toEpochMilli() >= ResetSchedule.MIN_FOLLOWING_PERIOD_MILLIS)
+    }
+
+    @Test fun clockSetForwardDoesNotEndThePeriodEarly() {
+        val s = ResetSchedule()
+        val p = s.advance(null, at("2026-11-11T10:00"), berlin)
+        val hour = 3_600_000L
+        // Wall clock jumped two days ahead, but only 1 h really passed since the period started.
+        assertEquals(p, s.advance(p, at("2026-11-13T10:00"), berlin, elapsedSinceStartMillis = hour))
+        // Once (almost) the whole period really passed, the next one starts.
+        val later = s.advance(p, at("2026-11-13T10:00"), berlin, elapsedSinceStartMillis = 23 * hour)
+        assertTrue(later.start > p.start)
+        // Unknown (other boot): wall clock decides, as before.
+        assertTrue(s.advance(p, at("2026-11-12T00:00"), berlin, elapsedSinceStartMillis = null).start == p.end)
     }
 }

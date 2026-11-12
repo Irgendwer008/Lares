@@ -60,7 +60,7 @@ and countdown.
   Browsers that show only the domain (e.g. Firefox) can't distinguish path rules like
   `youtube.com/shorts` – domain rules work everywhere.
 - On a blocked website: block screen over the browser ("reddit.com is blocked") with "Stay in
-  browser" (opens a neutral page – `SAFE_PAGE_URL`, google.com until Lares has its own page – in the
+  browser" (opens a neutral page – `SAFE_PAGE_URL`, Lares' own static page on GitHub Pages, `docs/blocked/index.html` – in the
   same browser like a normal link; Chromium browsers reuse one tab for it), "Close browser" (same,
   then the home screen) and "Go to Lares". So the blocked page is no longer the open tab when the
   browser is opened again; for 5 s the old URL is ignored while the neutral page loads. Time limits count while a
@@ -72,11 +72,15 @@ and countdown.
   limitation.
 
 ## Daily time limits
-- `UsageTracker` accumulates foreground time per rule; for websites the time a matching
-  URL is in the foreground.
+- `UsageCounter` (in memory, `UsageRepository` saves it) accumulates foreground time per rule and
+  group; for websites the time a matching URL is in the foreground.
 - Reset at the configured local time (default midnight, see [Requirements](requirements.md) §3).
-  Clock / time-zone changes never grant a new quota (`ResetSchedule.advance()`) and are recorded
-  as tamper events (see [Unlock & Security](unlock-and-security.md)).
+  Clock / time-zone changes never grant a new quota (`ResetSchedule.advance()`): a period only
+  ends at its stored end, not before most of its length really passed (monotonic time, so setting
+  the clock forward doesn't help), and a period after a zone change lasts at least 23 h. Both are
+  also recorded as tamper events (see [Unlock & Security](unlock-and-security.md)).
+- Moving a rule into / out of a group carries its used time along (the destination counter gets
+  at least the source's time), so moving never starts a fresh quota.
 - Group members share one counter: the group's foreground time is the sum of all members, counted
   once even if several members match at the same time (app + website).
 - Time counts once per second while the app is in the foreground and the screen is on (steps are
@@ -88,6 +92,17 @@ and countdown.
 - Shows what is blocked and why (always blocked / limit reached, group if any), when the limits
   restart, "Close" (home screen) and "Go to Lares" (opens the app).
 
+## Known limits
+- Picture-in-picture and split screen: only the app of the last opened screen counts, so a
+  blocked video can keep playing in a PiP window or the other half of the screen.
+- A supported browser whose address bar can't be read (e.g. its view id changed in an update)
+  is only subject to app rules until the `SupportedBrowsers` table is updated.
+- Settings apps of other manufacturers (e.g. Samsung's separate accessibility app) may need
+  their packages added to the settings guard; the Android 13+ "active apps" panel in the quick
+  settings can stop Usage access mode (reported as a gap once Lares runs again).
+
 ## Exempt apps
-- Never blocked: Lares, launchers, dialers / emergency, keyboards, system UI, the Settings app as a
-  whole, permission and install dialogs (`ExemptApps`, computed from what is installed).
+- Never blocked: Lares, the home screen, phone / emergency, keyboards, system UI, the Settings app
+  as a whole, permission and install dialogs (`ExemptApps`, computed from what is installed).
+  Home screens, dialers and settings apps count only if they are system apps or the chosen
+  default, keyboards only if enabled – any app could declare such a role to escape blocking.

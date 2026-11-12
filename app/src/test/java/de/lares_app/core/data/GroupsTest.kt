@@ -88,7 +88,7 @@ class GroupsTest {
     // ---- Repository -----------------------------------------------------------------------------
 
     private val clock = FakeClock()
-    private val state = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x")))
+    private val state = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x"), settings = AppSettings(setupComplete = true)))
     private val ruleStore = FakeRuleStore()
     private val groupStore = FakeGroupStore(ruleStore)
     private val repo = RuleRepository(ruleStore, groupStore, UnlockGate(state, clock))

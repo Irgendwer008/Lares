@@ -15,7 +15,9 @@ import de.lares_app.blocking.BlockingController
 import de.lares_app.blocking.UsageMonitorStarter
 import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.ui.LaresRoot
+import de.lares_app.core.data.StateStore
 import de.lares_app.ui.theme.LaresTheme
+import de.lares_app.ui.theme.initialTheme
 import javax.inject.Inject
 
 /** AppCompatActivity (not ComponentActivity) so per-app language works back to API 26. */
@@ -27,6 +29,8 @@ class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var blocking: BlockingController
 
+    @Inject lateinit var store: StateStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -34,8 +38,9 @@ class MainActivity : AppCompatActivity() {
         // offered for saving on the phone owner's device. Dialogs have their own window and
         // call DisableAutofill() themselves.
         window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        val theme = initialTheme(store)
         setContent {
-            LaresTheme {
+            LaresTheme(store, theme) {
                 LaresRoot()
             }
         }

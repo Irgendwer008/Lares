@@ -29,4 +29,13 @@ class TimedSessionTest {
         val lockout = TimedSession.start(60_000L, nowElapsedMillis = 5_000L, bootId = 3, afterReboot = AfterReboot.RESTART)
         assertEquals(60_000L, lockout.remainingMillis(nowElapsedMillis = 10L, currentBootId = 4))
     }
+
+    @Test fun restartedElapsedTimeWithUnchangedBootIdIsTreatedAsReboot() {
+        // Started after 5 h uptime; after a reboot whose boot counter didn't change, elapsed is
+        // small again – the session must not last another 5 h.
+        val s = TimedSession.start(10 * 60_000L, nowElapsedMillis = 5 * 3_600_000L, bootId = 3)
+        assertEquals(0L, s.remainingMillis(nowElapsedMillis = 60_000L, currentBootId = 3))
+        val lockout = TimedSession.start(60_000L, 5 * 3_600_000L, 3, AfterReboot.RESTART)
+        assertEquals(60_000L, lockout.remainingMillis(60_000L, 3))
+    }
 }

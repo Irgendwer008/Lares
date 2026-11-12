@@ -5,6 +5,7 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -40,12 +41,27 @@ import de.lares_app.core.unlock.UnlockManager
 
 /** Guardian code entry. A correct code unlocks the app for [UnlockManager.UNLOCKED_DURATION_MILLIS]. */
 @Composable
-fun UnlockDialog(onDismiss: () -> Unit, vm: UnlockViewModel = hiltViewModel()) {
-    LaunchedEffect(Unit) { vm.reset() }
+fun UnlockDialog(onDismiss: () -> Unit, onUnlocked: () -> Unit = {}, vm: UnlockViewModel = hiltViewModel()) {
+    // Fresh state when the dialog opens – not again after a rotation (would hide a running lockout).
+    var resetDone by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!resetDone) {
+            vm.reset()
+            resetDone = true
+        }
+    }
+    // The ViewModel outlives the dialog: a "Done" left over from an earlier unlock must not close
+    // this one (or count as entered) – only a code submitted in this dialog does.
+    var submitted by rememberSaveable { mutableStateOf(false) }
     val ui by vm.ui.collectAsStateWithLifecycle()
     when (val s = ui) {
-        is UnlockUi.EnterCode -> EnterCodeDialog(s, onSubmit = vm::submit, onDismiss = onDismiss)
-        UnlockUi.Done -> LaunchedEffect(Unit) { onDismiss() }
+        is UnlockUi.EnterCode -> EnterCodeDialog(s, onSubmit = { submitted = true; vm.submit(it) }, onDismiss = onDismiss)
+        UnlockUi.Done -> if (submitted) {
+            LaunchedEffect(Unit) {
+                onUnlocked()
+                onDismiss()
+            }
+        }
     }
 }
 

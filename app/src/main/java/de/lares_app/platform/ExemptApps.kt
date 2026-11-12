@@ -7,6 +7,8 @@ package de.lares_app.platform
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ApplicationInfo
 import android.provider.Settings
 import android.telecom.TelecomManager
 import android.view.inputmethod.InputMethodManager
@@ -24,12 +26,20 @@ class ExemptApps(private val context: Context) {
         add(context.packageName)
         addAll(FIXED)
         val pm = context.packageManager
-        fun handlers(intent: Intent) = pm.queryIntentActivities(intent, 0).map { it.activityInfo.packageName }
-        addAll(handlers(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)))
-        addAll(handlers(Intent(Intent.ACTION_DIAL, "tel:".toUri())))
-        addAll(handlers(Intent(Settings.ACTION_SETTINGS)))
+        // Only system apps for these roles – any app can declare such an activity (a browser
+        // declaring itself a home screen must not become unblockable). Plus the chosen defaults.
+        fun systemHandlers(intent: Intent) = pm.queryIntentActivities(intent, 0)
+            .filter { it.activityInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0 }
+            .map { it.activityInfo.packageName }
+        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        addAll(systemHandlers(home))
+        pm.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+            ?.takeIf { it != "android" }?.let(::add) // the current home screen ("android" = chooser)
+        addAll(systemHandlers(Intent(Intent.ACTION_DIAL, "tel:".toUri())))
+        addAll(systemHandlers(Intent(Settings.ACTION_SETTINGS)))
         runCatching { context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage }.getOrNull()?.let(::add)
-        context.getSystemService(InputMethodManager::class.java)?.inputMethodList?.forEach { add(it.packageName) }
+        // Enabled keyboards only (an installed but unused "keyboard" could be anything).
+        context.getSystemService(InputMethodManager::class.java)?.enabledInputMethodList?.forEach { add(it.packageName) }
     }
 
     private companion object {

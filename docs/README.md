@@ -15,7 +15,8 @@ trusted person (friend, family member – the **guardian**) set up.
 | [Unlock & Security](unlock-and-security.md) | Password / TOTP, recovery, unlocked mode, tighten / loosen policy, tamper protection |
 | [Notifications](notifications.md) | Guardian notification channels (Telegram, ntfy, email, webhook, Matrix) |
 | [Localization](localization.md) | i18n rules (EN + DE, easy to extend) |
-| [Distribution](distribution.md) | Google Play + F-Droid requirements, build types, license notices |
+| [Distribution](distribution.md) | Google Play + F-Droid requirements, build types, versioning, signing, website |
+| [Play Console](play-console.md) | Ready-to-paste answers for the Play Console forms |
 | [Privacy Policy](privacy-policy.md) | Store privacy policy (in sync with the in-app text) |
 | [Decisions](decisions.md) | Current design decisions and their reasons |
 | [Open Questions](open-questions.md) | Things not decided yet |

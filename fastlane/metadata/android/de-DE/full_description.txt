@@ -1,0 +1,28 @@
+Lares hilft dir, weniger Zeit mit Social Media zu verbringen. Du wählst die Apps und Websites, die gesperrt werden – immer oder nach einem Tageslimit. Einschränkungen hinzufügen geht jederzeit; sie zu entfernen oder zu lockern erfordert einen Code, den nur eine Vertrauensperson kennt: dein <b>Guardian</b>, zum Beispiel ein Freund oder ein Familienmitglied.
+
+<b>Sperren</b>
+• Apps und Websites immer oder nach einem Tageslimit sperren, mit einem klaren Sperrbildschirm.
+• Das Sperren von Websites liest die Adressleiste unterstützter Browser (Chrome, Firefox, Brave, Edge, Samsung Internet, DuckDuckGo und weitere); andere Browser werden gesperrt, solange es eingeschaltet ist. Kein VPN – dein eigenes VPN funktioniert weiter.
+• Gruppen: Mehrere Apps und Websites teilen sich ein Limit, z. B. die YouTube-App, youtube.com und alternative Clients.
+• Vorlagen für beliebte Social-Media-Apps, inklusive alternativer Clients.
+• Ein kleiner Countdown in den letzten Minuten und optionale Warnungen, bevor ein Limit abläuft.
+
+<b>Guardian-Code</b>
+• Der Guardian legt ein Passwort oder eine Authenticator-App (TOTP) fest, dazu einen einmaligen Wiederherstellungscode.
+• Ein richtiger Code entsperrt Lares für 10 Minuten, um alles zu ändern oder eine Pause zu starten.
+• Wiederholt falsche Codes führen zu einer wachsenden Wartezeit.
+
+<b>Schutz vor Umgehung</b>
+• Deinstallation verhindern (Geräteadministrator).
+• Lares' eigene Seiten in den Systemeinstellungen schützen.
+• Den Guardian über Umgehungsversuche benachrichtigen – per Telegram, ntfy, E-Mail, Matrix oder Webhook: ausgeschaltete Berechtigungen, Schutzlücken, verstellte Uhrzeit, wiederholt falsche Codes.
+
+<b>Datenschutz</b>
+Lares arbeitet vollständig auf deinem Handy: kein Konto, keine Analyse, kein Tracking, keine Werbung. Es verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen an die Dienste zu senden, die du selbst einrichtest. Es fragt nur nach den Berechtigungen, die deine Einstellungen brauchen.
+
+<b>Berechtigungen</b>
+• Bedienungshilfe (empfohlener Modus): um zu erkennen, welche App geöffnet ist, die Adressleiste unterstützter Browser zu lesen und Lares' eigene Einstellungsseiten zu erkennen. Sonst wird nichts vom Bildschirm gelesen, und nichts wird gespeichert oder gesendet.
+• Nutzungszugriff und „Über anderen Apps einblenden“: der alternative Modus.
+• Geräteadministrator (optional): nur, um das Deinstallieren von Lares zu verhindern.
+
+Lares ist freie Software unter der GNU GPL v3 oder neuer. Deutsch und Englisch.

@@ -52,6 +52,11 @@ class SettingsRepository(
         store.update { it.copy(settings = it.settings.copy(limitTimer = enabled)) }
     }
 
+    /** Purely cosmetic – never loosening. */
+    suspend fun setTheme(theme: AppTheme) {
+        store.update { it.copy(settings = it.settings.copy(theme = theme)) }
+    }
+
     suspend fun setWarnings(fiveMinutes: Boolean, oneMinute: Boolean) {
         store.update { it.copy(settings = it.settings.copy(warnFiveMinutes = fiveMinutes, warnOneMinute = oneMinute)) }
     }

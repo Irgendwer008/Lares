@@ -1,0 +1,1 @@
+Erste Version: Apps und Websites sperren mit Tageslimits, Gruppen und Vorlagen, Guardian-Code (Passwort oder TOTP), Schutz vor Umgehung und Guardian-Benachrichtigungen.

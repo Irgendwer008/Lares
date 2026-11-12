@@ -38,13 +38,51 @@ only if a store forces divergence – currently none is planned.
 - `debug` – development (slow Compose, debuggable).
 - `localRelease` – same as `release` (R8, not debuggable) but signed with the local debug key, to
   judge real performance on a device. Never published.
-- `release` – unsigned here; signed by F-Droid / with the Play upload key.
+- `release` – unsigned unless `keystore.properties` exists (then signed with the Play upload key).
+
+## Versioning
+- `versionName` is semantic `major.minor.patch`, set once in `app/build.gradle.kts`
+  (`appVersion`). The `versionCode` is derived: major × 10 000 + minor × 100 + patch (0.1.0 → 100,
+  1.2.3 → 10203), so it always grows; minor and patch stay below 100.
+- Each release gets a git tag `v<versionName>` (F-Droid's update check can follow tags) and a
+  changelog file `fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt`.
+
+## Signing
+- **F-Droid** builds from source and signs with its own key, or – with reproducible builds –
+  publishes the developer-signed APK if F-Droid's build matches it byte for byte.
+- **Google Play:** Play App Signing; the upload key stays with the developer. Release signing reads
+  `keystore.properties` in the project root (never committed – `.gitignore` covers it and `*.jks`):
+  ```properties
+  storeFile=keys/lares-upload.jks
+  storePassword=…
+  keyAlias=lares-upload
+  keyPassword=…
+  ```
+  Create the key once with `keytool -genkeypair -v -keystore keys/lares-upload.jks -alias
+  lares-upload -keyalg RSA -keysize 4096 -validity 10000`. `keys/` is ignored by git; keep a
+  backup of the key file and both passwords outside the repository (e.g. a password manager).
+- Play App Signing: Google signs the APKs delivered by Play with its own app signing key; F-Droid
+  signs with its own key. So switching between the Play and the F-Droid version needs a reinstall
+  (Android doesn't update an app signed with another key).
+- The app id `de.lares_app` is final.
+
+## Website (GitHub Pages)
+- Served from the repository's `docs/` folder (Settings → Pages → Deploy from a branch, branch
+  `master`, folder `/docs`): `https://irgendwer008.github.io/Lares/`.
+- **Privacy policy URL** for both stores: `https://irgendwer008.github.io/Lares/privacy-policy.html`.
+- **Neutral page** opened instead of a blocked website (`SAFE_PAGE_URL`):
+  `https://irgendwer008.github.io/Lares/blocked/` – `docs/blocked/index.html`, self-contained (no
+  scripts, no external resources, light / dark).
 
 ## License notices in the app
 - Apache-2.0 §4 requires shipping the license text (and NOTICE contents) with the APK – a link is
   not enough. The **AboutLibraries** Gradle plugin (offline mode, reproducible) generates the list
-  of *all* libraries incl. transitive ones with full license texts at build time
-  (`R.raw.aboutlibraries`, Settings → Info → Open-source libraries).
+  of *all* libraries incl. transitive ones at build time (`R.raw.aboutlibraries`, Settings → Info
+  → Open-source libraries, grouped by author, with license text and source link per library).
+- Offline mode stores license **names only, no texts**. The texts are bundled by SPDX id
+  (`res/raw/apache_2_0.txt`, the original Apache-2.0 file; currently every dependency is
+  Apache-2.0). When a dependency with another license is added, add its text there and to the
+  map in `LibrariesScreen` – otherwise only the license name is shown.
 - Logo outlines come from the URW **P052** typeface (URW base 35 fonts, AGPL-3.0 with font
   exception), converted to paths – no font file is shipped; compatible with GPL-3.0.
 - The GPL-3.0 text of Lares is generated from the repo's `LICENSE` into `R.raw.lares_license`
@@ -52,6 +90,7 @@ only if a store forces divergence – currently none is planned.
 
 ## Consequences for development
 - Dependency rule: every new dependency must be FOSS and Play-Services-free.
-- Keep a privacy policy in the repo (`docs/privacy-policy.md`) and link it in both stores. It must
+- Keep a privacy policy in the repo (`docs/privacy-policy.md`, published via GitHub Pages) and link
+  it in both stores. It must
   describe only the current version and stay in sync with the in-app text (Settings → Info →
   Privacy policy, EN + DE); update both whenever a feature changes data handling.

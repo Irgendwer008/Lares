@@ -36,6 +36,8 @@ class ProtectionMonitor(
     private val clock: Clock,
     private val permissions: PermissionStatus,
     private val prefs: ProtectionStore,
+    /** Screen on right now (read when the heartbeat is written, not when it was requested). */
+    private val isInteractive: () -> Boolean,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutex = Mutex()
@@ -53,15 +55,20 @@ class ProtectionMonitor(
     }
 
     /** The blocking of the chosen mode (re)started: was it stopped while the phone was in use? */
-    fun onProtectionStarted(screenOn: Boolean) = launchLocked {
+    fun onProtectionStarted() = launchLocked {
         GapCheck.stoppedMinutes(prefs.heartbeat, clock.elapsedMillis(), clock.bootId())?.let {
             report(TamperEventType.PROTECTION_GAP, "minutes=$it")
         }
-        beatLocked(screenOn)
+        beatLocked()
     }
 
     /** Sign of life while the protection runs (every minute with the screen on, and on screen changes). */
-    fun beat(screenOn: Boolean) = launchLocked { beatLocked(screenOn) }
+    fun beat() = launchLocked { beatLocked() }
+
+    /** Clean shutdown: the phone is off now, so no gap is counted until it's on again. */
+    fun onShutdown() = launchLocked {
+        prefs.heartbeat?.let { prefs.heartbeat = it.copy(wallMillis = clock.wallMillis(), screenOn = false) }
+    }
 
     fun checkPermissions(delayMillis: Long = 0) = launchLocked(delayMillis) { checkPermissionsLocked() }
 
@@ -92,10 +99,14 @@ class ProtectionMonitor(
         prefs.working -= WatchedPermission.DEVICE_ADMIN
     }
 
-    private suspend fun beatLocked(screenOn: Boolean) {
+    private suspend fun beatLocked() {
         val boot = clock.bootId()
         val elapsed = clock.elapsedMillis()
-        prefs.heartbeat = Heartbeat(clock.wallMillis(), elapsed, boot, screenOn, store.current().tamperReportable(clock))
+        // First beat after a reboot: stopped while in use and then restarted (no clean shutdown)?
+        GapCheck.stoppedBeforeReboot(prefs.heartbeat, clock.wallMillis() - elapsed, boot)?.let {
+            report(TamperEventType.PROTECTION_GAP, "minutes=$it")
+        }
+        prefs.heartbeat = Heartbeat(clock.wallMillis(), elapsed, boot, isInteractive(), store.current().tamperReportable(clock))
         // Keep the clock offset current, so slow network-time drift never adds up to a "jump".
         prefs.clockOffset = (clock.wallMillis() - elapsed) to boot
     }
@@ -119,10 +130,9 @@ class ProtectionMonitor(
         tamperLog.record(type, details)
     }
 
-    private fun launchLocked(delayMillis: Long = 0, block: suspend () -> Unit) {
+    private fun launchLocked(delayMillis: Long = 0, block: suspend () -> Unit) =
         scope.launch {
             if (delayMillis > 0) delay(delayMillis)
             mutex.withLock { block() }
         }
-    }
 }

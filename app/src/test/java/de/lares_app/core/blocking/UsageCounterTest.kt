@@ -24,10 +24,15 @@ class UsageCounterTest {
         assertFalse(counter.add(Decision.Allow(), 1_000)) // nothing counted
     }
 
-    @Test fun newPeriodStartsEmpty() {
-        val counter = UsageCounter(UsageSnapshot(0, 1000, mapOf(1L to 5L)))
-        counter.startPeriod(1000, 2000)
-        assertEquals(UsageSnapshot(1000, 2000), counter.snapshot)
+    @Test fun movingARuleCarriesItsUsedTime() {
+        // Rule 1 used 30 min alone; group 10 is fresh, group 11 used 40 min.
+        val min = 60_000L
+        val counter = UsageCounter(UsageSnapshot(0, 1000, mapOf(1L to 30 * min), mapOf(11L to 40 * min)))
+        assertTrue(counter.carryOver(1L, fromGroup = null, toGroup = 10L)) // into a fresh group: no new quota
+        assertEquals(30 * min, counter.snapshot.groupMillis[10L])
+        assertFalse(counter.carryOver(1L, fromGroup = 10L, toGroup = 11L)) // destination already has more
+        assertTrue(counter.carryOver(1L, fromGroup = 11L, toGroup = null)) // out of the group: its time comes along
+        assertEquals(40 * min, counter.snapshot.ruleMillis[1L])
     }
 
     @Test fun warningsFireOncePerThresholdAndPeriod() {

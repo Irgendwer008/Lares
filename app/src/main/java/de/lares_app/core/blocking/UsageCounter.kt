@@ -33,9 +33,22 @@ class UsageCounter(initial: UsageSnapshot) {
         return true
     }
 
-    /** Starts a new period with empty counters. */
-    fun startPeriod(startMillis: Long, endMillis: Long) {
-        snapshot = UsageSnapshot(startMillis, endMillis)
+    /**
+     * A rule moves between counters (standalone ↔ group, group ↔ group): the destination never
+     * has less time used than the source had, so moving can't start a fresh quota.
+     * @return true if anything changed.
+     */
+    fun carryOver(ruleId: Long, fromGroup: Long?, toGroup: Long?): Boolean {
+        val used = (if (fromGroup == null) snapshot.ruleMillis[ruleId] else snapshot.groupMillis[fromGroup]) ?: 0L
+        if (used <= 0L || fromGroup == toGroup) return false
+        val target = if (toGroup == null) snapshot.ruleMillis[ruleId] ?: 0L else snapshot.groupMillis[toGroup] ?: 0L
+        if (target >= used) return false
+        snapshot = if (toGroup == null) {
+            snapshot.copy(ruleMillis = snapshot.ruleMillis + (ruleId to used))
+        } else {
+            snapshot.copy(groupMillis = snapshot.groupMillis + (toGroup to used))
+        }
+        return true
     }
 
     private fun Map<Long, Long>.plusEach(ids: Set<Long>, millis: Long): Map<Long, Long> =

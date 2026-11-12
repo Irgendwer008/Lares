@@ -22,17 +22,20 @@ data class WebAddress(val host: String, val path: String) {
  *   but not `/shortsfoo`.
  */
 object UrlMatcher {
+    private val SCHEME = Regex("^([a-zA-Z][a-zA-Z0-9+.-]*)://")
+
 
     /** Parses what a browser shows in its URL bar. Returns null for search terms / garbage. */
     fun parse(input: String): WebAddress? {
         var s = input.trim()
         if (s.isEmpty() || s.any { it.isWhitespace() }) return null
 
-        val schemeEnd = s.indexOf("://")
-        if (schemeEnd >= 0) {
-            val scheme = s.substring(0, schemeEnd).lowercase()
+        // Only a real scheme at the start counts – "://" inside the path / query / fragment
+        // (e.g. `youtube.com/shorts?x=https://a`) must not turn the address into garbage.
+        SCHEME.find(s)?.let { m ->
+            val scheme = m.groupValues[1].lowercase()
             if (scheme != "http" && scheme != "https") return null
-            s = s.substring(schemeEnd + 3)
+            s = s.substring(m.range.last + 1)
         }
 
         val pathStart = s.indexOfFirst { it == '/' || it == '?' || it == '#' }

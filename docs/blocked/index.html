@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Lares</title>
+<!-- Neutral page that Lares opens in the browser instead of a blocked website (SAFE_PAGE_URL).
+     Self-contained: no external resources, no scripts, no tracking. -->
+<style>
+  :root { --bg: #FFF8F3; --fg: #28170B; --muted: #52443B; --accent: #9A5326; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1A120D; --fg: #F0DFD6; --muted: #D6C3B7; --accent: #FFB783; }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { min-height: 100%; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; padding: 32px 16px; box-sizing: border-box; gap: 12px; }
+  svg { width: 56px; height: auto; fill: var(--accent); }
+  h1 { font-size: 1.4rem; margin: 8px 0 0; font-weight: 600; }
+  p { margin: 0; max-width: 32rem; color: var(--muted); line-height: 1.5; }
+  hr { width: 48px; border: 0; border-top: 1px solid var(--muted); opacity: .4; margin: 12px 0; }
+</style>
+</head>
+<body>
+<main>
+  <svg viewBox="29.67 24.04 48.65 59.92" role="img" aria-label="Lares"><path d="m 33.688727,82.700082 0.05049,-0.954752 1.506963,-0.80536 c 1.753454,-0.937089 2.243487,-1.424126 2.785627,-2.768596 l 0.395738,-0.981402 0.04855,-21.264916 C 38.528645,32.908981 38.458239,30.046301 37.807499,28.740115 37.16378,27.448023 36.355641,27.198382 32.022955,26.953222 l -2.051144,-0.116061 v -1.249348 -1.249348 l 0.962782,0.133287 c 1.22084,0.169014 22.514683,0.170286 23.35792,0.0014 l 0.627901,-0.125761 v 1.26339 1.263389 H 54.40761 c -0.282041,0 -1.619471,0.07958 -2.972065,0.176854 -3.986023,0.286648 -4.580239,0.796359 -4.886192,4.191318 -0.08838,0.980625 -0.159583,11.906641 -0.162754,24.972549 l -0.0056,23.22915 0.37674,0.08928 c 1.598218,0.378753 2.616176,0.458245 6.862313,0.535876 8.658729,0.158304 17.298202,-0.483925 18.678784,-1.388517 0.651706,-0.427015 1.114215,-1.705152 2.147239,-5.933878 l 0.980219,-4.012561 h 1.296274 1.296273 l -0.07807,0.460461 c -0.04294,0.253253 -0.309199,2.532534 -0.591686,5.065068 -0.524577,4.702899 -1.084529,8.850964 -1.212011,8.978447 -0.22033,0.220329 -14.752375,0.348636 -24.157193,0.213289 -9.823328,-0.14137 -16.392004,-0.09782 -17.788792,0.117941 l -0.552811,0.08539 z"/></svg>
+  <h1>A blocked page was closed</h1>
+  <p>Lares opened this page instead of a website you chose to block. You can go on to any allowed site from the address bar.</p>
+  <hr>
+  <h1 lang="de">Eine gesperrte Seite wurde geschlossen</h1>
+  <p lang="de">Lares hat diese Seite anstelle einer Website geöffnet, die du gesperrt hast. Über die Adressleiste kannst du jede erlaubte Seite aufrufen.</p>
+</main>
+</body>
+</html>

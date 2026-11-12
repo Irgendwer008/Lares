@@ -49,7 +49,8 @@ class LaresDeviceAdminReceiver : DeviceAdminReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 monitor.onDeviceAdminDisabled()
-                if (withTimeoutOrNull(SEND_TIMEOUT_MILLIS) { delivery.deliver() } != true) dispatcher.enqueue()
+                dispatcher.enqueue() // fallback first: survives even if this process ends now
+                withTimeoutOrNull(SEND_TIMEOUT_MILLIS) { delivery.deliver() } // try right away
             } finally {
                 pending.finish()
             }

@@ -24,6 +24,7 @@ import de.lares_app.core.policy.SupportedBrowsers
 import de.lares_app.core.protection.SettingsGuard
 import de.lares_app.core.protection.tamperReportable
 import de.lares_app.core.time.Clock
+import de.lares_app.core.unlock.UnlockManager
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.ExemptApps
 import de.lares_app.platform.InstalledBrowsers
@@ -33,7 +34,6 @@ import de.lares_app.platform.UsageRepository
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -69,6 +69,12 @@ interface BlockingHost {
 }
 
 /**
+ * Neutral page the website block screen opens in the browser, so the blocked page is no longer the
+ * open tab. Static page on GitHub Pages (`docs/blocked/index.html`): no scripts, no external resources.
+ */
+const val SAFE_PAGE_URL = "https://irgendwer008.github.io/Lares/blocked/"
+
+/**
  * Applies the rules to the app in the foreground: counts time once per second, shows the block
  * screen, the countdown overlay during the last 5 minutes and the optional warnings.
  *
@@ -76,12 +82,6 @@ interface BlockingHost {
  * chosen blocking mode, which also performs the effects. Website blocking (browser URLs from the
  * accessibility service) exists only in Accessibility mode.
  */
-/**
- * Neutral page the website block screen opens in the browser, so the blocked page is no longer the
- * open tab. Placeholder until Lares has its own page.
- */
-const val SAFE_PAGE_URL = "https://www.google.com/"
-
 class BlockingController(
     private val ruleStore: RuleStore,
     private val groupStore: GroupStore,
@@ -92,10 +92,20 @@ class BlockingController(
     private val catalog: AppCatalog,
     private val notifier: LimitNotifier,
     private val monitor: ProtectionMonitor,
+    private val unlockManager: UnlockManager,
     private val clock: Clock,
 ) {
     private var scope: CoroutineScope? = null
     private val hosts = ConcurrentHashMap<BlockingMode, BlockingHost>()
+
+    /**
+     * One thread for everything the loop touches (counters, warnings, debounce) – shared by every
+     * start, so an old loop still finishing after a quick detach / attach can't run in parallel.
+     */
+    private val dispatcher = Dispatchers.Default.limitedParallelism(1)
+
+    /** Last foreground app per source, so a mode switch starts with the right app. */
+    private val lastForeground = ConcurrentHashMap<BlockingMode, String>()
 
     /** Host that showed the countdown last – hidden when the mode (and thus the host) changes. */
     private var timerHost: BlockingHost? = null
@@ -120,6 +130,9 @@ class BlockingController(
 
     @Volatile private var ignoredUrl: Pair<Pair<String, String>, Long>? = null
 
+    /** A URL that arrived while it was ignored – applied once the grace is over (if still shown). */
+    @Volatile private var deferredUrl: Pair<String, String>? = null
+
     @Volatile private var screenOn = true
 
     /** Protection of the chosen mode running (for the gap check / heartbeat). */
@@ -129,7 +142,6 @@ class BlockingController(
     private var lastTickElapsed = 0L
     private var lastBlocked: Pair<String, Long>? = null
     private val warnings = LimitWarnings()
-    private var ticker: Job? = null
 
     /** [host] runs (service connected) and serves [mode]. */
     @Synchronized
@@ -151,7 +163,7 @@ class BlockingController(
 
     private fun start() {
         // One thread: counters, warnings and the block debounce aren't touched concurrently.
-        val s = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
+        val s = CoroutineScope(SupervisorJob() + dispatcher)
         scope = s
         exempt = exemptApps.packages()
         installedBrowsers = browsers.packages()
@@ -159,12 +171,18 @@ class BlockingController(
             combine(ruleStore.rules, groupStore.groups, store.state) { r, g, st -> Triple(r, g, st) }.collect { (r, g, st) ->
                 rules = r
                 groups = g.associateBy { it.id }
+                val modeChanged = st.settings.blockingMode != state.settings.blockingMode
                 state = st
+                if (modeChanged) {
+                    // The other source's app is stale: use what the new mode's source saw last.
+                    foreground = st.settings.blockingMode?.let { lastForeground[it] }
+                    url = null
+                }
                 evaluate(countMillis = 0) // rules / pause may have changed
             }
         }
         lastTickElapsed = clock.elapsedMillis()
-        ticker = s.launch {
+        s.launch {
             while (isActive) {
                 delay(TICK_MILLIS)
                 tick()
@@ -179,7 +197,6 @@ class BlockingController(
             CoroutineScope(Dispatchers.IO).launch { usage.flush() }
         }
         scope = null
-        ticker = null
         timerHost = null
         foreground = null
         protecting = false
@@ -187,6 +204,7 @@ class BlockingController(
 
     /** [source] saw [packageName] in the foreground; only the source of the chosen mode counts. */
     fun onForeground(source: BlockingMode, packageName: String) {
+        lastForeground[source] = packageName
         if (source != state.settings.blockingMode || packageName == foreground) return
         BlockingLog.d { "foreground: $packageName" }
         foreground = packageName
@@ -196,9 +214,12 @@ class BlockingController(
 
     fun onScreen(on: Boolean) {
         screenOn = on
-        if (!on) timerHost?.showTimer(null)
-        lastTickElapsed = clock.elapsedMillis()
-        if (protecting) monitor.beat(on)
+        // The rest on the loop's thread (it owns these fields).
+        scope?.launch {
+            if (!on) timerHost?.showTimer(null)
+            lastTickElapsed = clock.elapsedMillis()
+            if (protecting) monitor.beat()
+        }
     }
 
     /** Installed apps changed (new launcher, keyboard, browser …). */
@@ -215,8 +236,14 @@ class BlockingController(
     fun onUrl(browserPackage: String, newUrl: String) {
         if (url == browserPackage to newUrl) return
         ignoredUrl?.let { (ignored, until) ->
-            if (clock.elapsedMillis() > until) ignoredUrl = null else if (ignored == browserPackage to newUrl) return
+            if (clock.elapsedMillis() > until) {
+                ignoredUrl = null
+            } else if (ignored == browserPackage to newUrl) {
+                deferredUrl = ignored // checked again when the grace is over
+                return
+            }
         }
+        deferredUrl = null
         BlockingLog.d { "url: $browserPackage → $newUrl" }
         url = browserPackage to newUrl
         scope?.launch { evaluate(countMillis = 0) }
@@ -236,7 +263,15 @@ class BlockingController(
         ticks++
         updateProtecting()
         if (ticks % PERMISSION_CHECK_TICKS == 0L) monitor.checkPermissions()
-        if (protecting && screenOn && ticks % HEARTBEAT_TICKS == 0L) monitor.beat(true)
+        if (protecting && screenOn && ticks % HEARTBEAT_TICKS == 0L) monitor.beat()
+        // The neutral page had its time to load: if the blocked page is still shown, apply it now.
+        ignoredUrl?.let { (_, until) ->
+            if (clock.elapsedMillis() > until) {
+                ignoredUrl = null
+                deferredUrl?.let { (pkg, u) -> deferredUrl = null; url = pkg to u }
+            }
+        }
+        if (ticks % HEARTBEAT_TICKS == 0L && state.unlock.lockout != null) unlockManager.clearExpiredLockout()
         val now = clock.elapsedMillis()
         // Cap the step so a stalled timer (device asleep) doesn't count minutes at once.
         val step = (now - lastTickElapsed).coerceIn(0, MAX_STEP_MILLIS)
@@ -248,7 +283,7 @@ class BlockingController(
     /** The host of the chosen mode appeared (start, mode switch): check for a gap, then beat. */
     private fun updateProtecting() {
         val now = activeHost != null && state.settings.setupComplete && state.unlock.isSetUp
-        if (now && !protecting) monitor.onProtectionStarted(screenOn)
+        if (now && !protecting) monitor.onProtectionStarted()
         protecting = now
     }
 
@@ -277,8 +312,11 @@ class BlockingController(
     @Volatile private var settingsAllowedUntil = 0L
 
     @Volatile private var settingsGraceCheck: ((AppSettings) -> Boolean)? = null
-    private var graceCheckedAt = Long.MIN_VALUE
-    private var graceStillNeeded = false
+    private var graceCheckedAt: Long? = null
+    private var graceStillNeeded = true
+
+    /** The settings came to the front since the grace started (only then can they be "left"). */
+    private var graceSawSettings = false
 
     /** When the issue got fixed – the user is usually still on that page, so leaving it stays possible. */
     private var graceFixedAt: Long? = null
@@ -292,7 +330,9 @@ class BlockingController(
      */
     fun allowSettingsWhile(stillMissing: (AppSettings) -> Boolean) {
         settingsGraceCheck = stillMissing
-        graceCheckedAt = Long.MIN_VALUE
+        graceCheckedAt = null
+        graceStillNeeded = true
+        graceSawSettings = false
         graceFixedAt = null
         settingsAllowedUntil = clock.elapsedMillis() + SETTINGS_GRACE_MILLIS
     }
@@ -312,16 +352,19 @@ class BlockingController(
             endSettingsGrace()
             return false
         }
+        val fg = foreground
+        if (fg != null && fg in SettingsGuard.packages) graceSawSettings = true
         graceFixedAt?.let { fixedAt ->
-            val fg = foreground
-            val leftSettings = fg != null && fg !in SettingsGuard.packages
+            // Foreground still Lares (the settings didn't come up yet, or the source is slow) isn't "left".
+            val leftSettings = graceSawSettings && fg != null && fg !in SettingsGuard.packages
             if (leftSettings || now - fixedAt >= FIXED_TAIL_MILLIS) {
                 endSettingsGrace()
                 return false
             }
             return true
         }
-        if (now - graceCheckedAt >= GRACE_RECHECK_MILLIS) {
+        val checkedAt = graceCheckedAt
+        if (checkedAt == null || now - checkedAt >= GRACE_RECHECK_MILLIS) {
             graceStillNeeded = check(state.settings)
             graceCheckedAt = now
         }
@@ -336,7 +379,8 @@ class BlockingController(
             val now = clock.elapsedMillis()
             lastBlocked?.let { (p, at) -> if (p == packageName && now - at < BLOCK_DEBOUNCE_MILLIS) return@launch }
             lastBlocked = packageName to now
-            host.showBlockScreen(BlockInfo(packageName, catalog.describeOrFallback(packageName).label, BlockReason.PROTECTED_SETTINGS, null, 0L))
+            // The block screen shows its own title for settings pages (no label needed).
+            host.showBlockScreen(BlockInfo(packageName, "", BlockReason.PROTECTED_SETTINGS, null, 0L))
         }
     }
 
@@ -409,7 +453,13 @@ class BlockingController(
         }
         if (thresholds.isEmpty()) return
         val crossed = warnings.crossed(LimitWarnings.subjectOf(decision), remainingMillis, thresholds)
-        crossed.minOrNull()?.let { t -> notifier.warn(catalog.describeOrFallback(pkg).label, (t / 60_000L).toInt()) }
+        crossed.minOrNull()?.let { t ->
+            // What the limit is about: the website (not the browser), the group, or the app.
+            val label = rules.firstOrNull { it.id in decision.countedRuleIds && it.type == RuleType.WEBSITE }?.target
+                ?: decision.countedGroupIds.firstNotNullOfOrNull { groups[it]?.name }
+                ?: catalog.describeOrFallback(pkg).label
+            notifier.warn(label, (t / 60_000L).toInt())
+        }
     }
 
     private companion object {

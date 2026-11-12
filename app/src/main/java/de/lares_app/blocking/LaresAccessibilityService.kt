@@ -10,6 +10,7 @@ import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -46,6 +47,7 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
             refreshKeyboards()
             activityCache.clear()
         },
+        onShutdown = { monitor.onShutdown() },
     )
 
     override fun onServiceConnected() {
@@ -55,6 +57,9 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         events.register()
         // Serves Accessibility mode; in Usage access mode it only reports browser URLs.
         controller.attach(BlockingMode.ACCESSIBILITY, this)
+        controller.onScreen(getSystemService(PowerManager::class.java).isInteractive)
+        // The app already in front sends no window event: report it once the state has loaded.
+        main.postDelayed({ rootInActiveWindow?.packageName?.toString()?.let { seedForeground(it) } }, SEED_DELAY_MILLIS)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -78,6 +83,11 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
             BlockingLog.d { "ignored window change: $pkg / ${event.className}" }
             return
         }
+        controller.onForeground(BlockingMode.ACCESSIBILITY, pkg)
+    }
+
+    private fun seedForeground(pkg: String) {
+        if (pkg in TRANSIENT || pkg in keyboards) return
         controller.onForeground(BlockingMode.ACCESSIBILITY, pkg)
     }
 
@@ -105,7 +115,12 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         val matches = findExact(root, label).map { SettingsGuard.LabelMatch(clickable = it.isClickableNearby()) }
         val protected = SettingsGuard.isProtectedPage(pkg, settingsTitle, settingsClass, matches, label)
         BlockingLog.d { "settings check: $pkg / \"$settingsTitle\" / $matches → protected=$protected" }
-        if (protected) controller.onProtectedSettings(pkg)
+        if (protected) {
+            controller.onProtectedSettings(pkg)
+            // Checked again shortly: a quick switch back within the block debounce sends no new
+            // events on a still page. Ends by itself once Lares' block screen is in front.
+            main.postDelayed({ if (controller.guardsSettings()) checkSettingsPage(pkg) }, RECHECK_MILLIS)
+        }
     }
 
     /**
@@ -221,6 +236,8 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         val TRANSIENT = setOf("com.android.systemui")
         const val URL_READ_DELAY_MILLIS = 300L
         const val CLICKABLE_PARENT_DEPTH = 4
+        const val SEED_DELAY_MILLIS = 1_500L
+        const val RECHECK_MILLIS = 2_200L
         const val MAX_SETTINGS_NODES = 600
 
         /** The system updates the list of enabled services around the unbind. */

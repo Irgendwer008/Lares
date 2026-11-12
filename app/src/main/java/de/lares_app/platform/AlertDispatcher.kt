@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
@@ -63,20 +65,25 @@ class AlertDelivery(
             val events = pending.filter { it.id > channel.deliveredUpTo }
             if (events.isEmpty()) continue
             val (title, text) = messages.events(channel.language, events)
-            if (sender.send(channels.draftOf(channel), title, text).isSuccess) {
-                val upTo = events.maxOf { it.id }
-                store.update { s ->
-                    s.copy(
-                        settings = s.settings.copy(
-                            alertChannels = s.settings.alertChannels.map {
-                                if (it.id == channel.id) it.copy(deliveredUpTo = maxOf(it.deliveredUpTo, upTo)) else it
-                            },
-                        ),
-                    )
+            // Sending blocks (not cancellable anyway); once sent, the cursor must be saved even if
+            // the caller gave up meanwhile – otherwise the next run sends the same message again.
+            val sent = withContext(NonCancellable) {
+                sender.send(channels.draftOf(channel), title, text).isSuccess.also { ok ->
+                    if (ok) {
+                        val upTo = events.maxOf { it.id }
+                        store.update { s ->
+                            s.copy(
+                                settings = s.settings.copy(
+                                    alertChannels = s.settings.alertChannels.map {
+                                        if (it.id == channel.id) it.copy(deliveredUpTo = maxOf(it.deliveredUpTo, upTo)) else it
+                                    },
+                                ),
+                            )
+                        }
+                    }
                 }
-            } else {
-                allSent = false
             }
+            if (!sent) allSent = false
         }
         val everywhere = store.current().settings.alertChannels.minOfOrNull { it.deliveredUpTo } ?: Long.MAX_VALUE
         pending.filter { it.id <= everywhere }.forEach { tamperLog.markDelivered(it.id) }

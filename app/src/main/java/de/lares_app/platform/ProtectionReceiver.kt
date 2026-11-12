@@ -22,10 +22,13 @@ class ProtectionReceiver : BroadcastReceiver() {
     @Inject lateinit var monitor: ProtectionMonitor
 
     override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
+        val job = when (intent.action) {
             Intent.ACTION_TIME_CHANGED -> monitor.onTimeChanged()
             Intent.ACTION_TIMEZONE_CHANGED -> monitor.onTimeZoneChanged()
-            // BOOT_COMPLETED, MY_PACKAGE_REPLACED: starting the process was the point.
-        }
+            else -> null // BOOT_COMPLETED, MY_PACKAGE_REPLACED: starting the process was the point.
+        } ?: return
+        // Keep the process alive until it's recorded (it may have been started just for this).
+        val pending = goAsync()
+        job.invokeOnCompletion { pending.finish() }
     }
 }

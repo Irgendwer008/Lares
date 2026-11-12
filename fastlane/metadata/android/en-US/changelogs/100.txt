@@ -1,0 +1,1 @@
+First release: app and website blocking with daily limits, groups and templates, guardian code (password or TOTP), tamper protection and guardian notifications.

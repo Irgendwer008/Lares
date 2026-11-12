@@ -118,6 +118,7 @@ class UnlockManager(
      */
     suspend fun completeSetup() {
         check(store.current().unlock.isSetUp) { "no unlock method set up" }
+        if (!canChangeMethod()) throw CodeRequiredException()
         store.update { s ->
             val first = !s.settings.setupComplete
             s.copy(
@@ -142,8 +143,17 @@ class UnlockManager(
             lockout = lockout.restarted(clock)
             store.update { it.copy(unlock = it.unlock.copy(lockout = lockout)) }
         }
+        // Highest TOTP time step seen so far (also while locked out): codes from before can't be
+        // replayed later by setting the clock back.
+        val counterNow = Totp.counterAt(clock.wallMillis())
+        if (counterNow > unlock.totpMaxSeenCounter) store.update { it.copy(unlock = it.unlock.copy(totpMaxSeenCounter = counterNow)) }
+        val maxSeen = maxOf(counterNow, unlock.totpMaxSeenCounter)
         lockout?.takeIf { it.isActive(clock) }?.let {
             return VerifyResult.LockedOut(it.remainingMillis(clock))
+        }
+        if (lockout != null) {
+            // Ran out in this boot: forget it, so a later reboot doesn't restart it (failures stay).
+            store.update { it.copy(unlock = it.unlock.copy(lockout = null)) }
         }
 
         var matchedTotpCounter: Long? = null
@@ -152,7 +162,9 @@ class UnlockManager(
                 UnlockMethod.PASSWORD -> unlock.passwordHash?.let { hasher.verify(input, it) } == true
                 UnlockMethod.TOTP -> unlock.totpSecretEncrypted?.let { enc ->
                     val secret = runCatching { cipher.decrypt(enc) }.getOrNull()
-                    secret?.let { Totp.verify(it, input, clock.wallMillis(), unlock.totpLastCounter) }
+                    // Not older than the verification window around the highest step ever seen.
+                    val floor = maxOf(unlock.totpLastCounter, maxSeen - TOTP_WINDOW - 1)
+                    secret?.let { Totp.verify(it, input, clock.wallMillis(), floor, TOTP_WINDOW) }
                 }?.also { matchedTotpCounter = it } != null
                 null -> false
             }
@@ -194,6 +206,17 @@ class UnlockManager(
         return VerifyResult.Wrong(AttemptPolicy.attemptsLeft(failures), lockoutMillis)
     }
 
+    /**
+     * Forgets a lockout that ran out in this boot, so a later reboot doesn't restart it (the
+     * failure count stays, so the doubling continues). Called regularly by the blocking loop.
+     */
+    suspend fun clearExpiredLockout() = mutex.withLock {
+        val lockout = store.current().unlock.lockout ?: return@withLock
+        if (!lockout.isFromEarlierBoot(clock) && !lockout.isActive(clock)) {
+            store.update { it.copy(unlock = it.unlock.copy(lockout = null)) }
+        }
+    }
+
     /** Back to restricted mode (no code needed – it's tightening). */
     suspend fun lock() {
         store.update { it.copy(unlock = it.unlock.copy(unlockedSession = null)) }
@@ -208,7 +231,8 @@ class UnlockManager(
     /** Suspends all blocking for [durationMillis] (no maximum; ends on reboot). Only while unlocked. */
     suspend fun startPause(durationMillis: Long) {
         if (!isUnlocked()) throw CodeRequiredException()
-        val session = TimedSession.start(durationMillis, clock)
+        // "No maximum" – but never so long that the end overflows.
+        val session = TimedSession.start(durationMillis.coerceIn(1, MAX_PAUSE_MILLIS), clock)
         store.update { it.copy(unlock = it.unlock.copy(pause = session)) }
     }
 
@@ -249,6 +273,8 @@ class UnlockManager(
     companion object {
         const val MIN_PASSWORD_LENGTH = 4
         const val UNLOCKED_DURATION_MILLIS = 10 * 60_000L
+        const val MAX_PAUSE_MILLIS = 365L * 24 * 60 * 60_000L
+        private const val TOTP_WINDOW = 1
         private const val RECOVERY_PREFIX = "sha256"
     }
 }

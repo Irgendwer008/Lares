@@ -14,9 +14,11 @@ class UnlockGate(
     private val clock: Clock,
 ) {
     suspend fun isOpen(): Boolean {
-        val unlock = store.current().unlock
-        // Before the unlock method is set up (first start), nothing is protected yet.
-        if (!unlock.isSetUp) return true
+        val state = store.current()
+        val unlock = state.unlock
+        // Before the first setup is complete, nothing is protected yet (e.g. the blocking mode can
+        // still be changed on the setup page after the code was stored).
+        if (!unlock.isSetUp || !state.settings.setupComplete) return true
         return unlock.unlockedSession?.isActive(clock) == true
     }
 

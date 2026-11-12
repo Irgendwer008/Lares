@@ -163,6 +163,7 @@ fun ChannelEditorScreen(onDone: () -> Unit, vm: ChannelEditorViewModel = hiltVie
                     TestState.Idle -> Unit
                     TestState.Sending -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     TestState.Ok -> Text(stringResource(R.string.channel_test_ok), color = MaterialTheme.colorScheme.primary)
+                    TestState.ChatNotFound -> ErrorText(stringResource(R.string.channel_detect_failed))
                     is TestState.Failed -> ErrorText(t.reason?.let { stringResource(R.string.channel_test_failed_reason, it) } ?: stringResource(R.string.channel_test_failed))
                 }
             }

@@ -7,7 +7,8 @@ version catalog `gradle/libs.versions.toml`. Every source file carries
 ## Stack
 - Kotlin, Jetpack Compose (Material 3), minSdk 26, compile/targetSdk 37, JVM target 17.
 - Look: Lares theme (`ui/theme/Theme.kt`: clay orange, olive and teal accents, parchment, logo
-  brown); logo colors (parchment icon background, clay-orange "L") in `res/values/colors.xml`. Launcher icon is a pure vector adaptive icon (no PNGs – minSdk 26);
+  brown) or Material You by setting (`AppSettings.theme`, read once synchronously at activity
+  start so the first frame has the right colors); logo colors (parchment icon background, clay-orange "L") in `res/values/colors.xml`. Launcher icon is a pure vector adaptive icon (no PNGs – minSdk 26);
   logo sources in `docs/Logo.svg` / `docs/Logo_long.svg`.
 - Hilt (DI), Room (rules, groups, usage, tamper events), typed DataStore (settings + unlock state
   as one JSON file), kotlinx.serialization (state, backup, network payloads).
@@ -17,16 +18,14 @@ version catalog `gradle/libs.versions.toml`. Every source file carries
 
 ## Packages
 Single `app` module:
-- `core/policy`, `core/unlock`, `core/data`, `core/blocking`
-- `UsageCounter` / `UsageSnapshot` – foreground time per rule / group in the current period (a
-  group counts once per tick).
-- `LimitWarnings` – 5 / 1 minute warnings, once per threshold, subject and period.
-- `core/protection`: `PermissionWatch`, `GapCheck`, `ClockCheck`, `SettingsGuard` – pure tamper
-  rules; `tamperReportable` (set up and locked).
-- `ForegroundTracker` – foreground app from "activity resumed" events (Usage access mode).
-
-`core/alerts`, `core/blocking`, `core/time` – pure Kotlin (no Android
-  imports), unit-tested with in-memory fakes (`app/src/test/.../testing/Fakes.kt`).
+- `core/*` (policy, unlock, data, blocking, protection, alerts, time) – pure Kotlin (no Android
+  imports), unit-tested with in-memory fakes (`app/src/test/.../testing/Fakes.kt`). Among them:
+  - `core/blocking`: `UsageCounter` / `UsageSnapshot` (foreground time per rule / group in the
+    current period, a group counts once per tick; carries used time along when a rule changes
+    group), `LimitWarnings` (5 / 1 minute warnings), `ForegroundTracker` (foreground app from
+    "activity resumed" events, Usage access mode).
+  - `core/protection`: `PermissionWatch`, `GapCheck`, `ClockCheck`, `SettingsGuard` – pure tamper
+    rules; `tamperReportable` (set up and locked).
 - `platform` – Android implementations (Room, DataStore, Keystore, clock, app catalog,
   permission checks, network senders, recovery-code sharing).
 - `blocking` – Android components for blocking (accessibility service, blocking controller, block
@@ -35,7 +34,8 @@ Single `app` module:
 - `ui` – Compose screens and ViewModels.
 
 ## Data model
-- `Rule(id, type = APP|WEBSITE, target, limitMinutesPerDay?, enabled, groupId?, createdAt)`
+- `Rule(id, type = APP|WEBSITE, target, limitMinutesPerDay?, enabled, groupId?)` (stored with
+  `createdAtMillis` for the order)
 - `RuleGroup(id, name, limitMinutesPerDay?, enabled)` – members are enforced with the group's
   limit and switch (`Rule.effective()`).
 - `UsageEntity(ruleId, periodStart, foregroundMillis)`, `GroupUsageEntity(groupId, periodStart,
@@ -43,11 +43,12 @@ Single `app` module:
 - `TamperEvent(id, type, timestamp, details, delivered)`
 - `AppState` (DataStore): `AppSettings` (setup complete, blocking mode, website blocking,
   protections, reset time + pending change, `AlertChannelConfig` list, countdown / warning
-  switches), `TrackedPeriod` (the usage period currently counted) and `UnlockState` (method,
-  password hash / encrypted TOTP secret, last TOTP counter, recovery hash, re-setup flag, failed
-  attempts, lockout, pause, unlocked session).
+  switches, theme), `TrackedPeriod` (the usage period currently counted, with the monotonic time
+  and boot it started in) and `UnlockState` (method, password hash / encrypted TOTP secret, last
+  and highest seen TOTP counter, recovery hash, re-setup flag, failed attempts, lockout, pause,
+  unlocked session).
 - `AlertChannelConfig(id, type, language, server, address, port, startTls, username, sender,
-  secretEncrypted)` – field use per type documented in the class.
+  secretEncrypted, deliveredUpTo)` – field use per type documented in the class.
 
 Room stays at version 1 and is changed in place until the first release (no migrations, no schema
 export). After a schema change, uninstall the app or clear its data. Before the first release:
@@ -134,7 +135,7 @@ enable `exportSchema`, commit the schema, add migrations from then on.
   on, returned via `revokeSelfPermissionOnKill` when all are off.
 
 `ui`
-- Setup flow (`SetupMode`: FIRST with intro, RECOVERY after the recovery code, CHANGE from the
+- Setup flow (`SetupMode`: FIRST with color choice, intro and the optional blocking-mode choice before the code, RECOVERY after the recovery code, CHANGE from the
   settings), main screen (setup issues, status / unlocked / pause cards, groups, single rules),
   add screen (templates, group, apps, website), unlock and pause dialogs, settings (app settings /
   info), notification channel editor, privacy policy, license, open-source libraries.

@@ -18,6 +18,9 @@
     <string name="setup_intro_title">Willkommen</string>
     <string name="setup_intro_body">Lares sperrt die Apps und Websites, die du auswählst. Einschränkungen hinzufügen geht immer – sie zu entfernen oder zu lockern erfordert einen Code, den nur eine Vertrauensperson kennt: dein Guardian, zum Beispiel ein Freund oder ein Familienmitglied.\n\nFür die nächsten Schritte gib das Handy bitte deinem Guardian.</string>
     <string name="setup_intro_start">Los geht’s</string>
+    <string name="setup_mode_title">Guardian: Modus für App-Sperren wählen</string>
+    <string name="setup_mode_body">Wie soll Lares erkennen, welche App geöffnet ist? Du kannst das auch später in den Einstellungen entscheiden.</string>
+    <string name="setup_mode_later">Später entscheiden</string>
     <string name="setup_method_title">Guardian: Code festlegen</string>
     <string name="setup_method_body">Der Code wird gebraucht, wenn Einschränkungen pausiert oder gelockert werden sollen. Verrate ihn nicht der Person, der das Handy gehört.</string>
     <string name="setup_method_password_title">Passwort</string>
@@ -56,7 +59,9 @@
 
     <!-- Home -->
     <string name="home_add_rule">Hinzufügen</string>
-    <string name="home_empty">Noch keine Regeln. Füge die Apps und Websites hinzu, die du sperren möchtest.</string>
+    <string name="usage_bar">%1$d / %2$d Min.</string>
+    <string name="home_empty_title">Noch nichts gesperrt</string>
+    <string name="home_empty_hint">Tippe unten auf „Hinzufügen“, um deine erste App oder Website zu sperren – oder starte mit einer Vorlage.</string>
     <string name="home_status_protected_title">Schutz ist aktiv</string>
     <string name="home_status_protected_body">Regeln hinzufügen geht immer. Regeln entfernen oder Limits erhöhen erfordert den Guardian-Code.</string>
     <string name="home_unlock">Guardian-Code eingeben</string>
@@ -146,7 +151,7 @@
     <string name="group_websites_off">Websites nicht gesperrt – „Websites sperren“ ist aus</string>
     <string name="group_websites_unavailable">Websites nicht gesperrt – „Websites sperren“ geht nur im Modus „Bedienungshilfe“</string>
     <string name="website_blocking_off_note">Das Sperren von Websites ist in den Einstellungen ausgeschaltet – Website-Regeln wirken daher noch nicht.</string>
-    <string name="website_blocking_unavailable_note">Websites sperren funktioniert nur im Modus „Bedienungshilfe“, daher wirken Website-Regeln im Modus „Nutzungszugriff“ nicht.</string>
+    <string name="website_blocking_unavailable_note">Websites sperren funktioniert nur im Modus „Bedienungshilfe“, daher wirken Website-Regeln im Modus „Nutzungszugriff + Overlay“ nicht.</string>
     <string name="website_blocking_change_mode">Modus für App-Sperren ändern</string>
     <string name="website_blocking_turn_on">Websites sperren einschalten</string>
     <string name="add_rule_invalid">Bitte gib eine gültige Website-Adresse ein.</string>
@@ -171,7 +176,7 @@
     <!-- Pause -->
     <string name="pause_title">Alle Sperren pausieren</string>
     <string name="pause_body">Für die gewählte Zeit sind alle Apps und Websites erlaubt. Die Pause endet automatisch.</string>
-    <string name="pause_custom">Eigene</string>
+    <string name="pause_custom">Eigene Dauer</string>
     <string name="pause_custom_minutes">Minuten</string>
     <string name="pause_start">Pause starten</string>
 
@@ -179,11 +184,16 @@
     <string name="settings_title">Einstellungen</string>
     <string name="settings_section_app">App-Einstellungen</string>
     <string name="settings_section_info">Info</string>
-    <string name="settings_locked_hint">Einstellungen zu lockern (ausschalten, Guardian-Code, Rücksetzzeit oder Benachrichtigungskanäle ändern) erfordert den Guardian-Code.</string>
+    <string name="settings_locked_hint">Einstellungen zu lockern (ausschalten, den Modus für App-Sperren, den Guardian-Code, die Rücksetzzeit oder Benachrichtigungskanäle ändern) erfordert den Guardian-Code.</string>
     <string name="settings_guardian_code">Guardian-Code</string>
     <string name="settings_reset_time">Tageslimits beginnen neu um</string>
     <string name="settings_reset_time_pending">%1$s – ändert sich nach dem nächsten Neubeginn auf %2$s</string>
     <string name="settings_reset_time_explanation">Zu dieser Uhrzeit beginnen die Tageslimits neu. Eine Änderung erfordert den Guardian-Code und gilt ab dem nächsten Neubeginn.</string>
+    <string name="settings_theme">Farben</string>
+    <string name="theme_lares">Lares-Farben</string>
+    <string name="theme_wallpaper">Farben des Hintergrundbilds (Material You)</string>
+    <string name="setup_theme_title">Wähle deine Farben</string>
+    <string name="setup_theme_hint">Lässt sich später in den Einstellungen ändern.</string>
     <string name="settings_language">Sprache</string>
     <string name="settings_language_system">Systemsprache</string>
     <string name="setup_change_notice">Lege einen neuen Guardian-Code fest. Der alte Code und der alte Wiederherstellungscode funktionieren danach nicht mehr.</string>
@@ -194,11 +204,24 @@
     <string name="about_body">Version %1$s\n\nLares sperrt die Apps und Websites, die du auswählst. Einschränkungen hinzufügen geht immer – sie zu lockern erfordert einen Code, den nur dein Guardian kennt.\n\nFreie Software unter der GNU General Public License, Version 3 oder neuer.</string>
     <string name="privacy_title">Datenschutzerklärung</string>
     <string name="privacy_summary">Alles bleibt auf diesem Handy</string>
-    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking.\n• Es werden keine Daten verkauft oder an Dritte weitergegeben.\n• Deine Regeln, Nutzungszeiten und Einstellungen werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, ob eine Systemeinstellungsseite oder ein Deinstallationsdialog Lares betrifft (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Diese Nachrichten enthalten nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; Tokens werden verschlüsselt auf dem Handy gespeichert. Ist eine Website blockiert, kann Lares eine neutrale Seite (derzeit google.com) wie einen normalen Link in deinem Browser öffnen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App).\n• Lares sperrt Passwort-Manager, damit der Guardian-Code nie auf dem Handy gespeichert wird.</string>
+    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking, keine Absturzberichte.\n• Es werden keine Daten verkauft. Nichts wird an Dritte weitergegeben – außer an die Benachrichtigungsdienste, die du selbst einrichtest (siehe unten).\n• Deine Regeln, Nutzungszeiten, Einstellungen und ein Protokoll der Schutz-Ereignisse (z. B. „Uhrzeit verstellt“) werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App). Der Wiederherstellungscode wird nur als geschützter Hash gespeichert.\n• Lares schaltet das Android-Autofill aus, damit Passwort-Manager nie anbieten, den Guardian-Code zu speichern.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, ob eine Systemeinstellungsseite oder ein Deinstallationsdialog Lares betrifft (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Die optionale Rolle als Geräteadministrator wird nur genutzt, um das Deinstallieren von Lares zu verhindern.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Ohne eingerichteten Kanal wird nichts gesendet. Eine Nachricht enthält nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; es gilt die Datenschutzerklärung des gewählten Dienstes. Tokens und Passwörter werden verschlüsselt auf dem Handy gespeichert.\n• Manche Links öffnen sich in deinem Browser, der sie lädt: die neutrale Lares-Seite, wenn eine Website gesperrt ist (bei GitHub Pages; es gilt die Datenschutzerklärung von GitHub), Herstellertipps und Seiten der Bibliotheken.\n• Exportierte Regeldateien enthalten nur Regeln und Gruppen – keine Codes, Tokens oder Nutzungsdaten.</string>
     <string name="license_title">Lizenz</string>
     <string name="license_summary">GNU GPL, Version 3 oder neuer</string>
-    <string name="license_body">Lares ist freie Software: Du kannst sie unter den Bedingungen der GNU General Public License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder neueren Version.\n\nLares wird in der Hoffnung verbreitet, dass sie nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTREIFE oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Details stehen in der GNU General Public License.\n\nRechtsverbindlich ist der englische Originaltext der Lizenz.</string>
+    <string name="license_body">Lares ist freie Software: Du kannst sie unter den Bedingungen der GNU General Public License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder neueren Version.\n\nLares wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTREIFE oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Details stehen in der GNU General Public License.\n\nRechtsverbindlich ist der englische Originaltext der Lizenz.</string>
     <string name="license_full_text">Vollständiger Lizenztext</string>
+    <string name="libraries_other_author">Sonstige</string>
+    <string name="libraries_no_license_text">Kein Lizenztext enthalten.</string>
+    <plurals name="libraries_count">
+        <item quantity="one">%d Bibliothek</item>
+        <item quantity="other">%d Bibliotheken</item>
+    </plurals>
+    <string name="libraries_source">Quellcode</string>
+    <string name="libraries_website">Website</string>
+    <string name="libraries_license">Lizenztext</string>
+    <string name="rule_group_choice">%1$s – %2$s</string>
+    <string name="channel_detect_failed">Kein Chat gefunden – schicke deinem Bot zuerst /start und versuche es dann erneut.</string>
+    <string name="state_expanded">ausgeklappt</string>
+    <string name="state_collapsed">eingeklappt</string>
     <string name="libraries_title">Open-Source-Bibliotheken</string>
     <string name="libraries_summary">Von Lares verwendete Bibliotheken und ihre Lizenzen</string>
 
@@ -218,7 +241,7 @@
     <string name="blocking_mode_usage_stats">Nutzungszugriff + Overlay</string>
     <string name="blocking_mode_usage_stats_desc">Alternative, falls du die Bedienungshilfe nicht nutzen möchtest: leichte Verzögerung, etwas höherer Akkuverbrauch, kein Sperren von Websites.</string>
     <string name="blocking_mode_not_chosen">Noch nicht gewählt</string>
-    <string name="blocking_mode_hint">Den Modus zum ersten Mal zu wählen ist frei; ihn später zu wechseln erfordert den Guardian-Code.</string>
+    <string name="blocking_mode_hint">Den Modus zum ersten Mal zu wählen geht ohne Code; ihn später zu wechseln erfordert den Guardian-Code.</string>
     <string name="settings_website_blocking">Websites sperren</string>
     <string name="settings_website_blocking_unavailable">Nur im Modus „Bedienungshilfe“ – wechsle dafür den Modus für App-Sperren.</string>
     <string name="settings_website_blocking_desc">Sperrt Websites in unterstützten Browsern; andere Browser werden komplett gesperrt. Erfordert die Bedienungshilfe.</string>
@@ -235,8 +258,6 @@
     <string name="channels_disabled_hint">Schalte oben „Guardian benachrichtigen“ ein, um Benachrichtigungskanäle einzurichten und zu nutzen.</string>
     <string name="channels_empty">Noch kein Benachrichtigungskanal eingerichtet.</string>
     <string name="channels_add">Benachrichtigungskanal hinzufügen</string>
-    <string name="channel_telegram">Telegram</string>
-    <string name="channel_ntfy">ntfy</string>
     <string name="channel_webhook">Webhook</string>
     <string name="channel_email">E-Mail</string>
     <string name="channel_help_email">Gib die SMTP-Daten eines E-Mail-Kontos ein – am besten eines eigenen Kontos für Lares. Viele Anbieter (z. B. Gmail, Outlook) verlangen ein App-Passwort statt des normalen Passworts. Die Verbindung ist immer verschlüsselt.</string>
@@ -249,7 +270,6 @@
     <string name="channel_password">Passwort</string>
     <string name="channel_sender">Absenderadresse</string>
     <string name="channel_recipient">Empfängeradresse (Guardian)</string>
-    <string name="channel_matrix">Matrix</string>
     <string name="channel_summary_telegram">Chat %1$s</string>
     <string name="channel_add_title">Benachrichtigungskanal hinzufügen</string>
     <string name="channel_edit_title">Benachrichtigungskanal bearbeiten</string>
@@ -294,7 +314,7 @@
         <item quantity="one">Lares lief %d Minute nicht, während das Handy benutzt wurde</item>
         <item quantity="other">Lares lief %d Minuten nicht, während das Handy benutzt wurde</item>
     </plurals>
-    <string name="alert_event_boots">Das Handy wurde ohne Lares gestartet (z. B. im abgesicherten Modus)</string>
+    <string name="alert_event_boots">Das Handy wurde gestartet, ohne dass Lares lief (z. B. im abgesicherten Modus oder erneut neu gestartet, bevor es entsperrt wurde)</string>
     <string name="alert_event_clock">Die Uhrzeit wurde verstellt</string>
     <plurals name="alert_event_clock_forward">
         <item quantity="one">Die Uhr wurde %d Minute vorgestellt</item>
@@ -333,15 +353,15 @@
     <string name="issue_battery_body">Android kann Lares im Hintergrund pausieren, sodass das Sperren nicht mehr funktioniert – besonders bei Xiaomi, Huawei, Samsung, OnePlus und ähnlichen Handys. Stelle Lares auf „Nicht optimiert“ bzw. „Uneingeschränkt“. Manche Handys haben zusätzlich eine Einstellung „Autostart“ oder „Ruhende Apps“.</string>
     <string name="issue_battery_more">Tipps für dein Handy</string>
     <string name="issue_open_settings">Systemeinstellungen öffnen</string>
-    <string name="issue_mode_title">Kein Sperrmodus gewählt</string>
+    <string name="issue_mode_title">Kein Modus für App-Sperren gewählt</string>
     <string name="issue_mode_body">Wähle, wie Lares geöffnete Apps erkennt. Empfohlen: die Bedienungshilfe.</string>
     <string name="issue_mode_action">Modus wählen</string>
     <string name="issue_accessibility_title">Bedienungshilfe ist aus</string>
-    <string name="issue_accessibility_body">Nötig für den (empfohlenen) Sperrmodus „Bedienungshilfe“, für das Sperren von Websites und für den Schutz der Systemeinstellungen. Schalte „Lares“ unter installierten bzw. heruntergeladenen Apps ein.</string>
+    <string name="issue_accessibility_body">Nötig für den (empfohlenen) Modus „Bedienungshilfe“, für das Sperren von Websites und für den Schutz der Systemeinstellungen. Schalte „Lares“ unter installierten bzw. heruntergeladenen Apps ein.</string>
     <string name="issue_usage_title">Nutzungszugriff fehlt</string>
-    <string name="issue_usage_body">Im Modus „Nutzungszugriff“ nötig, um die geöffnete App zu erkennen. Erlaube ihn für Lares.</string>
+    <string name="issue_usage_body">Im Modus „Nutzungszugriff + Overlay“ nötig, um die geöffnete App zu erkennen. Erlaube ihn für Lares.</string>
     <string name="issue_overlay_title">„Über anderen Apps einblenden“ fehlt</string>
-    <string name="issue_overlay_body">Im Modus „Nutzungszugriff“ nötig, um den Sperrbildschirm anzuzeigen. Erlaube es für Lares.</string>
+    <string name="issue_overlay_body">Im Modus „Nutzungszugriff + Overlay“ nötig, um den Sperrbildschirm anzuzeigen. Erlaube es für Lares.</string>
     <string name="issue_admin_title">Deinstallationsschutz ist nicht aktiv</string>
     <string name="issue_admin_body">„Deinstallation verhindern“ ist eingeschaltet, aber Lares ist noch kein Geräteadministrator.</string>
     <string name="issue_admin_action">Aktivieren</string>
@@ -357,11 +377,11 @@
     <string name="block_reason_always_website">Diese Website ist immer gesperrt.</string>
     <string name="block_reason_limit">Das Tageslimit ist aufgebraucht. Wieder verfügbar ab %1$s.</string>
     <string name="block_reason_browser">Das Sperren von Websites ist eingeschaltet, und dieser Browser wird nicht unterstützt. Verwende einen unterstützten Browser.</string>
-    <string name="block_group">Limit der Gruppe „%1$s“</string>
+    <string name="block_group">Gruppe „%1$s“</string>
     <string name="block_open_lares">Zu Lares</string>
-    <string name="notification_channel_blocking">Blockier-Dienst</string>
-    <string name="blocking_service_title">Lares blockiert</string>
-    <string name="blocking_service_text">Der Modus „Nutzungszugriff“ achtet auf geöffnete Apps.</string>
+    <string name="notification_channel_blocking">Sperrdienst</string>
+    <string name="blocking_service_title">Lares sperrt</string>
+    <string name="blocking_service_text">Der Modus „Nutzungszugriff + Overlay“ achtet auf geöffnete Apps.</string>
     <string name="block_title_settings">Diese Einstellungsseite ist geschützt</string>
     <string name="block_reason_settings">Solange Lares gesperrt ist, können seine eigenen Systemeinstellungen (Beenden erzwingen, Deinstallieren, Berechtigungen) nicht geändert werden. Entsperre Lares zuerst mit dem Guardian-Code.</string>
     <string name="device_admin_disable_warning">Dein Guardian wird benachrichtigt.</string>
@@ -381,12 +401,12 @@
     <string name="settings_limit_timer_desc">Zeigt einen kleinen Timer in der Ecke, wenn ein Limit bald abläuft.</string>
     <string name="settings_warn_five">Benachrichtigung 5 Minuten vorher</string>
     <string name="settings_warn_one">Benachrichtigung 1 Minute vorher</string>
-    <string name="settings_warn_desc">Benötigt die Benachrichtigungsberechtigung, die erst jetzt angefragt wird.</string>
+    <string name="settings_warn_desc">Benötigt die Benachrichtigungsberechtigung, die beim Einschalten angefragt wird.</string>
     <string name="settings_warn_denied">Benachrichtigungen sind nicht erlaubt. Du kannst sie in den Systemeinstellungen erlauben.</string>
 
     <!-- Usage on the main screen -->
     <plurals name="usage_today">
-        <item quantity="one">heute %1$d Min. von %2$s genutzt</item>
-        <item quantity="other">heute %1$d Min. von %2$s genutzt</item>
+        <item quantity="one">heute %1$d von %2$d Minute genutzt</item>
+        <item quantity="other">heute %1$d von %2$d Minuten genutzt</item>
     </plurals>
 </resources>

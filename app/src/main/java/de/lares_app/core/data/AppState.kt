@@ -20,6 +20,10 @@ enum class BlockingMode { ACCESSIBILITY, USAGE_STATS }
 @Serializable
 enum class UnlockMethod { PASSWORD, TOTP }
 
+/** Colors of the app: the Lares theme, or Material You (wallpaper colors, Android 12+). */
+@Serializable
+enum class AppTheme { LARES, WALLPAPER }
+
 /** Tamper protections, each individually toggleable (disabling = loosening). */
 @Serializable
 enum class Protection { UNINSTALL, SETTINGS_GUARD, GUARDIAN_ALERTS }
@@ -41,6 +45,8 @@ data class AppSettings(
     /** Optional notifications before a limit ends (need the notification permission on Android 13+). */
     val warnFiveMinutes: Boolean = false,
     val warnOneMinute: Boolean = false,
+    /** Asked on the first setup screen; purely cosmetic (no code needed). */
+    val theme: AppTheme = AppTheme.LARES,
 ) {
     /** Website blocking needs the Accessibility service, so it works only in Accessibility mode. */
     val websiteBlockingAvailable: Boolean
@@ -78,6 +84,8 @@ data class UnlockState(
     /** TOTP secret, encrypted with a Keystore key (see [SecretCipher]). */
     val totpSecretEncrypted: String? = null,
     val totpLastCounter: Long = Long.MIN_VALUE,
+    /** Highest TOTP time step seen at any unlock attempt (no replay after setting the clock back). */
+    val totpMaxSeenCounter: Long = Long.MIN_VALUE,
     val recoveryHash: String? = null,
     /** Set after the recovery code was used: the guardian must set up a new code. */
     val reSetupRequired: Boolean = false,
@@ -91,7 +99,17 @@ data class UnlockState(
 
 /** The usage period currently counted (advanced monotonically, see ResetSchedule.advance). */
 @Serializable
-data class TrackedPeriod(val startMillis: Long, val endMillis: Long)
+data class TrackedPeriod(
+    val startMillis: Long,
+    val endMillis: Long,
+    /** elapsedRealtime when this period began being counted, and in which boot (clock-forward check). */
+    val startElapsedMillis: Long? = null,
+    val startBootId: Int? = null,
+) {
+    /** Monotonic time since the period started, or null if unknown (another boot). */
+    fun elapsedSinceStart(nowElapsedMillis: Long, bootId: Int): Long? =
+        startElapsedMillis?.takeIf { startBootId == bootId }?.let { nowElapsedMillis - it }
+}
 
 @Serializable
 data class AppState(

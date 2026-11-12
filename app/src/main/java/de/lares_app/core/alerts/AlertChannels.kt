@@ -55,7 +55,7 @@ data class ChannelDraft(
 ) {
     /** Required fields filled in and URLs use HTTPS (credentials never go over plain HTTP). */
     val isComplete: Boolean
-        get() = when (type) {
+        get() = listOf(server, address, secret, username, sender).none { field -> field.any { it.isISOControl() } } && when (type) {
             ChannelType.TELEGRAM -> TELEGRAM_TOKEN.matches(secret.trim()) && TELEGRAM_CHAT_ID.matches(address.trim())
             ChannelType.NTFY -> isHttps(server) && address.isNotBlank()
             ChannelType.WEBHOOK -> isHttps(server)
@@ -93,9 +93,11 @@ data class ChannelDraft(
             return at > 0 && at == t.lastIndexOf('@') && t.indexOf('.', at) > at + 1 && !t.endsWith(".") && t.none { it.isWhitespace() }
         }
 
+        /** An https URL with a real host (no spaces, no empty host like `https://@`). */
         private fun isHttps(url: String): Boolean {
             val u = url.trim()
-            return u.startsWith("https://", ignoreCase = true) && u.length > "https://".length
+            if (!u.startsWith("https://", ignoreCase = true) || u.any { it.isWhitespace() }) return false
+            return runCatching { java.net.URI(u).host }.getOrNull()?.isNotBlank() == true
         }
     }
 }

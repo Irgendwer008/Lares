@@ -40,7 +40,7 @@ class LimitNotifier(private val context: Context) {
             )
         }
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_lock)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.resources.getQuantityString(R.plurals.limit_warning_title, minutes, minutes))
             .setContentText(context.getString(R.string.limit_warning_text, label))
             .setAutoCancel(true)

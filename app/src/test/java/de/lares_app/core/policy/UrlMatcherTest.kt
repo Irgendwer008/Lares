@@ -51,4 +51,11 @@ class UrlMatcherTest {
         assertFalse(UrlMatcher.matches("youtube.com/watch?v=1", rule))
         assertFalse(UrlMatcher.matches("youtube.com", rule))
     }
+
+    @Test fun schemeOnlyAtTheStart() {
+        assertTrue(UrlMatcher.matches("youtube.com/shorts/abc?x=https://a", "youtube.com/shorts"))
+        assertTrue(UrlMatcher.matches("reddit.com/#://", "reddit.com"))
+        assertTrue(UrlMatcher.matches("https://reddit.com/r/x?u=ftp://y", "reddit.com"))
+        assertEquals(null, UrlMatcher.parse("ftp://reddit.com"))
+    }
 }

@@ -73,12 +73,22 @@ class UnlockManagerTest {
         assertTrue(manager.isUnlocked())
         clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS)
         assertFalse(manager.isUnlocked())
-        // Changing the code later doesn't start a new unlocked mode by itself.
+        // Changing the code later doesn't start a new unlocked mode by itself …
         assertUnlocks("hunter22")
+        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS - 1_000)
         manager.setupPassword("changed1")
-        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS)
         manager.completeSetup()
+        clock.advance(1_000)
         assertFalse(manager.isUnlocked())
+        // … and finishing it after the unlocked mode ran out needs the code again.
+        manager.unlock("changed1")
+        manager.setupPassword("changed2")
+        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS)
+        try {
+            manager.completeSetup()
+            throw AssertionError("expected CodeRequiredException")
+        } catch (_: CodeRequiredException) {
+        }
     }
 
     @Test fun lockEndsUnlockedModeImmediately() = runTest {
@@ -189,5 +199,31 @@ class UnlockManagerTest {
 
         manager.endPause() // ending early is always allowed
         assertFalse(manager.isPauseActive())
+    }
+
+    @Test fun expiredLockoutIsForgottenSoARebootDoesNotRestartIt() = runTest {
+        setUp()
+        repeat(3) { manager.unlock("wrong-code") }
+        assertTrue(manager.unlock("hunter22") is VerifyResult.LockedOut)
+        clock.advance(24 * 3_600_000L) // ran out
+        manager.clearExpiredLockout() // the blocking loop notices it in this boot
+        clock.boot++
+        clock.elapsed = 1_000L
+        assertTrue(manager.unlock("hunter22") is VerifyResult.Success)
+    }
+
+    @Test fun totpCodeCantBeReplayedBySettingTheClockBack() = runTest {
+        val setup = manager.beginTotpSetup("Phone")
+        val secret = Base32.decode(setup.secretBase32)
+        manager.confirmTotpSetup(setup, Totp.code(secret, Totp.counterAt(clock.wall)))
+        manager.completeSetup()
+        manager.lock()
+        // A code from now, saved but not used …
+        val saved = Totp.code(secret, Totp.counterAt(clock.wall) + 2)
+        clock.advance(60 * 60_000L)
+        assertTrue(manager.unlock("000000") !is VerifyResult.Success) // an attempt an hour later is seen
+        // … then the clock is set back to when the code was valid.
+        clock.wall -= 60 * 60_000L - 60_000L
+        assertTrue(manager.unlock(saved) !is VerifyResult.Success)
     }
 }

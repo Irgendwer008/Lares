@@ -34,7 +34,11 @@ object SettingsGuard {
         windowClass: String?,
         matches: List<LabelMatch>,
         appLabel: String,
-    ): Boolean = if (packageName in installerPackages) {
+    ): Boolean = if (windowClass?.endsWith("Dialog") == true && packageName !in installerPackages) {
+        // Settings dialogs (e.g. "Don't optimize" for the battery) aren't Lares' pages; the
+        // dangerous dialogs (force stop, …) only open from pages that are guarded themselves.
+        false
+    } else if (packageName in installerPackages) {
         windowClass?.contains("Uninstall", ignoreCase = true) == true &&
             (matches.isNotEmpty() || windowTitle?.contains(appLabel, ignoreCase = true) == true)
     } else {

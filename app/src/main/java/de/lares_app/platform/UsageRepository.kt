@@ -8,6 +8,7 @@ package de.lares_app.platform
 import de.lares_app.core.blocking.UsageCounter
 import de.lares_app.core.blocking.UsageSnapshot
 import de.lares_app.core.data.StateStore
+import de.lares_app.core.data.UsageTransfer
 import de.lares_app.core.data.TrackedPeriod
 import de.lares_app.core.policy.Decision
 import de.lares_app.core.policy.UsagePeriod
@@ -36,7 +37,7 @@ class UsageRepository(
     private val store: StateStore,
     private val clock: Clock,
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
-) {
+) : UsageTransfer {
     private val mutex = Mutex()
     private var counter: UsageCounter? = null
     private var lastFlushElapsed = 0L
@@ -59,17 +60,34 @@ class UsageRepository(
 
     suspend fun flush() = mutex.withLock { flushLocked() }
 
+    /** A rule changed group: carry its used time over (saved right away). */
+    override suspend fun ruleMoved(ruleId: Long, fromGroup: Long?, toGroup: Long?) = mutex.withLock {
+        refreshLocked()
+        val c = counter ?: return@withLock
+        if (c.carryOver(ruleId, fromGroup, toGroup)) {
+            _usage.value = c.snapshot
+            flushLocked()
+        }
+    }
+
     private suspend fun refreshLocked(): Boolean {
         val state = store.current()
         val now = Instant.ofEpochMilli(clock.wallMillis())
         val schedule = state.settings.resetSchedule.settle(now, zone())
-        val tracked = state.trackedPeriod?.let { UsagePeriod(Instant.ofEpochMilli(it.startMillis), Instant.ofEpochMilli(it.endMillis)) }
-        val period = schedule.advance(tracked, now, zone())
+        val stored = state.trackedPeriod
+        val tracked = stored?.let { UsagePeriod(Instant.ofEpochMilli(it.startMillis), Instant.ofEpochMilli(it.endMillis)) }
+        val elapsed = stored?.elapsedSinceStart(clock.elapsedMillis(), clock.bootId())
+        val period = schedule.advance(tracked, now, zone(), elapsed)
         val periodChanged = period != tracked
         if (periodChanged) {
             store.update {
                 it.copy(
-                    trackedPeriod = TrackedPeriod(period.start.toEpochMilli(), period.end.toEpochMilli()),
+                    trackedPeriod = TrackedPeriod(
+                        period.start.toEpochMilli(),
+                        period.end.toEpochMilli(),
+                        startElapsedMillis = clock.elapsedMillis(),
+                        startBootId = clock.bootId(),
+                    ),
                     settings = it.settings.withResetSchedule(schedule),
                 )
             }

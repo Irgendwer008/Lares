@@ -35,7 +35,8 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
     when the phone restarts).
 11. Unlocking and pauses are **not** reported to the guardian; only tamper events are.
 12. A **recovery code** is generated at setup and shown once, for the guardian to keep. It can be
-    copied or **shared** (text + file `Recovery-Codes-Lares.txt`); nothing is stored on the phone.
+    copied or **shared** (text + file `Recovery-Codes-Lares.txt`); it is never stored in plain text
+    on the phone (only a salted hash).
     Using it unlocks and forces setting up a new code.
 13. The guardian code is never offered to password managers (autofill disabled app-wide).
 
@@ -82,7 +83,9 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 
 ## Settings
 28. Settings screen (menu icon on the main screen), split into **App settings** – guardian code,
-    blocking mode, website blocking, reset time, protections, notification channels, backup,
+    blocking mode, website blocking, reset time, limit countdown and warnings, protections,
+    notification channels, backup,
+    colors (Lares colors or wallpaper colors, Android 12+; also asked on the first setup screen),
     language – and **Info** – about, privacy policy, license, open-source libraries.
 
 ## Platform

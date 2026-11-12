@@ -91,4 +91,19 @@ class ProtectionChecksTest {
         // Updating Lares (install dialog) stays possible.
         assertFalse(SettingsGuard.isProtectedPage(installer, "Lares", "com.android.packageinstaller.PackageInstallerActivity", name, "Lares"))
     }
+
+    @Test fun stoppedWhileInUseThenRebooted() {
+        val min = 60_000L
+        val last = Heartbeat(wallMillis = 0, elapsedMillis = 0, bootCount = 6, screenOn = true, reportable = true)
+        assertEquals(90L, GapCheck.stoppedBeforeReboot(last, bootStartWallMillis = 90 * min, bootCount = 7))
+        assertNull(GapCheck.stoppedBeforeReboot(last, 5 * min, 7)) // quick reboot
+        assertNull(GapCheck.stoppedBeforeReboot(last.copy(screenOn = false), 90 * min, 7)) // clean shutdown
+        assertNull(GapCheck.stoppedBeforeReboot(last, 90 * min, 6)) // same boot: other check
+    }
+
+    @Test fun settingsDialogsAreNotGuarded() {
+        val name = listOf(SettingsGuard.LabelMatch(clickable = false))
+        assertFalse(SettingsGuard.isProtectedPage("com.android.settings", "Lares", "android.app.AlertDialog", name, "Lares"))
+        assertTrue(SettingsGuard.isProtectedPage("com.android.settings", "Lares", "com.android.settings.SubSettings", name, "Lares"))
+    }
 }

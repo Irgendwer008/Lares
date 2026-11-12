@@ -9,6 +9,11 @@
 .cxx
 # Machine-specific SDK path (written by Android Studio)
 local.properties
+# Release signing (Google Play upload key) – never commit keys or passwords
+keystore.properties
+*.jks
+*.keystore
+/keys/
 
 # --- Android Studio: user/machine-specific files ---
 # (shared settings like codeStyles/, gradle.xml, misc.xml stay tracked)

@@ -6,6 +6,7 @@
 package de.lares_app.di
 
 import android.content.Context
+import android.os.PowerManager
 import androidx.room.Room
 import dagger.Module
 import dagger.Provides
@@ -77,7 +78,7 @@ object AppModule {
     fun unlockGate(store: StateStore, clock: Clock) = UnlockGate(store, clock)
 
     @Provides @Singleton
-    fun ruleRepository(store: RuleStore, groups: GroupStore, gate: UnlockGate) = RuleRepository(store, groups, gate)
+    fun ruleRepository(store: RuleStore, groups: GroupStore, gate: UnlockGate, usage: UsageRepository) = RuleRepository(store, groups, gate, usage)
 
     @Provides @Singleton
     fun settingsRepository(store: StateStore, gate: UnlockGate, clock: Clock) = SettingsRepository(store, gate, clock)
@@ -96,7 +97,9 @@ object AppModule {
 
     @Provides @Singleton
     fun protectionMonitor(@ApplicationContext context: Context, store: StateStore, tamperLog: TamperLog, clock: Clock, permissions: PermissionStatus) =
-        ProtectionMonitor(store, tamperLog, clock, permissions, ProtectionStore(context))
+        ProtectionMonitor(store, tamperLog, clock, permissions, ProtectionStore(context)) {
+            context.getSystemService(PowerManager::class.java).isInteractive
+        }
 
     @Provides @Singleton
     fun alertDelivery(store: StateStore, tamperLog: TamperLog, channels: AlertChannelRepository, sender: AlertSender, messages: AlertMessages) =
@@ -126,9 +129,10 @@ object AppModule {
         catalog: AppCatalog,
         notifier: LimitNotifier,
         monitor: ProtectionMonitor,
+        unlockManager: UnlockManager,
         clock: Clock,
         @ApplicationContext context: Context,
-    ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, monitor, clock)
+    ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, monitor, unlockManager, clock)
 
     @Provides @Singleton
     fun usageMonitorStarter(@ApplicationContext context: Context, store: StateStore) = UsageMonitorStarter(context, store)

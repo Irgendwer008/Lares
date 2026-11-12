@@ -42,6 +42,10 @@ data class TimedSession(
     fun isActive(nowElapsedMillis: Long, currentBootId: Int): Boolean = remainingMillis(nowElapsedMillis, currentBootId) > 0
 
     fun remainingMillis(nowElapsedMillis: Long, currentBootId: Int): Long = when {
+        // More left than the whole duration: elapsed time restarted although the boot id didn't
+        // change (boot counter missing) – treat it like a reboot.
+        currentBootId == bootId && elapsedEndMillis - nowElapsedMillis > durationMillis ->
+            if (afterReboot == AfterReboot.RESTART) durationMillis else 0
         currentBootId == bootId -> elapsedEndMillis - nowElapsedMillis
         afterReboot == AfterReboot.RESTART -> durationMillis
         else -> 0

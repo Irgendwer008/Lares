@@ -7,14 +7,23 @@ package de.lares_app.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import de.lares_app.core.data.AppTheme
+import de.lares_app.core.data.StateStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 
 /**
  * Lares theme: warm clay orange (primary) with olive (secondary) and Pompeian teal (tertiary)
@@ -91,7 +100,6 @@ private val DarkColors = darkColorScheme(
 @Composable
 fun LaresTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Lares theme for now; a setting (Material You ↔ Lares theme, asked at setup) follows.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -104,4 +112,29 @@ fun LaresTheme(
         else -> LightColors
     }
     MaterialTheme(colorScheme = colors, content = content)
+}
+
+/** Color scheme of [theme] (for the previews on the setup screen). */
+@Composable
+fun previewColorScheme(theme: AppTheme, dark: Boolean = isSystemInDarkTheme()): ColorScheme {
+    val context = LocalContext.current
+    return if (theme == AppTheme.WALLPAPER && wallpaperColorsAvailable) {
+        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    } else {
+        if (dark) DarkColors else LightColors
+    }
+}
+
+/** Material You needs Android 12+ – below, the choice isn't offered and the Lares theme is used. */
+val wallpaperColorsAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+/** Current theme choice, read once synchronously so the first frame already has the right colors. */
+fun initialTheme(store: StateStore): AppTheme = runBlocking { store.state.first().settings.theme }
+
+/** [LaresTheme] following the theme setting (changes apply right away). */
+@Composable
+fun LaresTheme(store: StateStore, initial: AppTheme, content: @Composable () -> Unit) {
+    val flow = remember(store) { store.state.map { it.settings.theme } }
+    val theme by flow.collectAsState(initial)
+    LaresTheme(dynamicColor = theme == AppTheme.WALLPAPER, content = content)
 }

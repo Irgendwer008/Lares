@@ -8,6 +8,14 @@ package de.lares_app.ui
 import android.text.format.DateFormat
 import android.Manifest
 import android.os.Build
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.rotate
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
@@ -65,9 +73,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
-import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
+import com.mikepenz.aboutlibraries.entity.Library
+import com.mikepenz.aboutlibraries.Libs
 import de.lares_app.R
+import de.lares_app.ui.theme.wallpaperColorsAvailable
+import de.lares_app.core.data.AppTheme
 import de.lares_app.core.alerts.AlertChannelConfig
 import de.lares_app.core.alerts.ChannelType
 import de.lares_app.core.data.BlockingMode
@@ -110,6 +120,8 @@ fun SettingsScreen(
     var showLanguage by remember { mutableStateOf(false) }
     var showBlockingMode by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    var showTheme by remember { mutableStateOf(false) }
+    var highlightScrolled by rememberSaveable { mutableStateOf(false) }
     var showLicense by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -203,6 +215,7 @@ fun SettingsScreen(
             SettingsItem(
                 title = stringResource(R.string.settings_guardian_code),
                 summary = stringResource(if (ui.method == UnlockMethod.TOTP) R.string.setup_method_totp_title else R.string.setup_method_password_title),
+                icon = R.drawable.ic_key,
                 onClick = vm::changeCode,
             )
 
@@ -211,7 +224,9 @@ fun SettingsScreen(
                 modifier = Modifier
                     .highlightPulse(vm.highlightStartUptime.takeIf { vm.highlight == SettingsHighlight.BLOCKING_MODE })
                     .onGloballyPositioned { coords ->
-                        if (vm.highlight == SettingsHighlight.BLOCKING_MODE && scroll.value == 0) {
+                        // Once, when the screen opens – not again whenever the user scrolls back up.
+                        if (vm.highlight == SettingsHighlight.BLOCKING_MODE && !highlightScrolled) {
+                            highlightScrolled = true
                             val target = (coords.positionInParent().y - with(density) { 96.dp.toPx() }).toInt().coerceAtLeast(0)
                             if (target > 0) scope.launch { scroll.animateScrollTo(target) }
                         }
@@ -224,6 +239,7 @@ fun SettingsScreen(
                         null -> R.string.blocking_mode_not_chosen
                     },
                 ),
+                icon = R.drawable.ic_apps,
                 onClick = { showBlockingMode = true },
             )
             // Needs the Accessibility service – in Usage access mode, switch the mode instead.
@@ -234,6 +250,7 @@ fun SettingsScreen(
                     if (websiteAvailable) R.string.settings_website_blocking_desc else R.string.settings_website_blocking_unavailable,
                 ),
                 checked = ui.websiteBlocking && websiteAvailable,
+                icon = R.drawable.ic_public,
                 enabled = websiteAvailable,
                 onChange = vm::setWebsiteBlocking,
             )
@@ -242,31 +259,35 @@ fun SettingsScreen(
                 summary = ui.pendingResetTime?.let {
                     stringResource(R.string.settings_reset_time_pending, formatTime(ui.resetTime), formatTime(it))
                 } ?: formatTime(ui.resetTime),
+                icon = R.drawable.ic_schedule,
                 onClick = { showResetTime = true },
             )
             SwitchItem(
                 title = stringResource(R.string.settings_limit_timer),
                 summary = stringResource(R.string.settings_limit_timer_desc),
                 checked = ui.limitTimer,
+                icon = R.drawable.ic_timer,
                 onChange = vm::setLimitTimer,
             )
             SwitchItem(
                 title = stringResource(R.string.settings_warn_five),
                 summary = stringResource(R.string.settings_warn_desc),
                 checked = ui.warnFiveMinutes,
+                icon = R.drawable.ic_notifications,
                 onChange = { on -> requestWarning(on) { vm.setWarnings(on, ui.warnOneMinute) } },
             )
             SwitchItem(
                 title = stringResource(R.string.settings_warn_one),
                 summary = stringResource(R.string.settings_warn_desc),
                 checked = ui.warnOneMinute,
+                icon = R.drawable.ic_notifications,
                 onChange = { on -> requestWarning(on) { vm.setWarnings(ui.warnFiveMinutes, on) } },
             )
 
             SettingsSubheader(stringResource(R.string.settings_group_protection))
-            ProtectionSwitch(Protection.UNINSTALL, R.string.protection_uninstall, R.string.protection_uninstall_desc, ui, vm)
-            ProtectionSwitch(Protection.SETTINGS_GUARD, R.string.protection_settings_guard, R.string.protection_settings_guard_desc, ui, vm)
-            ProtectionSwitch(Protection.GUARDIAN_ALERTS, R.string.protection_alerts, R.string.protection_alerts_desc, ui, vm)
+            ProtectionSwitch(Protection.UNINSTALL, R.string.protection_uninstall, R.string.protection_uninstall_desc, R.drawable.ic_delete, ui, vm)
+            ProtectionSwitch(Protection.SETTINGS_GUARD, R.string.protection_settings_guard, R.string.protection_settings_guard_desc, R.drawable.ic_shield, ui, vm)
+            ProtectionSwitch(Protection.GUARDIAN_ALERTS, R.string.protection_alerts, R.string.protection_alerts_desc, R.drawable.ic_notifications_active, ui, vm)
 
             // Greyed out while "Notify guardian" (above) is off.
             val alertsOn = Protection.GUARDIAN_ALERTS in ui.protections
@@ -291,6 +312,7 @@ fun SettingsScreen(
                     SettingsItem(
                         title = stringResource(channelTypeLabel(channel.type)),
                         summary = channelSummary(channel),
+                        icon = R.drawable.ic_send,
                         enabled = alertsOn,
                         onClick = { vm.openChannel(channel.id) },
                     )
@@ -301,17 +323,26 @@ fun SettingsScreen(
             }
 
             SettingsSubheader(stringResource(R.string.settings_group_backup))
-            SettingsItem(stringResource(R.string.backup_export), stringResource(R.string.backup_export_desc)) {
+            SettingsItem(stringResource(R.string.backup_export), stringResource(R.string.backup_export_desc), icon = R.drawable.ic_upload) {
                 exportLauncher.launch(backupFileName())
             }
-            SettingsItem(stringResource(R.string.backup_import), stringResource(R.string.backup_import_desc)) {
+            SettingsItem(stringResource(R.string.backup_import), stringResource(R.string.backup_import_desc), icon = R.drawable.ic_download) {
                 importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
             }
 
             SettingsSubheader(stringResource(R.string.settings_group_app))
+            if (wallpaperColorsAvailable) {
+                SettingsItem(
+                    title = stringResource(R.string.settings_theme),
+                    summary = stringResource(if (ui.theme == AppTheme.WALLPAPER) R.string.theme_wallpaper else R.string.theme_lares),
+                    icon = R.drawable.ic_palette,
+                    onClick = { showTheme = true },
+                )
+            }
             SettingsItem(
                 title = stringResource(R.string.settings_language),
                 summary = currentLanguageLabel(),
+                icon = R.drawable.ic_translate,
                 onClick = { showLanguage = true },
             )
 
@@ -319,10 +350,10 @@ fun SettingsScreen(
 
             // ================= Info =================
             SettingsHeader(stringResource(R.string.settings_section_info))
-            SettingsItem(stringResource(R.string.about_title), stringResource(R.string.about_version, appVersion()), onClick = { showAbout = true })
-            SettingsItem(stringResource(R.string.privacy_title), stringResource(R.string.privacy_summary), onClick = onOpenPrivacy)
-            SettingsItem(stringResource(R.string.license_title), stringResource(R.string.license_summary), onClick = { showLicense = true })
-            SettingsItem(stringResource(R.string.libraries_title), stringResource(R.string.libraries_summary), onClick = onOpenLibraries)
+            SettingsItem(stringResource(R.string.about_title), stringResource(R.string.about_version, appVersion()), icon = R.drawable.ic_info, onClick = { showAbout = true })
+            SettingsItem(stringResource(R.string.privacy_title), stringResource(R.string.privacy_summary), icon = R.drawable.ic_privacy_tip, onClick = onOpenPrivacy)
+            SettingsItem(stringResource(R.string.license_title), stringResource(R.string.license_summary), icon = R.drawable.ic_description, onClick = { showLicense = true })
+            SettingsItem(stringResource(R.string.libraries_title), stringResource(R.string.libraries_summary), icon = R.drawable.ic_code, onClick = onOpenLibraries)
         }
     }
 
@@ -348,6 +379,21 @@ fun SettingsScreen(
         )
     }
     if (showLanguage) LanguageDialog(onDismiss = { showLanguage = false })
+    if (showTheme) {
+        AlertDialog(
+            onDismissRequest = { showTheme = false },
+            title = { Text(stringResource(R.string.settings_theme)) },
+            text = {
+                Column(Modifier.selectableGroup()) {
+                    ThemeOptions(ui.theme) {
+                        vm.setTheme(it)
+                        showTheme = false
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showTheme = false }) { Text(stringResource(R.string.close)) } },
+        )
+    }
     if (showAbout) {
         InfoDialog(
             title = stringResource(R.string.app_name),
@@ -400,18 +446,27 @@ private fun SettingsSubheader(text: String, divider: Boolean = true) {
 }
 
 @Composable
-private fun SwitchItem(title: String, summary: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+private fun SwitchItem(
+    title: String,
+    summary: String,
+    checked: Boolean,
+    icon: Int? = null,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit,
+) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(summary) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = onChange, enabled = enabled) },
-        modifier = Modifier.clickable(enabled = enabled) { onChange(!checked) },
+        leadingContent = icon?.let { { SettingsIcon(it) } },
+        // One focus target for TalkBack: the whole row is the switch (with the title as label).
+        trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
+        modifier = Modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange),
     )
 }
 
 @Composable
-private fun ProtectionSwitch(protection: Protection, title: Int, desc: Int, ui: SettingsUi, vm: SettingsViewModel) {
-    SwitchItem(stringResource(title), stringResource(desc), protection in ui.protections) { vm.setProtection(protection, it) }
+private fun ProtectionSwitch(protection: Protection, title: Int, desc: Int, icon: Int, ui: SettingsUi, vm: SettingsViewModel) {
+    SwitchItem(stringResource(title), stringResource(desc), protection in ui.protections, icon = icon) { vm.setProtection(protection, it) }
 }
 
 fun channelTypeLabel(type: ChannelType): Int = when (type) {
@@ -466,12 +521,25 @@ private fun SettingsHeader(text: String) {
 }
 
 @Composable
-private fun SettingsItem(title: String, summary: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+private fun SettingsItem(
+    title: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+    icon: Int? = null,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(summary) },
+        leadingContent = icon?.let { { SettingsIcon(it) } },
         modifier = modifier.clickable(enabled = enabled, onClick = onClick),
     )
+}
+
+@Composable
+private fun SettingsIcon(icon: Int) {
+    Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /** A setting the screen should scroll to and highlight when opened (e.g. from the setup-issues box). */
@@ -616,11 +684,95 @@ fun PrivacyScreen(onBack: () -> Unit) {
 @Composable
 fun LibrariesScreen(onBack: () -> Unit) {
     val resources = LocalResources.current
-    val libraries by produceLibraries {
-        withContext(Dispatchers.IO) { resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() } }
+    val libraries by produceState<Libs?>(null) {
+        value = withContext(Dispatchers.IO) {
+            Libs.Builder().withJson(resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() }).build()
+        }
     }
+    val other = stringResource(R.string.libraries_other_author)
+    // Grouped by author: organization, otherwise the first developer; alphabetical, unknown last.
+    val groups = remember(libraries, other) {
+        libraries?.libraries.orEmpty()
+            .groupBy { lib -> lib.organization?.name?.takeIf { it.isNotBlank() } ?: lib.developers.firstNotNullOfOrNull { it.name?.takeIf(String::isNotBlank) } }
+            .toList()
+            .sortedWith(compareBy<Pair<String?, List<Library>>>({ it.first == null }, { it.first?.lowercase() }))
+            .map { (author, libs) -> (author ?: other) to libs.sortedBy { it.name.lowercase() } }
+    }
+    var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var shown by remember { mutableStateOf<Library?>(null) }
+    val expandLabel = stringResource(R.string.group_expand)
+    val collapseLabel = stringResource(R.string.group_collapse)
+    val expandedState = stringResource(R.string.state_expanded)
+    val collapsedState = stringResource(R.string.state_collapsed)
+    // The plugin's offline mode stores no license texts – the texts used are bundled (by SPDX id).
+    val bundledLicenses by produceState(emptyMap<String, String>()) {
+        value = withContext(Dispatchers.IO) {
+            mapOf("Apache-2.0" to resources.openRawResource(R.raw.apache_2_0).bufferedReader().use { it.readText() })
+        }
+    }
+    val uriHandler = LocalUriHandler.current
     InfoScaffold(stringResource(R.string.libraries_title), onBack) { padding ->
-        LibrariesContainer(libraries, Modifier.fillMaxSize().padding(padding))
+        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+            groups.forEach { (author, libs) ->
+                val open = author in expanded
+                item(key = "a:$author") {
+                    ListItem(
+                        headlineContent = { Text(author, style = MaterialTheme.typography.titleMedium) },
+                        supportingContent = { Text(pluralStringResource(R.plurals.libraries_count, libs.size, libs.size)) },
+                        trailingContent = {
+                            Icon(
+                                painterResource(R.drawable.ic_expand_more),
+                                contentDescription = null,
+                                modifier = Modifier.rotate(if (open) 180f else 0f),
+                            )
+                        },
+                        modifier = Modifier
+                            .clickable(onClickLabel = if (open) collapseLabel else expandLabel) {
+                                expanded = if (open) expanded - author else expanded + author
+                            }
+                            .semantics { stateDescription = if (open) expandedState else collapsedState },
+                    )
+                }
+                if (open) {
+                    items(libs, key = { "l:$author:${it.uniqueId}" }) { lib ->
+                        val link = lib.scm?.url?.takeIf { it.isNotBlank() } ?: lib.website?.takeIf { it.isNotBlank() }
+                        ListItem(
+                            headlineContent = { Text(lib.name) },
+                            supportingContent = {
+                                Text(listOfNotNull(lib.artifactVersion, lib.licenses.joinToString { it.spdxId ?: it.name }.ifBlank { null }).joinToString(" · "))
+                            },
+                            // License text and source code / website as compact buttons behind the entry.
+                            trailingContent = {
+                                Row {
+                                    IconButton(onClick = { shown = lib }) {
+                                        Icon(painterResource(R.drawable.ic_description), contentDescription = stringResource(R.string.libraries_license))
+                                    }
+                                    if (link != null) {
+                                        IconButton(onClick = { runCatching { uriHandler.openUri(link) } }) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_code),
+                                                contentDescription = stringResource(if (lib.scm?.url.isNullOrBlank()) R.string.libraries_website else R.string.libraries_source),
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.padding(start = 16.dp).clickable { shown = lib },
+                        )
+                    }
+                }
+                item(key = "d:$author") { HorizontalDivider() }
+            }
+        }
+    }
+    shown?.let { lib ->
+        InfoDialog(
+            title = lib.name,
+            text = lib.licenses.joinToString("\n\n") { license ->
+                license.licenseContent?.takeIf { it.isNotBlank() } ?: bundledLicenses[license.spdxId] ?: license.name
+            }.ifBlank { stringResource(R.string.libraries_no_license_text) },
+            onDismiss = { shown = null },
+        )
     }
 }
 

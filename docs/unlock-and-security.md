@@ -11,7 +11,8 @@
   text) for the guardian's authenticator app. It is stored only after the guardian entered a
   matching code, encrypted with an Android Keystore key.
 - 30 s step, 6 digits, ±1 step for clock drift; codes at or before the last accepted one are
-  rejected (no replay).
+  rejected (no replay), and so are codes older than the highest time step seen at any unlock
+  attempt (also during a waiting time) – a saved code can't be replayed by setting the clock back.
 
 ### Recovery code
 - 20 random characters (Crockford Base32, 100 bits), shown once; can be copied or shared, never
@@ -28,7 +29,9 @@
 ### Wrong codes
 - The 3rd wrong code in a row starts a 1 min waiting time; every further wrong code doubles it
   (2, 4, 8 … min, max. 24 h). A correct code resets the counter.
-- A restart doesn't skip it: after a reboot the waiting time starts over in full.
+- A restart doesn't skip it: after a reboot the waiting time starts over in full. A waiting time
+  that ran out is forgotten (checked every minute and at the next attempt), so a later reboot
+  doesn't restart it; the failure count stays.
 - Tamper event "repeated wrong code" at the first waiting time and every 5th failure after
   (3, 8, 13 …).
 
@@ -55,13 +58,16 @@
 | Change the guardian code | Yes |
 | Export rules / import rules (import only adds) | No / No |
 
+Until the first setup is complete, nothing is protected yet (no code needed for anything), so the
+setup pages can still change their choices after the code was stored.
+
 Taking a member out of a group is loosening unless its own limit is strictly lower (it no longer
 shares the time). Moving a rule into a group that already contains the same target does nothing.
 
 ## Tamper protections (each toggleable; switching off = loosening)
 1. **Prevent uninstalling** – device administrator (no admin policies used). While active,
    Android refuses to uninstall Lares. Deactivating it shows "Your guardian will be notified" in
-   the system dialog (if notifications are on) and is reported from `onDisabled` – sent right away
+   the system dialog (if "Notify guardian" is on) and is reported from `onDisabled` – sent right away
    (uninstalling may follow), queued as a fallback.
 2. **Guard system settings** – needs the Accessibility service in every blocking mode. While
    locked, Lares' own pages in the system settings show the block screen ("This settings page is
@@ -72,11 +78,16 @@ shares the time). Moving a rule into a group that already contains the same targ
    non-clickable text (app header; found by walking the window, max. 600 nodes – the system
    text search doesn't see Compose) – lists show it in a clickable row and stay usable
    (`SettingsGuard`; OEM settings differ, verify on devices). Debug builds log every settings
-   window with the guard status and the check result (`LaresBlocking`). When
+   window with the guard status and the check result (`LaresBlocking`). Settings dialogs aren't
+   guarded (e.g. the battery "Don't optimize" dialog; dangerous dialogs only open from guarded
+   pages). A detected page is checked again after 2 s, so switching back during the block
+   screen's debounce doesn't get through. When
    a setup issue is opened from the main screen, the guard lets the settings through only while
    that issue is still unfixed, until Lares is opened again, and at most 2 min (otherwise the
    permission it protects couldn't be granted). Once fixed, the user is still on that page: it
-   stays open until they leave the settings, at most 30 s. Inactive in unlocked mode.
+   stays open until they leave the settings, at most 30 s. The battery recommendation opens no
+   such window (its list and dialog aren't guarded, and it may stay unfixed). Inactive in
+   unlocked mode.
 3. **Notify guardian** – see [Notifications](notifications.md).
 
 **Restart after reboot / update** is always on (no switch – the system restarts the
@@ -96,6 +107,8 @@ are the guardian's; a pause doesn't count as unlocked). `ProtectionMonitor`, pur
   last heartbeat (every minute with the screen on, and at screen on / off) in the same boot, and
   that heartbeat came with the screen on (stopped while in use, e.g. force stop). After the
   screen went off, a later start says nothing about when the phone was used again → not reported.
+  Also across a reboot: if the last heartbeat of the previous boot came with the screen on (a
+  clean shutdown marks it "screen off"), the time until this boot is reported.
 - **Boots without Lares** – the boot counter grew by more than one since Lares last ran (e.g.
   safe mode, where third-party apps don't run).
 - **Clock changed** – `TIME_SET` and the offset wall clock − elapsed realtime moved by more than

@@ -23,7 +23,7 @@ import java.time.ZoneId
 class RepositoriesTest {
     private val clock = FakeClock()
     private val zone = ZoneId.of("Europe/Berlin")
-    private val store = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x")))
+    private val store = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x"), settings = AppSettings(setupComplete = true)))
     private val gate = UnlockGate(store, clock)
     private val ruleStore = FakeRuleStore()
     private val rules = RuleRepository(ruleStore, FakeGroupStore(ruleStore), gate)
@@ -50,15 +50,15 @@ class RepositoriesTest {
     @Test fun looseningRulesNeedsUnlockedMode() = runTest {
         val id = (rules.add(RuleType.APP, "com.instagram.android", limitMinutesPerDay = 30) as AddRuleResult.Added).id
 
-        rules.setLimit(id, 10) // tighter: fine
-        rules.setLimit(id, null) // always-on: fine
-        assertNeedsCode { rules.setLimit(id, 60) }
+        rules.updateRule(id, 10, enabled = true) // tighter: fine
+        rules.updateRule(id, null, enabled = true) // always-on: fine
+        assertNeedsCode { rules.updateRule(id, 60, enabled = true) }
         assertNeedsCode { rules.setEnabled(id, false) }
         assertNeedsCode { rules.remove(id) }
         assertEquals(1, ruleStore.all().size)
 
         unlockApp()
-        rules.setLimit(id, 60)
+        rules.updateRule(id, 60, enabled = true)
         rules.remove(id)
         assertTrue(ruleStore.all().isEmpty())
 
@@ -72,6 +72,16 @@ class RepositoriesTest {
         val freshRules = RuleRepository(freshStore, FakeGroupStore(freshStore), UnlockGate(fresh, clock))
         val id = (freshRules.add(RuleType.APP, "com.instagram.android") as AddRuleResult.Added).id
         freshRules.remove(id)
+    }
+
+    @Test fun nothingIsProtectedUntilTheFirstSetupIsComplete() = runTest {
+        // Code already stored, but the first setup isn't finished (e.g. the app was closed on the
+        // recovery-code page): the setup pages may still change the blocking mode.
+        val midSetup = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x")))
+        val s = SettingsRepository(midSetup, UnlockGate(midSetup, clock), clock)
+        s.setBlockingMode(BlockingMode.ACCESSIBILITY)
+        s.setBlockingMode(BlockingMode.USAGE_STATS)
+        assertEquals(BlockingMode.USAGE_STATS, midSetup.current().settings.blockingMode)
     }
 
     @Test fun settingsPolicy() = runTest {

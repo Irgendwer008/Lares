@@ -11,17 +11,19 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 
-/** Screen on / off and installed-app changes, for the blocking services. */
+/** Screen on / off, shutdown and installed-app changes, for the blocking services. */
 class SystemEvents(
     private val context: Context,
     private val onScreen: (on: Boolean) -> Unit,
     private val onPackagesChanged: () -> Unit,
+    private val onShutdown: () -> Unit = {},
 ) {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> onScreen(false)
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> onScreen(true)
+                Intent.ACTION_SHUTDOWN -> onShutdown()
                 else -> onPackagesChanged()
             }
         }
@@ -32,11 +34,13 @@ class SystemEvents(
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_USER_PRESENT)
+            addAction(Intent.ACTION_SHUTDOWN)
         }
         ContextCompat.registerReceiver(context, receiver, screen, ContextCompat.RECEIVER_NOT_EXPORTED)
         val packages = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED) // enabled / disabled
             addDataScheme("package")
         }
         ContextCompat.registerReceiver(context, receiver, packages, ContextCompat.RECEIVER_NOT_EXPORTED)

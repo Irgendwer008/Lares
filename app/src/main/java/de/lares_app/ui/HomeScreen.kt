@@ -5,6 +5,21 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.graphics.ColorFilter
@@ -96,13 +111,13 @@ fun HomeScreen(
             // Play policy: explain and ask for consent before sending the user to the accessibility settings.
             SetupIssue.ACCESSIBILITY -> showAccessibilityDisclosure = true
             else -> vm.intentFor(issue)?.let { intent ->
-                runCatching { context.startActivity(intent) }.onFailure { context.startActivity(vm.appDetailsIntent(issue)) }
+                runCatching { context.startActivity(intent) }.onFailure { runCatching { context.startActivity(vm.appDetailsIntent(issue)) } }
             }
         }
     }
     val session by vm.session.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    var showUnlock by remember { mutableStateOf(false) }
+    var showUnlock by rememberSaveable { mutableStateOf(false) }
     var showPause by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<RuleItem?>(null) }
     var editingGroup by remember { mutableStateOf<RuleGroup?>(null) }
@@ -161,7 +176,7 @@ fun HomeScreen(
             }
             if (recommended.isNotEmpty()) {
                 item {
-                    SetupIssuesCard(R.string.setup_recommendations_title, recommended, MaterialTheme.colorScheme.secondaryContainer, openIssue, vm::dontKillMyAppUrl)
+                    SetupIssuesCard(R.string.setup_recommendations_title, recommended, MaterialTheme.colorScheme.primaryContainer, openIssue, vm::dontKillMyAppUrl)
                 }
             }
             item {
@@ -174,9 +189,7 @@ fun HomeScreen(
                 )
             }
             if (content.isEmpty) {
-                item {
-                    Text(stringResource(R.string.home_empty), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 24.dp))
-                }
+                item { EmptyState() }
             }
             if (content.groups.isNotEmpty()) item { SectionHeader(stringResource(R.string.home_groups)) }
             items(content.groups, key = { "g" + it.group.id }) { item ->
@@ -313,7 +326,7 @@ private fun SetupIssuesCard(
                     Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
                     Text(stringResource(body), style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { onFix(issue) }) { Text(stringResource(action)) }
+                        CardOutlinedButton(onClick = { onFix(issue) }) { Text(stringResource(action)) }
                         if (issue == SetupIssue.BATTERY_OPTIMIZATION) {
                             TextButton(onClick = { runCatching { uri.openUri(dontKillMyAppUrl()) } }) {
                                 Text(stringResource(R.string.issue_battery_more))
@@ -367,7 +380,7 @@ private fun StatusCard(
                         Text(stringResource(R.string.home_status_protected_title), style = MaterialTheme.typography.titleMedium)
                     }
                     Text(stringResource(R.string.home_status_protected_body), style = MaterialTheme.typography.bodyMedium)
-                    OutlinedButton(onClick = onUnlock) { Text(stringResource(R.string.home_unlock)) }
+                    Button(onClick = onUnlock) { Text(stringResource(R.string.home_unlock)) }
                 }
             }
         }
@@ -392,22 +405,13 @@ private fun SessionCard(
             Text(stringResource(R.string.home_time_left, formatCountdown(remaining)), style = MaterialTheme.typography.headlineSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onAction) { Text(action) }
-                secondaryAction?.let { OutlinedButton(onClick = onSecondaryAction) { Text(it) } }
+                secondaryAction?.let { CardOutlinedButton(onClick = onSecondaryAction) { Text(it) } }
             }
         }
     }
 }
 
 // ---- Groups ----------------------------------------------------------------------------------------
-
-/** "12 min used today of 30 minutes per day" – only for rules / groups with a daily limit. */
-@Composable
-private fun usageLabel(limitMinutes: Int?, usedMillis: Long, shared: Boolean = false): String? {
-    limitMinutes ?: return null
-    val usedMinutes = (usedMillis / 60_000L).toInt()
-    val limit = if (shared) groupLimitLabel(limitMinutes) else limitLabel(limitMinutes)
-    return pluralStringResource(R.plurals.usage_today, usedMinutes, usedMinutes, limit)
-}
 
 @Composable
 fun groupLimitLabel(limitMinutes: Int?): String =
@@ -446,21 +450,34 @@ private fun GroupCard(
             Column(Modifier.weight(1f)) {
                 Text(group.name, style = MaterialTheme.typography.titleMedium)
                 if (item.members.any { it.rule.type == RuleType.WEBSITE }) WebsiteWarning(websiteBlocking, inGroup = true)
-                val limit = usageLabel(group.limitMinutesPerDay, item.usedMillis, shared = true) ?: groupLimitLabel(group.limitMinutesPerDay)
+                val limit = groupLimitLabel(group.limitMinutesPerDay)
                 val count = pluralStringResource(R.plurals.group_member_count, item.members.size, item.members.size)
-                Text(
-                    if (group.enabled) {
-                        stringResource(R.string.group_summary, limit, count)
-                    } else {
-                        stringResource(R.string.group_summary_disabled, limit, count, stringResource(R.string.rule_disabled))
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                val limitMinutes = group.limitMinutesPerDay
+                if (group.enabled && limitMinutes != null) {
+                    // Shared limit as a bar ("12 / 30 min"), member count next to it.
+                    Row(
+                        Modifier.padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        UsageBar(item.usedMillis, limitMinutes, Modifier.weight(1f))
+                        Text(count, style = MaterialTheme.typography.bodySmall)
+                    }
+                } else {
+                    Text(
+                        if (group.enabled) {
+                            stringResource(R.string.group_summary, limit, count)
+                        } else {
+                            stringResource(R.string.group_summary_disabled, limit, count, stringResource(R.string.rule_disabled))
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
             IconButton(onClick = onEdit) {
                 Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.group_edit))
             }
-            Switch(checked = group.enabled, onCheckedChange = onToggle)
+            Switch(checked = group.enabled, onCheckedChange = onToggle, modifier = Modifier.semantics { contentDescription = group.name })
         }
         AnimatedVisibility(visible = expanded) {
             GroupCardContent(item, websiteBlocking, onEdit, onAddMember, onMemberClick)
@@ -560,21 +577,29 @@ private fun MemberDialog(item: RuleItem, group: RuleGroup, onTakeOut: () -> Unit
 
 @Composable
 private fun RuleRow(item: RuleItem, websiteBlocking: WebsiteBlockingState, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
-    val limit = usageLabel(item.rule.limitMinutesPerDay, item.usedMillis) ?: limitLabel(item.rule.limitMinutesPerDay)
+    val limit = limitLabel(item.rule.limitMinutesPerDay)
     val disabled = stringResource(R.string.rule_disabled)
     ListItem(
         headlineContent = { Text(item.displayName()) },
         supportingContent = {
-            Column {
-                Text(
-                    if (item.rule.enabled) limit else stringResource(R.string.rule_supporting_disabled, limit, disabled),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                val limitMinutes = item.rule.limitMinutesPerDay
+                if (item.rule.enabled && limitMinutes != null) {
+                    UsageBar(item.usedMillis, limitMinutes, Modifier.padding(top = 2.dp))
+                } else {
+                    Text(
+                        if (item.rule.enabled) limit else stringResource(R.string.rule_supporting_disabled, limit, disabled),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 if (item.rule.type == RuleType.WEBSITE) WebsiteWarning(websiteBlocking, inGroup = false)
             }
         },
         leadingContent = { RuleIcon(item, size = 32) },
-        trailingContent = { Switch(checked = item.rule.enabled, onCheckedChange = onToggle) },
+        trailingContent = {
+            val name = item.displayName().text
+            Switch(checked = item.rule.enabled, onCheckedChange = onToggle, modifier = Modifier.semantics { contentDescription = name })
+        },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick),
     )
@@ -630,9 +655,13 @@ private fun RuleDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 LimitSelector(limit)
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    Modifier.fillMaxWidth().toggleable(value = enabled, role = Role.Switch, onValueChange = { enabled = it }),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(stringResource(R.string.rule_dialog_enabled))
-                    Switch(checked = enabled, onCheckedChange = { enabled = it })
+                    Switch(checked = enabled, onCheckedChange = null)
                 }
                 Text(stringResource(R.string.rule_dialog_hint), style = MaterialTheme.typography.bodySmall)
                 if (groups.isNotEmpty()) {
@@ -658,7 +687,7 @@ private fun RuleDialog(
             text = {
                 Column(Modifier.selectableGroup().verticalScroll(rememberScrollState())) {
                     groups.forEach { g ->
-                        RadioRow("${g.name} – ${groupLimitLabel(g.limitMinutesPerDay)}", choice == g.id) { choice = g.id }
+                        RadioRow(stringResource(R.string.rule_group_choice, g.name, groupLimitLabel(g.limitMinutesPerDay)), choice == g.id) { choice = g.id }
                     }
                 }
             },
@@ -670,3 +699,74 @@ private fun RuleDialog(
 
 /** Width / height of the wordmark drawable (viewport of `logo_wordmark.xml`). */
 private const val WORDMARK_ASPECT = 289.3f / 87.91f
+
+
+/**
+ * Used vs. allowed time today as a bar with "12 / 30 min" inside (instead of a text line).
+ * Light fill so the label stays readable over filled and empty parts; red once the limit is reached.
+ */
+@Composable
+private fun UsageBar(usedMillis: Long, limitMinutes: Int, modifier: Modifier = Modifier) {
+    val usedMinutes = (usedMillis / 60_000L).toInt().coerceAtMost(limitMinutes.coerceAtLeast(0))
+    val fraction = if (limitMinutes <= 0) 1f else (usedMillis / (limitMinutes * 60_000f)).coerceIn(0f, 1f)
+    val reached = fraction >= 1f
+    val description = pluralStringResource(R.plurals.usage_today, limitMinutes, usedMinutes, limitMinutes)
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(18.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clearAndSetSemantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+                .fillMaxWidth(fraction)
+                .background(if (reached) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer),
+        )
+        Text(
+            stringResource(R.string.usage_bar, usedMinutes, limitMinutes),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (reached) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
+}
+
+/** No rules yet: logo, short explanation and a hint to the "Add" button. */
+@Composable
+private fun EmptyState() {
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_lares),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(width = 39.dp, height = 48.dp), // the L's proportions
+        )
+        Text(stringResource(R.string.home_empty_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.home_empty_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** Outlined button that stands out on a colored card: border and text in the card's text color. */
+@Composable
+private fun CardOutlinedButton(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+    val color = LocalContentColor.current
+    OutlinedButton(
+        onClick = onClick,
+        border = BorderStroke(1.5.dp, color),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = color),
+        content = content,
+    )
+}

@@ -22,6 +22,9 @@
     <string name="setup_intro_title">Welcome</string>
     <string name="setup_intro_body">Lares blocks the apps and websites you choose. Adding restrictions is always possible – removing or loosening them needs a code that only a trusted person knows: your guardian, for example a friend or family member.\n\nFor the next steps, please hand the phone to your guardian.</string>
     <string name="setup_intro_start">Let’s start</string>
+    <string name="setup_mode_title">Guardian: choose the blocking mode</string>
+    <string name="setup_mode_body">How should Lares detect which app is open? You can also decide later in the settings.</string>
+    <string name="setup_mode_later">Decide later</string>
     <string name="setup_method_title">Guardian: choose your code</string>
     <string name="setup_method_body">The code is needed whenever restrictions are paused or loosened. Don’t tell it to the phone owner.</string>
     <string name="setup_method_password_title">Password</string>
@@ -61,7 +64,9 @@
 
     <!-- Home -->
     <string name="home_add_rule">Add</string>
-    <string name="home_empty">No rules yet. Add the apps and websites you want to block.</string>
+    <string name="usage_bar">%1$d / %2$d min</string>
+    <string name="home_empty_title">Nothing blocked yet</string>
+    <string name="home_empty_hint">Tap “Add” at the bottom to block your first app or website – or start with a template.</string>
     <string name="home_status_protected_title">Protection is on</string>
     <string name="home_status_protected_body">Adding rules is always possible. Removing rules or raising limits needs the guardian code.</string>
     <string name="home_unlock">Enter guardian code</string>
@@ -155,11 +160,11 @@
     <string name="add_rule_duplicate">This is already a single rule. Edit the existing rule instead.</string>
     <string name="add_rule_duplicate_in_group">This is already in the group.</string>
     <string name="rule_website_off">Not blocked – website blocking is off</string>
-    <string name="rule_website_unavailable">Not blocked – website blocking only works in the Accessibility mode</string>
+    <string name="rule_website_unavailable">Not blocked – website blocking only works in the “Accessibility service” mode</string>
     <string name="group_websites_off">Websites not blocked – website blocking is off</string>
-    <string name="group_websites_unavailable">Websites not blocked – website blocking only works in the Accessibility mode</string>
+    <string name="group_websites_unavailable">Websites not blocked – website blocking only works in the “Accessibility service” mode</string>
     <string name="website_blocking_off_note">Website blocking is turned off in the settings, so website rules don’t take effect yet.</string>
-    <string name="website_blocking_unavailable_note">Website blocking only works in the Accessibility mode, so website rules don’t take effect in the Usage access mode.</string>
+    <string name="website_blocking_unavailable_note">Website blocking only works in the “Accessibility service” mode, so website rules don’t take effect in the “Usage access + overlay” mode.</string>
     <string name="website_blocking_change_mode">Change app blocking mode</string>
     <string name="website_blocking_turn_on">Turn on website blocking</string>
     <string name="add_rule_invalid">Please enter a valid website address.</string>
@@ -194,12 +199,17 @@
     <string name="settings_title">Settings</string>
     <string name="settings_section_app">App settings</string>
     <string name="settings_section_info">Info</string>
-    <string name="settings_locked_hint">Loosening settings (switching off, changing the guardian code, reset time or notification channels) needs the guardian code.</string>
+    <string name="settings_locked_hint">Loosening settings (switching off, changing the app blocking mode, the guardian code, reset time or notification channels) needs the guardian code.</string>
     <string name="settings_guardian_code">Guardian code</string>
     <string name="settings_reset_time">Daily limits reset at</string>
     <!-- %1$s = current time, %2$s = new time -->
     <string name="settings_reset_time_pending">%1$s – changes to %2$s after the next reset</string>
     <string name="settings_reset_time_explanation">At this time, the daily limits start again. A change needs the guardian code and takes effect after the next reset.</string>
+    <string name="settings_theme">Colors</string>
+    <string name="theme_lares">Lares colors</string>
+    <string name="theme_wallpaper">Wallpaper colors (Material You)</string>
+    <string name="setup_theme_title">Choose your colors</string>
+    <string name="setup_theme_hint">You can change this later in the settings.</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System default</string>
     <string name="setup_change_notice">Choose a new guardian code. The old code and the old recovery code stop working.</string>
@@ -211,11 +221,24 @@
     <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Adding restrictions is always possible – loosening them needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>
     <string name="privacy_summary">Everything stays on this phone</string>
-    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking.\n• No data is sold or shared with third parties.\n• Your rules, usage times and settings are stored only on this phone. They are excluded from Android backups and device transfers.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed only on the phone at any given time and neither stored nor sent.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). These messages contain only the notification text (e.g. “protection was disabled”), its time and the phone model; tokens are stored encrypted on the phone. When a website is blocked, Lares can open a neutral page (currently google.com) in your browser like a normal link.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app).\n• Lares blocks password managers, so the guardian code is never saved on the phone.</string>
+    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking, no crash reporting.\n• No data is sold. Nothing is shared with third parties – except the notification services you set up yourself (see below).\n• Your rules, usage times, settings and a log of protection events (e.g. “clock changed”) are stored only on this phone. They are excluded from Android backups and device transfers.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app). The recovery code is stored only as a protected hash.\n• Lares turns off Android autofill, so password managers never offer to save the guardian code.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed on the phone in the moment and neither stored nor sent.\n• The optional device administrator role is only used to prevent uninstalling Lares.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). Nothing is sent unless such a channel is set up. A message contains only the notification text (e.g. “protection was disabled”), its time and the phone model; the chosen service’s own privacy policy applies. Tokens and passwords are stored encrypted on the phone.\n• Some links open in your browser, which loads them: Lares’ neutral page shown when a website is blocked (hosted on GitHub Pages; GitHub’s privacy policy applies), manufacturer tips and library pages.\n• Exported rule files contain rules and groups only – no codes, tokens or usage data.</string>
     <string name="license_title">License</string>
     <string name="license_summary">GNU GPL, version 3 or later</string>
     <string name="license_body">Lares is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nLares is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
     <string name="license_full_text">Full license text</string>
+    <string name="libraries_other_author">Other</string>
+    <string name="libraries_no_license_text">No license text included.</string>
+    <plurals name="libraries_count">
+        <item quantity="one">%d library</item>
+        <item quantity="other">%d libraries</item>
+    </plurals>
+    <string name="libraries_source">Source code</string>
+    <string name="libraries_website">Website</string>
+    <string name="libraries_license">License text</string>
+    <string name="rule_group_choice">%1$s – %2$s</string>
+    <string name="channel_detect_failed">No chat found – send /start to your bot first, then try again.</string>
+    <string name="state_expanded">expanded</string>
+    <string name="state_collapsed">collapsed</string>
     <string name="libraries_title">Open-source libraries</string>
     <string name="libraries_summary">Libraries used by Lares and their licenses</string>
 
@@ -235,9 +258,9 @@
     <string name="blocking_mode_usage_stats">Usage access + overlay</string>
     <string name="blocking_mode_usage_stats_desc">Alternative if you don’t want to use the Accessibility service: slight delay, a bit more battery use, no website blocking.</string>
     <string name="blocking_mode_not_chosen">Not chosen yet</string>
-    <string name="blocking_mode_hint">Choosing the mode for the first time is free; switching it later needs the guardian code.</string>
+    <string name="blocking_mode_hint">Choosing the mode for the first time needs no code; switching it later needs the guardian code.</string>
     <string name="settings_website_blocking">Website blocking</string>
-    <string name="settings_website_blocking_unavailable">Only in the Accessibility mode – switch the app blocking mode to use it.</string>
+    <string name="settings_website_blocking_unavailable">Only in the “Accessibility service” mode – switch the app blocking mode to use it.</string>
     <string name="settings_website_blocking_desc">Blocks websites in supported browsers; other browsers are blocked completely. Needs the Accessibility service.</string>
 
     <!-- Settings: protection -->
@@ -252,8 +275,8 @@
     <string name="channels_disabled_hint">Turn on “Notify guardian” above to set up and use notification channels.</string>
     <string name="channels_empty">No notification channel set up yet.</string>
     <string name="channels_add">Add notification channel</string>
-    <string name="channel_telegram">Telegram</string>
-    <string name="channel_ntfy">ntfy</string>
+    <string name="channel_telegram" translatable="false">Telegram</string>
+    <string name="channel_ntfy" translatable="false">ntfy</string>
     <string name="channel_webhook">Webhook</string>
     <string name="channel_email">Email</string>
     <string name="channel_help_email">Enter the SMTP details of an email account – ideally a separate one for Lares. Many providers (e.g. Gmail, Outlook) require an app password instead of the normal password. The connection is always encrypted.</string>
@@ -266,7 +289,7 @@
     <string name="channel_password">Password</string>
     <string name="channel_sender">Sender address</string>
     <string name="channel_recipient">Recipient address (guardian)</string>
-    <string name="channel_matrix">Matrix</string>
+    <string name="channel_matrix" translatable="false">Matrix</string>
     <!-- %1$s = Telegram chat id -->
     <string name="channel_summary_telegram">Chat %1$s</string>
     <string name="channel_add_title">Add notification channel</string>
@@ -313,7 +336,7 @@
         <item quantity="one">Lares was not running for %d minute while the phone was in use</item>
         <item quantity="other">Lares was not running for %d minutes while the phone was in use</item>
     </plurals>
-    <string name="alert_event_boots">The phone was started without Lares (e.g. in safe mode)</string>
+    <string name="alert_event_boots">The phone was started without Lares running (e.g. in safe mode, or restarted again before being unlocked)</string>
     <string name="alert_event_clock">The clock was changed</string>
     <plurals name="alert_event_clock_forward">
         <item quantity="one">The clock was set forward by %d minute</item>
@@ -358,11 +381,11 @@
     <string name="issue_mode_body">Choose how Lares detects open apps. Recommended: the Accessibility service.</string>
     <string name="issue_mode_action">Choose mode</string>
     <string name="issue_accessibility_title">Accessibility service is off</string>
-    <string name="issue_accessibility_body">Needed for the (recommended) Accessibility blocking mode, for website blocking and for guarding the system settings. Turn on “Lares” under installed or downloaded apps.</string>
+    <string name="issue_accessibility_body">Needed for the (recommended) “Accessibility service” mode, for website blocking and for guarding the system settings. Turn on “Lares” under installed or downloaded apps.</string>
     <string name="issue_usage_title">Usage access missing</string>
-    <string name="issue_usage_body">Needed in the “Usage access” mode to detect which app is open. Allow it for Lares.</string>
+    <string name="issue_usage_body">Needed in the “Usage access + overlay” mode to detect which app is open. Allow it for Lares.</string>
     <string name="issue_overlay_title">“Display over other apps” missing</string>
-    <string name="issue_overlay_body">Needed in the “Usage access” mode to show the block screen. Allow it for Lares.</string>
+    <string name="issue_overlay_body">Needed in the “Usage access + overlay” mode to show the block screen. Allow it for Lares.</string>
     <string name="issue_admin_title">Uninstall protection isn’t active</string>
     <string name="issue_admin_body">“Prevent uninstalling” is on, but Lares isn’t a device administrator yet.</string>
     <string name="issue_admin_action">Activate</string>
@@ -377,16 +400,16 @@
     <!-- %1$s = app name -->
     <string name="block_title">%1$s is blocked</string>
     <string name="block_reason_always">This app is always blocked.</string>
-    <!-- %1$s = time when the daily limits restart, e.g. "00:00" -->
     <string name="block_reason_always_website">This website is always blocked.</string>
+    <!-- %1$s = time when the daily limits restart, e.g. "00:00" -->
     <string name="block_reason_limit">The daily limit is used up. Available again at %1$s.</string>
     <string name="block_reason_browser">Website blocking is on, and this browser isn’t supported. Use a supported browser.</string>
     <!-- %1$s = group name -->
-    <string name="block_group">Limit of the group “%1$s”</string>
+    <string name="block_group">Group “%1$s”</string>
     <string name="block_open_lares">Go to Lares</string>
     <string name="notification_channel_blocking">Blocking service</string>
     <string name="blocking_service_title">Lares is blocking</string>
-    <string name="blocking_service_text">Usage access mode is watching the apps you open.</string>
+    <string name="blocking_service_text">The “Usage access + overlay” mode is watching the apps you open.</string>
     <string name="block_title_settings">This settings page is protected</string>
     <string name="block_reason_settings">While Lares is locked, its own system settings (force stop, uninstall, permissions) can’t be changed. Unlock Lares with the guardian code first.</string>
     <string name="device_admin_disable_warning">Your guardian will be notified.</string>
@@ -408,13 +431,13 @@
     <string name="settings_limit_timer_desc">Shows a small timer in the corner when a limit is about to run out.</string>
     <string name="settings_warn_five">Notification 5 minutes before</string>
     <string name="settings_warn_one">Notification 1 minute before</string>
-    <string name="settings_warn_desc">Needs the notification permission, which is only requested now.</string>
+    <string name="settings_warn_desc">Needs the notification permission, which is asked for when you turn this on.</string>
     <string name="settings_warn_denied">Notifications aren’t allowed. You can allow them in the system settings.</string>
 
     <!-- Usage on the main screen -->
     <!-- %1$d = minutes used today, %2$s = limit, e.g. "30 minutes per day" -->
     <plurals name="usage_today">
-        <item quantity="one">%1$d min used today of %2$s</item>
-        <item quantity="other">%1$d min used today of %2$s</item>
+        <item quantity="one">%1$d of %2$d minute used today</item>
+        <item quantity="other">%1$d of %2$d minutes used today</item>
     </plurals>
 </resources>
