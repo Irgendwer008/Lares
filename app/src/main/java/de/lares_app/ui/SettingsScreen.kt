@@ -223,10 +223,15 @@ fun SettingsScreen(
                 ),
                 onClick = { showBlockingMode = true },
             )
+            // Needs the Accessibility service – in Usage access mode, switch the mode instead.
+            val websiteAvailable = ui.blockingMode != BlockingMode.USAGE_STATS
             SwitchItem(
                 title = stringResource(R.string.settings_website_blocking),
-                summary = stringResource(R.string.settings_website_blocking_desc),
-                checked = ui.websiteBlocking,
+                summary = stringResource(
+                    if (websiteAvailable) R.string.settings_website_blocking_desc else R.string.settings_website_blocking_unavailable,
+                ),
+                checked = ui.websiteBlocking && websiteAvailable,
+                enabled = websiteAvailable,
                 onChange = vm::setWebsiteBlocking,
             )
             SettingsItem(
@@ -392,12 +397,12 @@ private fun SettingsSubheader(text: String, divider: Boolean = true) {
 }
 
 @Composable
-private fun SwitchItem(title: String, summary: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchItem(title: String, summary: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(summary) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = onChange) },
-        modifier = Modifier.clickable { onChange(!checked) },
+        trailingContent = { Switch(checked = checked, onCheckedChange = onChange, enabled = enabled) },
+        modifier = Modifier.clickable(enabled = enabled) { onChange(!checked) },
     )
 }
 

@@ -91,6 +91,7 @@ class RepositoriesTest {
         unlockApp()
         settings.setBlockingMode(BlockingMode.USAGE_STATS)
         settings.setWebsiteBlocking(false)
+        settings.setWebsiteBlocking(true) // ignored: website blocking needs Accessibility mode
         settings.setProtection(Protection.UNINSTALL, false)
         assertFalse(store.current().settings.websiteBlocking)
     }

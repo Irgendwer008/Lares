@@ -41,11 +41,12 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 ## Blocking
 14. The app blocking mode is chosen in the settings (switching it later is loosening):
     **Accessibility service** (recommended) or **Usage access + overlay**.
-15. **Website blocking** reads the URL bar of supported browsers via the Accessibility service;
+15. **Website blocking** (Accessibility mode only) reads the URL bar of supported browsers;
     unsupported browsers are blocked completely while website blocking is on. No VPN / DNS
     blocking – the user's own VPN must stay usable.
-16. Website blocking and the settings guard **always need the Accessibility service**, also in
-    Usage access mode (then both run).
+16. In Usage access mode, website blocking is not available (the switch is disabled with a hint
+    to change the mode – if the Accessibility service is needed anyway, its mode is the better
+    one). The settings guard always needs the Accessibility service, also in Usage access mode.
 17. The main screen lists everything blocking still needs at once (mode, permissions, device
     administrator – while no mode is chosen, including what the recommended Accessibility mode
     needs) and recommends the battery-optimization exemption.

@@ -32,6 +32,7 @@ class SettingsRepository(
     }
 
     suspend fun setWebsiteBlocking(enabled: Boolean) {
+        if (enabled && !store.current().settings.websiteBlockingAvailable) return // Usage access mode
         val old = store.current().settings.websiteBlocking
         gate.check(ChangePolicy.classifyToggle(old, enabled))
         store.update { it.copy(settings = it.settings.copy(websiteBlocking = enabled)) }

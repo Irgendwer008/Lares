@@ -423,8 +423,13 @@ class AddRuleViewModel @Inject constructor(
     private val exemptApps: ExemptApps,
 ) : ViewModel() {
     /** Website rules only take effect while website blocking is on – the screen shows a note otherwise. */
-    val websiteBlocking: StateFlow<Boolean> = settings.settings.map { it.websiteBlocking }
-        .stateIn(viewModelScope, WhileSubscribed, true)
+    val websiteBlocking: StateFlow<WebsiteBlockingState> = settings.settings.map {
+        when {
+            !it.websiteBlockingAvailable -> WebsiteBlockingState.UNAVAILABLE
+            it.websiteBlocking -> WebsiteBlockingState.ON
+            else -> WebsiteBlockingState.OFF
+        }
+    }.stateIn(viewModelScope, WhileSubscribed, WebsiteBlockingState.ON)
 
     /** Turning website blocking on is tightening, so it's allowed without the code. */
     fun enableWebsiteBlocking() {
@@ -748,3 +753,6 @@ class ChannelEditorViewModel @Inject constructor(
         const val ARG_CHANNEL_ID = "channelId"
     }
 }
+
+/** ON; OFF (can be switched on); UNAVAILABLE (Usage access mode – needs Accessibility mode). */
+enum class WebsiteBlockingState { ON, OFF, UNAVAILABLE }

@@ -10,6 +10,9 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Usage Stats blocking mode: the polling runs in a foreground service. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!-- Optional "limit almost reached" warnings; requested only when the user switches them on. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -61,7 +64,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Full-screen block page, started by the accessibility service over a blocked app. -->
+        <!-- Full-screen block page, started by the blocking service over a blocked app. -->
         <activity
             android:name=".blocking.BlockActivity"
             android:excludeFromRecents="true"
@@ -82,6 +85,16 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service" />
+        </service>
+
+        <!-- Usage Stats blocking mode: detects the app in the foreground once per second. -->
+        <service
+            android:name=".blocking.UsageMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="App blocker chosen by the user: detects the app in the foreground (usage stats) to block apps the user selected." />
         </service>
 
         <!-- "Prevent uninstalling" protection. -->

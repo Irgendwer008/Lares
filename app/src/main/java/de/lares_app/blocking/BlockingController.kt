@@ -25,6 +25,7 @@ import de.lares_app.platform.ExemptApps
 import de.lares_app.platform.InstalledBrowsers
 import de.lares_app.platform.LimitNotifier
 import de.lares_app.platform.UsageRepository
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -48,7 +49,10 @@ data class BlockInfo(
     val website: Boolean = false,
 )
 
-/** Effects the controller asks its host (the accessibility service) to perform. */
+/**
+ * Effects the controller asks its host to perform: the accessibility service (Accessibility mode)
+ * or [UsageMonitorService] (Usage access mode).
+ */
 interface BlockingHost {
     fun showBlockScreen(info: BlockInfo)
 
@@ -62,7 +66,10 @@ interface BlockingHost {
 /**
  * Applies the rules to the app in the foreground: counts time once per second, shows the block
  * screen, the countdown overlay during the last 5 minutes and the optional warnings.
- * Driven by [onForeground] / [onScreen] events from the accessibility service.
+ *
+ * Hosts [attach] themselves for the mode they serve. The foreground app comes from the host of the
+ * chosen blocking mode, which also performs the effects. Website blocking (browser URLs from the
+ * accessibility service) exists only in Accessibility mode.
  */
 /**
  * Neutral page the website block screen opens in the browser, so the blocked page is no longer the
@@ -82,7 +89,10 @@ class BlockingController(
     private val clock: Clock,
 ) {
     private var scope: CoroutineScope? = null
-    private var host: BlockingHost? = null
+    private val hosts = ConcurrentHashMap<BlockingMode, BlockingHost>()
+
+    /** Host that showed the countdown last – hidden when the mode (and thus the host) changes. */
+    private var timerHost: BlockingHost? = null
 
     @Volatile private var rules: List<Rule> = emptyList()
 
@@ -111,9 +121,25 @@ class BlockingController(
     private val warnings = LimitWarnings()
     private var ticker: Job? = null
 
-    fun start(host: BlockingHost) {
-        stop()
-        this.host = host
+    /** [host] runs (service connected) and serves [mode]. */
+    @Synchronized
+    fun attach(mode: BlockingMode, host: BlockingHost) {
+        hosts[mode] = host
+        if (scope == null) start()
+    }
+
+    /** The host of [mode] stopped. */
+    @Synchronized
+    fun detach(mode: BlockingMode) {
+        hosts.remove(mode)?.showTimer(null)
+        if (hosts.isEmpty()) stop()
+    }
+
+    /** Host of the chosen blocking mode, if it's running. */
+    private val activeHost: BlockingHost?
+        get() = state.settings.blockingMode?.let { hosts[it] }
+
+    private fun start() {
         // One thread: counters, warnings and the block debounce aren't touched concurrently.
         val s = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
         scope = s
@@ -136,7 +162,7 @@ class BlockingController(
         }
     }
 
-    fun stop() {
+    private fun stop() {
         scope?.let { s ->
             s.cancel()
             // Save the last seconds without blocking the caller (service teardown on the main thread).
@@ -144,12 +170,13 @@ class BlockingController(
         }
         scope = null
         ticker = null
-        host?.showTimer(null)
-        host = null
+        timerHost = null
+        foreground = null
     }
 
-    fun onForeground(packageName: String) {
-        if (packageName == foreground) return
+    /** [source] saw [packageName] in the foreground; only the source of the chosen mode counts. */
+    fun onForeground(source: BlockingMode, packageName: String) {
+        if (source != state.settings.blockingMode || packageName == foreground) return
         BlockingLog.d { "foreground: $packageName" }
         foreground = packageName
         if (url?.first != packageName) url = null
@@ -158,7 +185,7 @@ class BlockingController(
 
     fun onScreen(on: Boolean) {
         screenOn = on
-        if (!on) host?.showTimer(null)
+        if (!on) timerHost?.showTimer(null)
         lastTickElapsed = clock.elapsedMillis()
     }
 
@@ -168,9 +195,9 @@ class BlockingController(
         installedBrowsers = browsers.packages()
     }
 
-    /** Address bars are only read while website blocking is on (and blocking is active at all). */
+    /** Address bars are only read while website blocking is on (Accessibility mode only). */
     val readsUrls: Boolean
-        get() = state.settings.let { it.websiteBlocking && it.setupComplete && it.blockingMode == BlockingMode.ACCESSIBILITY }
+        get() = state.settings.let { it.websiteBlockingActive && it.setupComplete && it.blockingMode == BlockingMode.ACCESSIBILITY }
 
     /** The address bar of a supported browser shows [newUrl] (only committed URLs, not while typing). */
     fun onUrl(browserPackage: String, newUrl: String) {
@@ -190,7 +217,7 @@ class BlockingController(
      */
     fun onSafePageOpened(browserPackage: String, thenHome: Boolean) {
         blockedUrl?.takeIf { it.first == browserPackage }?.let { ignoredUrl = it to clock.elapsedMillis() + SAFE_PAGE_GRACE_MILLIS }
-        if (thenHome) host?.goHome(HOME_DELAY_MILLIS)
+        if (thenHome) activeHost?.goHome(HOME_DELAY_MILLIS)
     }
 
     private suspend fun tick() {
@@ -203,9 +230,14 @@ class BlockingController(
     }
 
     private suspend fun evaluate(countMillis: Long) {
-        val pkg = foreground ?: return
         val st = state
-        val active = st.settings.setupComplete && st.unlock.isSetUp && st.settings.blockingMode == BlockingMode.ACCESSIBILITY
+        val host = activeHost
+        if (timerHost !== host) {
+            timerHost?.showTimer(null) // mode switched: the old host's countdown goes away
+            timerHost = host
+        }
+        val pkg = foreground ?: return
+        val active = st.settings.setupComplete && st.unlock.isSetUp && host != null
         if (!active || !screenOn) {
             host?.showTimer(null)
             return
@@ -217,7 +249,7 @@ class BlockingController(
             groups = groups,
             groupUsedMillis = snapshot.groupMillis,
             pauseActive = st.unlock.pause?.isActive(clock) == true,
-            websiteBlockingEnabled = st.settings.websiteBlocking,
+            websiteBlockingEnabled = st.settings.websiteBlockingActive,
             supportedBrowsers = SupportedBrowsers.packages,
             installedBrowsers = installedBrowsers,
             exemptPackages = exempt,
@@ -227,26 +259,26 @@ class BlockingController(
         if (countMillis == 0L || decision is Decision.Block) BlockingLog.d { "$pkg → $decision" }
         when (decision) {
             is Decision.Block -> {
-                host?.showTimer(null)
-                block(pkg, decision, snapshot.periodEndMillis)
+                host.showTimer(null)
+                block(host, pkg, decision, snapshot.periodEndMillis)
             }
             is Decision.Allow -> {
                 if (countMillis > 0) usage.add(decision, countMillis)
                 val remaining = decision.remainingMillis?.minus(countMillis)
-                host?.showTimer(remaining?.takeIf { st.settings.limitTimer && it in 1..LimitWarnings.TIMER_THRESHOLD })
+                host.showTimer(remaining?.takeIf { st.settings.limitTimer && it in 1..LimitWarnings.TIMER_THRESHOLD })
                 if (remaining != null) warn(pkg, decision, remaining)
             }
         }
     }
 
-    private suspend fun block(pkg: String, decision: Decision.Block, periodEndMillis: Long) {
+    private suspend fun block(host: BlockingHost, pkg: String, decision: Decision.Block, periodEndMillis: Long) {
         // The home action takes a moment; don't relaunch the block screen for the same app meanwhile.
         val now = clock.elapsedMillis()
         lastBlocked?.let { (p, at) -> if (p == pkg && now - at < BLOCK_DEBOUNCE_MILLIS) return }
         lastBlocked = pkg to now
         val websiteRule = rules.firstOrNull { it.id == decision.ruleId }?.takeIf { it.type == RuleType.WEBSITE }
         blockedUrl = if (websiteRule != null) url else null
-        host?.showBlockScreen(
+        host.showBlockScreen(
             BlockInfo(
                 packageName = pkg,
                 label = websiteRule?.target ?: catalog.describeOrFallback(pkg).label,

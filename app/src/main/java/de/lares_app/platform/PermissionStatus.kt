@@ -79,10 +79,7 @@ class PermissionStatus(private val context: Context) {
     }
 
     /** Manufacturer-specific background-killing explanations (dontkillmyapp.com), opened in the browser. */
-    fun dontKillMyAppUrl(): String {
-        val vendor = Build.MANUFACTURER.lowercase().filter { it.isLetterOrDigit() }
-        return if (vendor.isBlank()) "https://dontkillmyapp.com/" else "https://dontkillmyapp.com/$vendor"
-    }
+    fun dontKillMyAppUrl(): String = DontKillMyApp.url(Build.MANUFACTURER.orEmpty())
 
     /** Fallback if a device doesn't support the specific page: the app's own settings page. */
     fun appDetailsIntent() = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri())

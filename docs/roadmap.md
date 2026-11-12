@@ -8,8 +8,8 @@ Pre-release milestones, in order. Done milestones are summarized in
   limits incl. groups, countdown overlay, optional warnings, exempt apps.
 - **B – Website blocking** – done (address-bar ids still to be verified on devices): URL-bar
   reading in supported browsers, blocking unsupported browsers.
-- **C – Usage access mode** – foreground service polling `UsageStatsManager`, overlay block screen,
-  notification for the service.
+- **C – Usage access mode** – done: foreground service polling `UsageStatsManager`, block screen
+  and countdown via the overlay permission, service notification.
 - **D – Protection & notifications** – restart after reboot / update, settings guard, tamper
   detection (service disabled, clock / time zone changed, gaps), uninstall-protection reporting,
   automatic sending to the guardian channels with retries.

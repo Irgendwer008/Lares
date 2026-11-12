@@ -42,6 +42,14 @@ data class AppSettings(
     val warnFiveMinutes: Boolean = false,
     val warnOneMinute: Boolean = false,
 ) {
+    /** Website blocking needs the Accessibility service, so it works only in Accessibility mode. */
+    val websiteBlockingAvailable: Boolean
+        get() = blockingMode != BlockingMode.USAGE_STATS
+
+    /** Switched on and available (in Usage access mode the switch is kept, but has no effect). */
+    val websiteBlockingActive: Boolean
+        get() = websiteBlocking && websiteBlockingAvailable
+
     val resetSchedule: ResetSchedule
         get() = ResetSchedule(
             resetTime = LocalTime.ofSecondOfDay(resetMinuteOfDay * 60L),

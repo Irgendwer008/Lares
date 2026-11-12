@@ -11,6 +11,8 @@ import de.lares_app.core.data.SetupIssue.NO_BLOCKING_MODE
 import de.lares_app.core.data.SetupIssue.OVERLAY
 import de.lares_app.core.data.SetupIssue.USAGE_ACCESS
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SetupRequirementsTest {
@@ -40,11 +42,17 @@ class SetupRequirementsTest {
         assertEquals(listOf(OVERLAY), missing(s, none.copy(usageAccess = true)))
     }
 
-    @Test fun websiteBlockingAndSettingsGuardNeedAccessibilityInEveryMode() {
+    @Test fun settingsGuardNeedsAccessibilityInEveryMode() {
         val usage = base.copy(blockingMode = BlockingMode.USAGE_STATS)
         val granted = none.copy(usageAccess = true, overlay = true)
-        assertEquals(listOf(ACCESSIBILITY), missing(usage.copy(websiteBlocking = true), granted))
         assertEquals(listOf(ACCESSIBILITY), missing(usage.copy(protections = setOf(Protection.SETTINGS_GUARD)), granted))
+    }
+
+    @Test fun websiteBlockingHasNoEffectInUsageAccessMode() {
+        val usage = base.copy(blockingMode = BlockingMode.USAGE_STATS, websiteBlocking = true)
+        assertEquals(emptyList<SetupIssue>(), missing(usage, none.copy(usageAccess = true, overlay = true)))
+        assertFalse(usage.websiteBlockingActive)
+        assertTrue(usage.copy(blockingMode = BlockingMode.ACCESSIBILITY).websiteBlockingActive)
     }
 
     @Test fun batteryOptimizationIsARecommendation() {

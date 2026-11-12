@@ -13,6 +13,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import de.lares_app.blocking.BlockingController
+import de.lares_app.blocking.UsageMonitorStarter
 import de.lares_app.core.alerts.AlertChannelRepository
 import de.lares_app.core.alerts.AlertSender
 import de.lares_app.core.data.UnlockGate
@@ -111,6 +112,9 @@ object AppModule {
         clock: Clock,
         @ApplicationContext context: Context,
     ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, clock)
+
+    @Provides @Singleton
+    fun usageMonitorStarter(@ApplicationContext context: Context, store: StateStore) = UsageMonitorStarter(context, store)
 
     @Provides @Singleton
     fun appCatalog(@ApplicationContext context: Context) = AppCatalog(context)

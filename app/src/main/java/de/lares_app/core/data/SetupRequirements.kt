@@ -40,7 +40,7 @@ object SetupRequirements {
     fun missing(settings: AppSettings, granted: GrantedPermissions): List<SetupIssue> = buildList {
         if (settings.blockingMode == null) add(SetupIssue.NO_BLOCKING_MODE)
         val mode = settings.blockingMode ?: BlockingMode.ACCESSIBILITY
-        val needsAccessibility = mode == BlockingMode.ACCESSIBILITY || settings.websiteBlocking ||
+        val needsAccessibility = mode == BlockingMode.ACCESSIBILITY || settings.websiteBlockingActive ||
             Protection.SETTINGS_GUARD in settings.protections
         if (needsAccessibility && !granted.accessibility) add(SetupIssue.ACCESSIBILITY)
         if (mode == BlockingMode.USAGE_STATS) {

@@ -155,6 +155,8 @@
     <string name="add_rule_duplicate">This is already a single rule. Edit the existing rule instead.</string>
     <string name="add_rule_duplicate_in_group">This is already in the group.</string>
     <string name="website_blocking_off_note">Website blocking is turned off in the settings, so website rules don’t take effect yet.</string>
+    <string name="website_blocking_unavailable_note">Website blocking only works in the Accessibility mode, so website rules don’t take effect in the Usage access mode.</string>
+    <string name="website_blocking_change_mode">Change app blocking mode</string>
     <string name="website_blocking_turn_on">Turn on website blocking</string>
     <string name="add_rule_invalid">Please enter a valid website address.</string>
     <!-- %1$s = app name -->
@@ -227,10 +229,11 @@
     <string name="blocking_mode_accessibility_recommended">Accessibility service (recommended)</string>
     <string name="blocking_mode_accessibility_desc">Recommended for most phones: instant, battery friendly and needed for website blocking.</string>
     <string name="blocking_mode_usage_stats">Usage access + overlay</string>
-    <string name="blocking_mode_usage_stats_desc">Alternative if you don’t want to use the Accessibility service: slight delay, a bit more battery use, no website blocking without Accessibility.</string>
+    <string name="blocking_mode_usage_stats_desc">Alternative if you don’t want to use the Accessibility service: slight delay, a bit more battery use, no website blocking.</string>
     <string name="blocking_mode_not_chosen">Not chosen yet</string>
     <string name="blocking_mode_hint">Choosing the mode for the first time is free; switching it later needs the guardian code.</string>
     <string name="settings_website_blocking">Website blocking</string>
+    <string name="settings_website_blocking_unavailable">Only in the Accessibility mode – switch the app blocking mode to use it.</string>
     <string name="settings_website_blocking_desc">Blocks websites in supported browsers; other browsers are blocked completely. Needs the Accessibility service.</string>
 
     <!-- Settings: protection -->
@@ -348,6 +351,9 @@
     <!-- %1$s = group name -->
     <string name="block_group">Limit of the group “%1$s”</string>
     <string name="block_open_lares">Go to Lares</string>
+    <string name="notification_channel_blocking">Blocking service</string>
+    <string name="blocking_service_title">Lares is blocking</string>
+    <string name="blocking_service_text">Usage access mode is watching the apps you open.</string>
     <string name="block_stay_in_browser">Stay in browser</string>
     <string name="block_close_browser">Close browser</string>
     <string name="block_close">Close</string>

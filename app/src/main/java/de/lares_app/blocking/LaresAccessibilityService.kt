@@ -6,18 +6,15 @@
 package de.lares_app.blocking
 
 import android.accessibilityservice.AccessibilityService
-import android.content.BroadcastReceiver
 import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
-import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
+import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.policy.SupportedBrowsers
 import javax.inject.Inject
 
@@ -34,37 +31,23 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     private val main = Handler(Looper.getMainLooper())
     private var timer: TimerOverlay? = null
 
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                Intent.ACTION_SCREEN_OFF -> controller.onScreen(false)
-                Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> controller.onScreen(true)
-                else -> { // packages changed
-                    controller.refreshExemptApps()
-                    refreshKeyboards()
-                    activityCache.clear()
-                }
-            }
-        }
-    }
+    private val events = SystemEvents(
+        context = this,
+        onScreen = { controller.onScreen(it) },
+        onPackagesChanged = {
+            controller.refreshExemptApps()
+            refreshKeyboards()
+            activityCache.clear()
+        },
+    )
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        timer = TimerOverlay(this)
+        timer = TimerOverlay(this, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
         refreshKeyboards()
-        val screen = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_USER_PRESENT)
-        }
-        ContextCompat.registerReceiver(this, receiver, screen, ContextCompat.RECEIVER_NOT_EXPORTED)
-        val packages = IntentFilter().apply {
-            addAction(Intent.ACTION_PACKAGE_ADDED)
-            addAction(Intent.ACTION_PACKAGE_REMOVED)
-            addDataScheme("package")
-        }
-        ContextCompat.registerReceiver(this, receiver, packages, ContextCompat.RECEIVER_NOT_EXPORTED)
-        controller.start(this)
+        events.register()
+        // Serves Accessibility mode; in Usage access mode it only reports browser URLs.
+        controller.attach(BlockingMode.ACCESSIBILITY, this)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -79,7 +62,7 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
             BlockingLog.d { "ignored window change: $pkg / ${event.className}" }
             return
         }
-        controller.onForeground(pkg)
+        controller.onForeground(BlockingMode.ACCESSIBILITY, pkg)
     }
 
     private var pendingUrlRead: String? = null
@@ -136,8 +119,8 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
-        controller.stop()
-        runCatching { unregisterReceiver(receiver) }
+        controller.detach(BlockingMode.ACCESSIBILITY)
+        events.unregister()
         timer?.hide()
         timer = null
         super.onDestroy()

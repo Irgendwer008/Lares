@@ -76,7 +76,12 @@ private enum class AddTab(@StringRes val label: Int) {
 /** @param onGroupCreated a group was created in the "Group" tab; continue by adding members to it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddRuleScreen(onDone: () -> Unit, onGroupCreated: (Long) -> Unit, vm: AddRuleViewModel = hiltViewModel()) {
+fun AddRuleScreen(
+    onDone: () -> Unit,
+    onGroupCreated: (Long) -> Unit,
+    onOpenBlockingMode: () -> Unit,
+    vm: AddRuleViewModel = hiltViewModel(),
+) {
     val group by vm.group.collectAsStateWithLifecycle()
     val inGroup = vm.groupId != null
     // No groups inside groups: the "Group" tab is hidden when adding to a group.
@@ -125,17 +130,17 @@ fun AddRuleScreen(onDone: () -> Unit, onGroupCreated: (Long) -> Unit, vm: AddRul
                 }
             }
             when (tab) {
-                AddTab.TEMPLATES -> TemplatesTab(vm, group)
+                AddTab.TEMPLATES -> TemplatesTab(vm, group, onOpenBlockingMode)
                 AddTab.GROUP -> NewGroupTab(onCreate = vm::createGroup)
                 AddTab.APPS -> AppsTab(vm, inGroup)
-                AddTab.WEBSITE -> WebsiteTab(inGroup, vm, onAdd = { target, limit -> vm.add(RuleType.WEBSITE, target, limit) })
+                AddTab.WEBSITE -> WebsiteTab(inGroup, vm, onOpenBlockingMode, onAdd = { target, limit -> vm.add(RuleType.WEBSITE, target, limit) })
             }
         }
     }
 }
 
 @Composable
-private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?) {
+private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlockingMode: () -> Unit) {
     val apps by vm.apps.collectAsStateWithLifecycle()
     val installed = remember(apps) { apps.orEmpty().associateBy { it.packageName } }
     var pending by remember { mutableStateOf<RuleTemplate?>(null) }
@@ -192,8 +197,8 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?) {
                         }
                         template.websites.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
                     }
-                    if (!websiteBlocking && template.websites.isNotEmpty()) {
-                        WebsiteBlockingOffNote(onEnable = vm::enableWebsiteBlocking)
+                    if (template.websites.isNotEmpty()) {
+                        WebsiteBlockingNote(websiteBlocking, onEnable = vm::enableWebsiteBlocking, onOpenBlockingMode)
                     }
                     if (group == null) {
                         LimitSelector(limit)
@@ -277,7 +282,7 @@ private fun AppsTab(vm: AddRuleViewModel, inGroup: Boolean) {
 }
 
 @Composable
-private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onAdd: (String, Int?) -> Unit) {
+private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onOpenBlockingMode: () -> Unit, onAdd: (String, Int?) -> Unit) {
     var site by rememberSaveable { mutableStateOf("") }
     val limit = rememberLimitState(null)
     val websiteBlocking by vm.websiteBlocking.collectAsStateWithLifecycle()
@@ -285,7 +290,7 @@ private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onAdd: (String, I
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (!websiteBlocking) WebsiteBlockingOffNote(onEnable = vm::enableWebsiteBlocking)
+        WebsiteBlockingNote(websiteBlocking, onEnable = vm::enableWebsiteBlocking, onOpenBlockingMode)
         OutlinedTextField(
             value = site,
             onValueChange = { site = it.trim() },
@@ -332,11 +337,19 @@ private fun NewGroupTab(onCreate: (String, Int?) -> Unit) {
 
 /** Shown when adding website rules while website blocking is switched off in the settings. */
 @Composable
-private fun WebsiteBlockingOffNote(onEnable: () -> Unit) {
+/** Why website rules don't take effect yet (nothing while website blocking is on). */
+private fun WebsiteBlockingNote(state: WebsiteBlockingState, onEnable: () -> Unit, onOpenBlockingMode: () -> Unit) {
+    if (state == WebsiteBlockingState.ON) return
+    val unavailable = state == WebsiteBlockingState.UNAVAILABLE
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.website_blocking_off_note), style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onEnable) { Text(stringResource(R.string.website_blocking_turn_on)) }
+            Text(
+                stringResource(if (unavailable) R.string.website_blocking_unavailable_note else R.string.website_blocking_off_note),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            TextButton(onClick = if (unavailable) onOpenBlockingMode else onEnable) {
+                Text(stringResource(if (unavailable) R.string.website_blocking_change_mode else R.string.website_blocking_turn_on))
+            }
         }
     }
 }

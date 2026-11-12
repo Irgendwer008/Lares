@@ -142,6 +142,8 @@
     <string name="add_rule_duplicate">Das ist bereits eine einzelne Regel. Bearbeite stattdessen die bestehende Regel.</string>
     <string name="add_rule_duplicate_in_group">Das ist bereits in der Gruppe.</string>
     <string name="website_blocking_off_note">Das Sperren von Websites ist in den Einstellungen ausgeschaltet – Website-Regeln wirken daher noch nicht.</string>
+    <string name="website_blocking_unavailable_note">Websites sperren funktioniert nur im Modus „Bedienungshilfe“, daher wirken Website-Regeln im Modus „Nutzungszugriff“ nicht.</string>
+    <string name="website_blocking_change_mode">Modus für App-Sperren ändern</string>
     <string name="website_blocking_turn_on">Websites sperren einschalten</string>
     <string name="add_rule_invalid">Bitte gib eine gültige Website-Adresse ein.</string>
     <string name="add_rule_limit_title">%1$s sperren</string>
@@ -210,10 +212,11 @@
     <string name="blocking_mode_accessibility_recommended">Bedienungshilfe (empfohlen)</string>
     <string name="blocking_mode_accessibility_desc">Empfohlen für die meisten Handys: sofort, akkuschonend und nötig für das Sperren von Websites.</string>
     <string name="blocking_mode_usage_stats">Nutzungszugriff + Overlay</string>
-    <string name="blocking_mode_usage_stats_desc">Alternative, falls du die Bedienungshilfe nicht nutzen möchtest: leichte Verzögerung, etwas höherer Akkuverbrauch, kein Sperren von Websites ohne Bedienungshilfe.</string>
+    <string name="blocking_mode_usage_stats_desc">Alternative, falls du die Bedienungshilfe nicht nutzen möchtest: leichte Verzögerung, etwas höherer Akkuverbrauch, kein Sperren von Websites.</string>
     <string name="blocking_mode_not_chosen">Noch nicht gewählt</string>
     <string name="blocking_mode_hint">Den Modus zum ersten Mal zu wählen ist frei; ihn später zu wechseln erfordert den Guardian-Code.</string>
     <string name="settings_website_blocking">Websites sperren</string>
+    <string name="settings_website_blocking_unavailable">Nur im Modus „Bedienungshilfe“ – wechsle dafür den Modus für App-Sperren.</string>
     <string name="settings_website_blocking_desc">Sperrt Websites in unterstützten Browsern; andere Browser werden komplett gesperrt. Erfordert die Bedienungshilfe.</string>
 
     <!-- Settings: protection -->
@@ -323,6 +326,9 @@
     <string name="block_reason_browser">Das Sperren von Websites ist eingeschaltet, und dieser Browser wird nicht unterstützt. Verwende einen unterstützten Browser.</string>
     <string name="block_group">Limit der Gruppe „%1$s“</string>
     <string name="block_open_lares">Zu Lares</string>
+    <string name="notification_channel_blocking">Blockier-Dienst</string>
+    <string name="blocking_service_title">Lares blockiert</string>
+    <string name="blocking_service_text">Der Modus „Nutzungszugriff“ achtet auf geöffnete Apps.</string>
     <string name="block_stay_in_browser">Im Browser bleiben</string>
     <string name="block_close_browser">Browser schließen</string>
     <string name="block_close">Schließen</string>

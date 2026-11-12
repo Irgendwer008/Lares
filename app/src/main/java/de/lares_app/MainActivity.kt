@@ -11,12 +11,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import dagger.hilt.android.AndroidEntryPoint
+import de.lares_app.blocking.UsageMonitorStarter
 import de.lares_app.ui.LaresRoot
 import de.lares_app.ui.theme.LaresTheme
+import javax.inject.Inject
 
 /** AppCompatActivity (not ComponentActivity) so per-app language works back to API 26. */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject lateinit var usageMonitor: UsageMonitorStarter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -29,5 +33,11 @@ class MainActivity : AppCompatActivity() {
                 LaresRoot()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Usage access mode: a background start may have been refused – starting works while visible.
+        usageMonitor.ensureRunning()
     }
 }

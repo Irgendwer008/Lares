@@ -18,6 +18,7 @@ Single `app` module:
 - `UsageCounter` / `UsageSnapshot` – foreground time per rule / group in the current period (a
   group counts once per tick).
 - `LimitWarnings` – 5 / 1 minute warnings, once per threshold, subject and period.
+- `ForegroundTracker` – foreground app from "activity resumed" events (Usage access mode).
 
 `core/alerts`, `core/blocking`, `core/time` – pure Kotlin (no Android
   imports), unit-tested with in-memory fakes (`app/src/test/.../testing/Fakes.kt`).
@@ -93,17 +94,23 @@ enable `exportSchema`, commit the schema, add migrations from then on.
   device admin, battery optimization + intents), `NetworkAlertSender` + `SmtpMailer`,
   `AlertMessages` (texts in the channel's language), `RecoveryExport` (clipboard, share sheet).
 
-`blocking` (Accessibility mode)
+`blocking`
 - `LaresAccessibilityService` – reports the foreground app (`TYPE_WINDOW_STATE_CHANGED` of
   activities only) and screen on / off; while website blocking is on, reads the address bar of
   supported browsers (nothing else of the window). Hosts the block screen and countdown.
   `BlockingLog` – diagnostics in debuggable builds only.
+- `UsageMonitorService` – Usage access mode: foreground service polling `UsageStatsManager`
+  (`ForegroundTracker`), hosts block screen and countdown (overlay permission).
+  `UsageMonitorStarter` runs it while the mode is chosen. `SystemEvents` – screen / package
+  broadcasts for both services.
 - `BlockingController` – one-second loop on a single thread: `PolicyEngine` decision for the
   foreground app, time counting via `UsageRepository`, block screen (debounced), countdown overlay
-  in the last 5 minutes, optional warnings. Active only when setup is complete and the mode is
-  Accessibility; blocking stays active in unlocked mode.
+  in the last 5 minutes, optional warnings. Services attach as hosts per mode; the host of the
+  chosen mode supplies the foreground app and performs the effects. Active only when setup is
+  complete; blocking stays active in unlocked mode.
 - `BlockActivity` – full block screen (reason, reset time, "Close", "Go to Lares").
-- `TimerOverlay` – accessibility overlay pill (no extra permission, not touchable).
+- `TimerOverlay` – countdown pill (accessibility overlay, or application overlay in Usage access
+  mode; not touchable).
 - `LaresDeviceAdminReceiver` – declared for "prevent uninstalling"; reporting follows.
 
 `platform` (blocking)
@@ -124,7 +131,6 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 ## Planned (rest of the blocking milestone)
 | Component | Responsibility |
 |---|---|
-| `UsageMonitorService` (C) | Foreground service polling `UsageStatsManager`, overlay block screen (Usage access mode) |
 | Settings guard (D) | Blocking Lares' sensitive system-settings pages |
 | `BootReceiver` | `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` → restart monitoring |
 | `TamperDetector` | Detects gaps, clock changes, disabled services → tamper events |

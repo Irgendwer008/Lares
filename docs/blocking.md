@@ -1,8 +1,12 @@
 # Blocking
 
-Design of the blocking services. **Implemented:** app and website blocking in Accessibility mode
-with block screen, time limits (incl. groups), countdown overlay and optional warnings.
-**Next:** Usage access mode, settings guard / tamper detection.
+Design of the blocking services. **Implemented:** app blocking in both modes (Accessibility,
+Usage access), website blocking, block screen, time limits (incl. groups), countdown overlay and
+optional warnings. **Next:** settings guard / tamper detection, restart after reboot.
+
+One `BlockingController` decides for both modes. Each mode's service attaches itself as host; the
+foreground app is taken only from the host of the chosen mode, which also shows the block screen
+and countdown.
 
 ## App blocking modes
 
@@ -17,23 +21,31 @@ with block screen, time limits (incl. groups), countdown overlay and optional wa
 - Pros: instant, battery friendly. Cons: user must enable it manually in system settings;
   Google Play requires an Accessibility API declaration and prominent disclosure (shown before
   the main screen opens the accessibility settings).
-- Website blocking / settings guard additionally need `canRetrieveWindowContent` in
-  `accessibility_service.xml` (currently off, since no window content is read yet).
+- Website blocking reads the address bar (`canRetrieveWindowContent`, `flagReportViewIds`).
 - The system restarts an enabled accessibility service automatically after reboot.
 
 ### Usage Stats + Overlay mode
 - Needs `PACKAGE_USAGE_STATS` (special app access) and `SYSTEM_ALERT_WINDOW`.
-- Foreground service polls `UsageStatsManager.queryEvents()` (~every 1 s) for
-  `ACTIVITY_RESUMED` / `MOVE_TO_FOREGROUND` events.
-- Shows an overlay / block activity. Slight delay and battery cost.
-- Android 14+: foreground service needs a type (`specialUse`) declared in the manifest.
+- `UsageMonitorService` (foreground service, type `specialUse`, minimal-priority notification
+  "Lares is blocking") polls `UsageStatsManager.queryEvents()` every second while the screen is
+  on: the app of the latest `ACTIVITY_RESUMED` event is in the foreground (`ForegroundTracker`:
+  only events since the last poll plus 2 s overlap; clock set back → starts over).
+- Block screen: the same `BlockActivity` – starting it from the background is allowed because
+  Lares may draw over other apps. Countdown pill as `TYPE_APPLICATION_OVERLAY`. Up to ~1 s delay.
+- `UsageMonitorStarter` runs the service exactly while this mode is chosen and setup is complete
+  (follows the settings; `START_STICKY`). Android 12+ may refuse a start from the background
+  (no exemption) – then it starts the next time Lares is opened. Restart after reboot: milestone D.
 - Some OEMs (Xiaomi, Huawei, Samsung…) kill background services aggressively →
   the main screen recommends the battery-optimization exemption (both modes; required in practice
   for Usage Stats mode on these devices), opens the system list
   (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` – the one-tap dialog needs a Play-restricted
-  permission) and links manufacturer tips (dontkillmyapp.com, opened in the browser).
+  permission) and links manufacturer tips (dontkillmyapp.com, opened in the browser: the
+  manufacturer's page if the site has one – fixed list in `DontKillMyApp` – otherwise the start page).
 
-## Website blocking (requires Accessibility Service)
+## Website blocking (Accessibility mode only)
+- Not available in Usage access mode: the switch is disabled there (the setting is kept and
+  applies again after switching back), the Add screen explains it with a "Change app blocking
+  mode" button. Whoever needs the Accessibility service anyway is better off with its mode.
 - Reads only the address bar of **supported browsers** by view id (`SupportedBrowsers` table:
   Chromium family `url_bar` – Chrome, Brave, Edge, Vivaldi, Kiwi, Cromite / Bromite; Samsung
   Internet `location_bar_edit_text`; Firefox family `mozac_browser_toolbar_url_view` – Firefox,

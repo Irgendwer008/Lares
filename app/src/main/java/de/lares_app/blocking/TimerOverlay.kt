@@ -5,7 +5,7 @@
  */
 package de.lares_app.blocking
 
-import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
@@ -19,15 +19,17 @@ import kotlin.math.ceil
 
 /**
  * Small translucent countdown pill, centered at the top, during the last minutes of a limit.
- * An accessibility overlay: needs no extra permission, can't be touched (taps go through).
+ * Can't be touched (taps go through). [windowType]: `TYPE_ACCESSIBILITY_OVERLAY` from the
+ * accessibility service (no extra permission), `TYPE_APPLICATION_OVERLAY` in Usage access mode
+ * (needs "display over other apps").
  */
-class TimerOverlay(private val service: AccessibilityService) {
+class TimerOverlay(private val service: Context, private val windowType: Int) {
     private val windowManager = service.getSystemService(WindowManager::class.java)
     private var view: TextView? = null
 
     fun show(remainingMillis: Long) {
         val text = DateUtils.formatElapsedTime(ceil(remainingMillis / 1000.0).toLong())
-        val v = view ?: create().also { view = it }
+        val v = view ?: create()?.also { view = it } ?: return
         v.text = text
         v.contentDescription = service.getString(R.string.timer_overlay_description, text)
     }
@@ -37,7 +39,7 @@ class TimerOverlay(private val service: AccessibilityService) {
         view = null
     }
 
-    private fun create(): TextView {
+    private fun create(): TextView? {
         fun dp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, service.resources.displayMetrics)
         val v = TextView(service).apply {
             setTextColor(Color.WHITE)
@@ -51,7 +53,7 @@ class TimerOverlay(private val service: AccessibilityService) {
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT,
@@ -59,7 +61,7 @@ class TimerOverlay(private val service: AccessibilityService) {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             y = dp(56f).toInt() // below the status bar
         }
-        windowManager.addView(v, params)
-        return v
+        // Fails if the overlay permission was taken away – then there's no countdown.
+        return v.takeIf { runCatching { windowManager.addView(v, params) }.isSuccess }
     }
 }

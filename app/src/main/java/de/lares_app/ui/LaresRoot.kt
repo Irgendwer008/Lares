@@ -129,6 +129,7 @@ fun LaresRoot(main: MainViewModel = hiltViewModel()) {
                             // Replace this screen with "add to <new group>".
                             nav.navigate(Routes.addRule(groupId)) { popUpTo(Routes.HOME) }
                         },
+                        onOpenBlockingMode = { nav.navigate(Routes.settings(SettingsHighlight.BLOCKING_MODE)) },
                     )
                 }
             }
