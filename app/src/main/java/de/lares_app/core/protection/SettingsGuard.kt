@@ -6,27 +6,38 @@
 package de.lares_app.core.protection
 
 /**
- * Recognizes the system-settings pages of Lares itself: App info (force stop, uninstall, clear
- * storage), its accessibility page, the device-admin page and the special-access pages (usage
- * access, overlay, battery). All of them show "Lares" as page title or app header; lists that
- * merely contain Lares (e.g. the accessibility list) don't.
- * Settings apps differ between manufacturers – verify on devices and extend the ids.
+ * Recognizes the system pages of Lares itself: in the settings App info (force stop, uninstall,
+ * clear storage), its accessibility page, the device-admin page and the special-access pages
+ * (usage access, overlay, battery); in the package installer the uninstall dialog for Lares.
+ *
+ * Works without view ids (Settings pages are partly Compose since Android 14): a page belongs to
+ * Lares if its title is "Lares" or "Lares" appears as a non-clickable text (the app header).
+ * Lists that merely contain Lares show it in a clickable row and stay usable.
+ * Settings apps differ between manufacturers – verify on devices.
  */
 object SettingsGuard {
-    val packages = setOf("com.android.settings", "com.miui.securitycenter")
+    val settingsPackages = setOf("com.android.settings", "com.miui.securitycenter")
+    val installerPackages = setOf("com.android.packageinstaller", "com.google.android.packageinstaller")
+    val packages = settingsPackages + installerPackages
 
-    /** App header of app-specific pages (AOSP and close derivatives). */
-    val headerIds = listOf(
-        "com.android.settings:id/entity_header_title",
-        "com.android.settings:id/app_detail_title",
-        "com.android.settings:id/admin_name",
-    )
+    /** A text on the page that equals the app name; [clickable] = it (or a close parent) is tappable (list row). */
+    data class LabelMatch(val clickable: Boolean)
 
     /**
      * @param windowTitle text of the last window change (the page title)
-     * @param headerTexts texts of the nodes with [headerIds]
+     * @param windowClass class of the last window change (installer: only the uninstall dialog counts,
+     *   so updating Lares still works)
      */
-    fun isProtectedPage(windowTitle: String?, headerTexts: List<String>, appLabel: String): Boolean =
-        windowTitle?.trim().equals(appLabel, ignoreCase = true) ||
-            headerTexts.any { it.trim().equals(appLabel, ignoreCase = true) }
+    fun isProtectedPage(
+        packageName: String,
+        windowTitle: String?,
+        windowClass: String?,
+        matches: List<LabelMatch>,
+        appLabel: String,
+    ): Boolean = if (packageName in installerPackages) {
+        windowClass?.contains("Uninstall", ignoreCase = true) == true &&
+            (matches.isNotEmpty() || windowTitle?.contains(appLabel, ignoreCase = true) == true)
+    } else {
+        windowTitle?.trim().equals(appLabel, ignoreCase = true) || matches.any { !it.clickable }
+    }
 }

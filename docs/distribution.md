@@ -45,6 +45,8 @@ only if a store forces divergence – currently none is planned.
   not enough. The **AboutLibraries** Gradle plugin (offline mode, reproducible) generates the list
   of *all* libraries incl. transitive ones with full license texts at build time
   (`R.raw.aboutlibraries`, Settings → Info → Open-source libraries).
+- Logo outlines come from the URW **P052** typeface (URW base 35 fonts, AGPL-3.0 with font
+  exception), converted to paths – no font file is shipped; compatible with GPL-3.0.
 - The GPL-3.0 text of Lares is generated from the repo's `LICENSE` into `R.raw.lares_license`
   (Gradle task `generateLicenseRes`) and shown offline.
 

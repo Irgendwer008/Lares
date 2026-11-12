@@ -42,7 +42,7 @@ updated in place.
 | Tamper events only while locked | Whoever changes something in unlocked mode has the guardian code; no false alarms during maintenance |
 | Only losses of working permissions are reported; gaps only if stopped with the screen on | Few false alarms (never granted, phone asleep) – the guardian should be able to trust every message |
 | No switch for "restart after reboot" | The system restarts the Accessibility service anyway, so a switch would promise something it can't do |
-| Settings guard recognizes Lares' pages by title / app header, lets Lares' own setup links through for 2 min | Lists stay usable; setup issues can be fixed while the guard is on |
+| Settings guard recognizes Lares' pages by title / non-clickable "Lares" text; a setup link opens it only until that issue is fixed (max. 2 min, ends when Lares is opened) | Lists stay usable; setup issues can be fixed while the guard is on, without a time window for anything else |
 | One digest message per channel, per-channel delivery cursor | No duplicates when one channel fails; several events don't flood the guardian |
 | The settings guard always needs the Accessibility service (also in Usage access mode) | Settings pages can only be read via Accessibility |
 | Tamper protections (prevent uninstall, settings guard, restart after reboot, notify guardian) – each toggleable | User choice |
@@ -63,9 +63,11 @@ updated in place.
 | `INTERNET` permission only for guardian notifications | Lares itself works offline |
 | Settings UI for blocking mode and protections available before their services exist | Complete settings UI up front |
 
-## Icons
+## Icons & look
 | Decision | Reason |
 |---|---|
+| Logo: serif "L" and "Lares" wordmark (P052, Palatino-like); clay orange, olive, teal, parchment, brown | Classical Roman feel for the household guardians (Pompeian palette, warm but not just red); calm rather than "security app"; one shape works as launcher, themed and pill icon |
+| Launcher "L" mathematically centered, scaled so every point is inside the 66 dp circle | No clipping on round icon masks |
 | No brand logos and no icon fetching: installed app icon, otherwise a letter icon (template brand color, dark letter on light colors, outline on black) | Logos are trademarked / copyrighted (GPL, F-Droid NonFreeAssets, Play IP risk); fetching icons would tell each website about the user |
 | Display names for template apps that aren't installed | Readable labels instead of package names |
 

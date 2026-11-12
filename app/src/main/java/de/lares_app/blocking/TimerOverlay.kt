@@ -14,6 +14,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.TextView
+import androidx.appcompat.content.res.AppCompatResources
 import de.lares_app.R
 import kotlin.math.ceil
 
@@ -44,6 +45,15 @@ class TimerOverlay(private val service: Context, private val windowType: Int) {
         val v = TextView(service).apply {
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            // Small Lares "L" in front of the time, so it's clear where the countdown comes from.
+            val mark = AppCompatResources.getDrawable(service, R.drawable.ic_lares)?.mutate()?.apply {
+                setTint(Color.WHITE)
+                val h = dp(10.5f).toInt() // about the height of the digits at 14 sp
+                setBounds(0, 0, h * intrinsicWidth / intrinsicHeight.coerceAtLeast(1), h)
+            }
+            setCompoundDrawablesRelative(mark, null, null, null)
+            compoundDrawablePadding = dp(6f).toInt()
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10f).toInt(), dp(4f).toInt(), dp(10f).toInt(), dp(4f).toInt())
             background = GradientDrawable().apply {
                 cornerRadius = dp(16f)

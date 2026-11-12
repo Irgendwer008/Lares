@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import dagger.hilt.android.AndroidEntryPoint
+import de.lares_app.blocking.BlockingController
 import de.lares_app.blocking.UsageMonitorStarter
 import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.ui.LaresRoot
@@ -23,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var usageMonitor: UsageMonitorStarter
 
     @Inject lateinit var protection: ProtectionMonitor
+
+    @Inject lateinit var blocking: BlockingController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -43,5 +46,7 @@ class MainActivity : AppCompatActivity() {
         // Usage access mode: a background start may have been refused – starting works while visible.
         usageMonitor.ensureRunning()
         protection.checkPermissions()
+        // Back in Lares: a setup issue being fixed no longer opens the settings guard.
+        blocking.endSettingsGrace()
     }
 }

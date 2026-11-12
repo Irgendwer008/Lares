@@ -21,8 +21,8 @@ and countdown.
 - Pros: instant, battery friendly. Cons: user must enable it manually in system settings;
   Google Play requires an Accessibility API declaration and prominent disclosure (shown before
   the main screen opens the accessibility settings).
-- Website blocking reads the address bar, the settings guard the title / app header of settings
-  pages (`canRetrieveWindowContent`, `flagReportViewIds`).
+- Website blocking reads the address bar, the settings guard the page title and texts equal to
+  "Lares" on settings / uninstall windows (`canRetrieveWindowContent`, `flagReportViewIds`).
 - The system restarts an enabled accessibility service automatically after reboot.
 
 ### Usage Stats + Overlay mode
@@ -47,6 +47,8 @@ and countdown.
 - Not available in Usage access mode: the switch is disabled there (the setting is kept and
   applies again after switching back), the Add screen explains it with a "Change app blocking
   mode" button. Whoever needs the Accessibility service anyway is better off with its mode.
+- While website blocking is off or unavailable, the main screen marks website rules and groups
+  containing websites with a red "Not blocked – …" warning.
 - Reads only the address bar of **supported browsers** by view id (`SupportedBrowsers` table:
   Chromium family `url_bar` – Chrome, Brave, Edge, Vivaldi, Kiwi, Cromite / Bromite; Samsung
   Internet `location_bar_edit_text`; Firefox family `mozac_browser_toolbar_url_view` – Firefox,

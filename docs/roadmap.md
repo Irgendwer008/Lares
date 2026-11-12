@@ -16,9 +16,14 @@ Pre-release milestones, in order. Done milestones are summarized in
   automatic sending to the guardian channels with retries.
 
 ## 2. Design tweaks
+- App icon / logo – done: adaptive icon (parchment background, clay-orange "L" from
+  `docs/Logo.svg`, fits the 66 dp safe circle; also the themed monochrome icon), wordmark
+  (`docs/Logo_long.svg`) in the About dialog.
+- Countdown pill: small Lares logo icon next to the timer – done.
+- Lares theme: clay orange with olive and teal accents on parchment, logo brown – done
+  (currently always used).
+- Theme setting: Material You (wallpaper colors) or the Lares theme, asked during setup.
 - UI polish across screens.
-- App icon / logo.
-- Countdown pill: small Lares logo icon next to the timer.
 - Further icons and visual details as they come up.
 
 ## 3. Publishing

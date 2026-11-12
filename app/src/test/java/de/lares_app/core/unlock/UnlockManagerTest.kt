@@ -26,9 +26,12 @@ class UnlockManagerTest {
     private val tamper = FakeTamperLog()
     private val manager = UnlockManager(store, clock, FakeCipher(), tamper, PasswordHasher(iterations = 1_000))
 
-    /** First setup including confirming the recovery code. */
+    /** First setup including confirming the recovery code, then locked (ends the first unlocked mode). */
     private suspend fun setUp(password: String = "hunter22"): String =
-        manager.setupPassword(password).also { manager.completeSetup() }
+        manager.setupPassword(password).also {
+            manager.completeSetup()
+            manager.lock()
+        }
 
     private suspend fun assertUnlocks(code: String, viaRecovery: Boolean = false) {
         assertEquals(VerifyResult.Success(viaRecovery), manager.unlock(code))
@@ -59,8 +62,23 @@ class UnlockManagerTest {
         manager.setupPassword("second2")
         manager.completeSetup()
         assertTrue(store.current().settings.setupComplete)
+        manager.lock()
         assertFalse(manager.canChangeMethod())
         assertTrue(manager.unlock("second2") is VerifyResult.Success)
+    }
+
+    @Test fun firstSetupEndsInUnlockedMode() = runTest {
+        manager.setupPassword("hunter22")
+        manager.completeSetup()
+        assertTrue(manager.isUnlocked())
+        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS)
+        assertFalse(manager.isUnlocked())
+        // Changing the code later doesn't start a new unlocked mode by itself.
+        assertUnlocks("hunter22")
+        manager.setupPassword("changed1")
+        clock.advance(UnlockManager.UNLOCKED_DURATION_MILLIS)
+        manager.completeSetup()
+        assertFalse(manager.isUnlocked())
     }
 
     @Test fun lockEndsUnlockedModeImmediately() = runTest {

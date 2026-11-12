@@ -111,12 +111,20 @@ class UnlockManager(
         return recovery
     }
 
-    /** Called once the guardian confirmed storing the recovery code (first setup, recovery, change). */
+    /**
+     * Called once the guardian confirmed storing the recovery code (first setup, recovery, change).
+     * The first setup ends in unlocked mode, so the first rules can be set up (and corrected)
+     * without entering the code right away; recovery and change keep the running unlocked mode.
+     */
     suspend fun completeSetup() {
         check(store.current().unlock.isSetUp) { "no unlock method set up" }
         store.update { s ->
+            val first = !s.settings.setupComplete
             s.copy(
-                unlock = s.unlock.copy(reSetupRequired = false),
+                unlock = s.unlock.copy(
+                    reSetupRequired = false,
+                    unlockedSession = if (first) TimedSession.start(UNLOCKED_DURATION_MILLIS, clock) else s.unlock.unlockedSession,
+                ),
                 settings = s.settings.copy(setupComplete = true),
             )
         }

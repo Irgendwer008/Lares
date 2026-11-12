@@ -72,10 +72,23 @@ class ProtectionChecksTest {
         assertNull(ClockCheck.jumpMinutes(null, null, 5, 3))
     }
 
-    @Test fun settingsGuardMatchesTitleOrHeaderOnly() {
-        assertTrue(SettingsGuard.isProtectedPage("Lares", emptyList(), "Lares"))
-        assertTrue(SettingsGuard.isProtectedPage("App info", listOf("Lares"), "Lares"))
-        assertFalse(SettingsGuard.isProtectedPage("Accessibility", emptyList(), "Lares"))
-        assertFalse(SettingsGuard.isProtectedPage("App info", listOf("YouTube"), "Lares"))
+    @Test fun settingsGuardMatchesTitleOrNonClickableName() {
+        val settings = "com.android.settings"
+        val header = listOf(SettingsGuard.LabelMatch(clickable = false))
+        val listRow = listOf(SettingsGuard.LabelMatch(clickable = true))
+        assertTrue(SettingsGuard.isProtectedPage(settings, "Lares", null, emptyList(), "Lares")) // accessibility page
+        assertTrue(SettingsGuard.isProtectedPage(settings, "App info", null, header, "Lares")) // app header
+        assertFalse(SettingsGuard.isProtectedPage(settings, "Accessibility", null, listRow, "Lares")) // list
+        assertFalse(SettingsGuard.isProtectedPage(settings, "App info", null, emptyList(), "Lares")) // other app
+    }
+
+    @Test fun installerOnlyGuardsUninstallingLares() {
+        val installer = "com.google.android.packageinstaller"
+        val name = listOf(SettingsGuard.LabelMatch(clickable = false))
+        val uninstaller = "com.android.packageinstaller.UninstallerActivity"
+        assertTrue(SettingsGuard.isProtectedPage(installer, "Lares", uninstaller, name, "Lares"))
+        assertFalse(SettingsGuard.isProtectedPage(installer, "YouTube", uninstaller, emptyList(), "Lares"))
+        // Updating Lares (install dialog) stays possible.
+        assertFalse(SettingsGuard.isProtectedPage(installer, "Lares", "com.android.packageinstaller.PackageInstallerActivity", name, "Lares"))
     }
 }

@@ -28,6 +28,7 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 8. The guardian chooses a **static password** or **TOTP** (RFC 6238, any authenticator app) at
    setup; changing it later needs the code.
 9. A correct code puts the app into **unlocked mode** for 10 minutes: every change is allowed.
+   The first setup also ends in unlocked mode (first rules can be corrected without the code).
    It ends with **"Lock now"**, when the timer runs out, or when the phone restarts.
 10. While unlocked, a **pause** (all blocking suspended; presets + custom, no maximum) can be
     started. It keeps running after locking and ends automatically (or early, without code, or

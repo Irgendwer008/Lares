@@ -34,6 +34,9 @@
 
 ## Unlocked mode and pause
 - A correct code unlocks for **10 minutes**: every change is allowed. "Lock now" ends it early.
+- The **first setup** ends in unlocked mode too (10 minutes from confirming the recovery code),
+  so the first rules can be added and corrected right away. Recovery and code changes keep the
+  unlocked mode that is already running.
 - A **pause** (only startable while unlocked; presets 5 min / 15 min / 1 h + custom, no maximum)
   suspends all blocking; it keeps running after locking and can be ended early without code.
 - Both run on `elapsedRealtime`, so changing the clock or time zone doesn't affect them. There is
@@ -63,11 +66,17 @@ shares the time). Moving a rule into a group that already contains the same targ
 2. **Guard system settings** – needs the Accessibility service in every blocking mode. While
    locked, Lares' own pages in the system settings show the block screen ("This settings page is
    protected"): App info (force stop, uninstall, clear storage), its accessibility page, the
-   device-admin page and the special-access pages (usage access, overlay, battery). Recognized by
-   page title or app header equal to "Lares" (`SettingsGuard`: settings packages and header view
-   ids – OEM-specific, verify on devices); lists that merely contain Lares are not blocked. When
-   Lares opens a settings page itself to fix a setup issue, the guard lets it through for 2 min.
-   Inactive in unlocked mode.
+   device-admin page and the special-access pages (usage access, overlay, battery), and the
+   package installer's uninstall dialog for Lares (updates stay possible). Recognized without view
+   ids (Settings is partly Compose since Android 14): page title "Lares", or "Lares" as a
+   non-clickable text (app header; found by walking the window, max. 600 nodes – the system
+   text search doesn't see Compose) – lists show it in a clickable row and stay usable
+   (`SettingsGuard`; OEM settings differ, verify on devices). Debug builds log every settings
+   window with the guard status and the check result (`LaresBlocking`). When
+   a setup issue is opened from the main screen, the guard lets the settings through only while
+   that issue is still unfixed, until Lares is opened again, and at most 2 min (otherwise the
+   permission it protects couldn't be granted). Once fixed, the user is still on that page: it
+   stays open until they leave the settings, at most 30 s. Inactive in unlocked mode.
 3. **Notify guardian** – see [Notifications](notifications.md).
 
 **Restart after reboot / update** is always on (no switch – the system restarts the

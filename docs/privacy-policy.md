@@ -20,8 +20,8 @@ Lares works entirely on your phone.
 ## System permissions
 - If the user turns on the Accessibility service or usage access, Lares uses them only to detect
   which app is in the foreground – and, while website blocking is on, the address shown in the
-  address bar of supported browsers and, while "Guard system settings" is on, the title of system
-  settings pages (no other screen content). This is processed on the phone in
+  address bar of supported browsers and, while "Guard system settings" is on, whether a system
+  settings page or uninstall dialog is about Lares (no other screen content). This is processed on the phone in
   the moment and is neither stored nor transmitted.
 - The optional device administrator role is used only to prevent uninstalling Lares; no other
   administrator rights are used.

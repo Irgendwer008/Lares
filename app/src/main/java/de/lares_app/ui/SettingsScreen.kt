@@ -11,6 +11,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -350,6 +353,7 @@ fun SettingsScreen(
             title = stringResource(R.string.app_name),
             text = stringResource(R.string.about_body, appVersion()),
             onDismiss = { showAbout = false },
+            wordmark = true,
         )
     }
     if (showLicense) {
@@ -545,10 +549,28 @@ private fun LanguageDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit, extraAction: Pair<String, () -> Unit>? = null) {
+private fun InfoDialog(
+    title: String,
+    text: String,
+    onDismiss: () -> Unit,
+    extraAction: Pair<String, () -> Unit>? = null,
+    /** Show the "Lares" wordmark instead of the title text. */
+    wordmark: Boolean = false,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = {
+            if (wordmark) {
+                Image(
+                    painterResource(R.drawable.logo_wordmark),
+                    contentDescription = title,
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                    modifier = Modifier.width(120.dp),
+                )
+            } else {
+                Text(title)
+            }
+        },
         text = { Text(text, modifier = Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
         dismissButton = extraAction?.let { (label, action) -> { TextButton(onClick = action) { Text(label) } } },

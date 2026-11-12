@@ -6,6 +6,7 @@
 package de.lares_app.blocking
 
 import de.lares_app.core.blocking.LimitWarnings
+import de.lares_app.core.data.AppSettings
 import de.lares_app.core.data.AppState
 import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.data.Protection
@@ -20,6 +21,7 @@ import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
 import de.lares_app.core.policy.RuleType
 import de.lares_app.core.policy.SupportedBrowsers
+import de.lares_app.core.protection.SettingsGuard
 import de.lares_app.core.protection.tamperReportable
 import de.lares_app.core.time.Clock
 import de.lares_app.platform.AppCatalog
@@ -251,20 +253,80 @@ class BlockingController(
     }
 
     /**
-     * The settings guard is on and applies now: locked (unlocked mode allows everything) and not
-     * within the short window after Lares opened a settings page itself ([allowSettingsFor]).
+     * The settings guard is on and applies now: locked (unlocked mode allows everything) and no
+     * setup issue is being fixed right now ([allowSettingsWhile]).
      */
     fun guardsSettings(): Boolean {
         val st = state
-        return Protection.SETTINGS_GUARD in st.settings.protections && st.tamperReportable(clock) &&
-            clock.elapsedMillis() >= settingsAllowedUntil
+        return Protection.SETTINGS_GUARD in st.settings.protections && st.tamperReportable(clock) && !settingsGraceActive()
+    }
+
+    /** For the diagnostics log: why the guard does or doesn't apply. */
+    fun settingsGuardStatus(): String {
+        val st = state
+        return when {
+            Protection.SETTINGS_GUARD !in st.settings.protections -> "off (setting)"
+            !st.settings.setupComplete || !st.unlock.isSetUp -> "off (setup not complete)"
+            !st.tamperReportable(clock) -> "off (unlocked mode)"
+            settingsGraceActive() -> if (graceFixedAt != null) "off (setup issue fixed, until leaving the settings)" else
+                "off (fixing a setup issue, max. ${(settingsAllowedUntil - clock.elapsedMillis()) / 1000} s)"
+            else -> "active"
+        }
     }
 
     @Volatile private var settingsAllowedUntil = 0L
 
-    /** Lares itself opens a system settings page (setup issue): don't guard it for a moment. */
-    fun allowSettingsFor(millis: Long = SETTINGS_GRACE_MILLIS) {
-        settingsAllowedUntil = clock.elapsedMillis() + millis
+    @Volatile private var settingsGraceCheck: ((AppSettings) -> Boolean)? = null
+    private var graceCheckedAt = Long.MIN_VALUE
+    private var graceStillNeeded = false
+
+    /** When the issue got fixed – the user is usually still on that page, so leaving it stays possible. */
+    private var graceFixedAt: Long? = null
+
+    /**
+     * Lares opens a system settings page to fix a setup issue: the guard lets the settings through
+     * while [stillMissing] (the issue isn't fixed yet), at most [SETTINGS_GRACE_MILLIS], and only
+     * until Lares is opened again ([endSettingsGrace]). Otherwise the guard couldn't be passed
+     * to grant the permission it protects. Once fixed, the user is still on that (protected) page:
+     * it stays open until they leave the settings, at most [FIXED_TAIL_MILLIS].
+     */
+    fun allowSettingsWhile(stillMissing: (AppSettings) -> Boolean) {
+        settingsGraceCheck = stillMissing
+        graceCheckedAt = Long.MIN_VALUE
+        graceFixedAt = null
+        settingsAllowedUntil = clock.elapsedMillis() + SETTINGS_GRACE_MILLIS
+    }
+
+    fun endSettingsGrace() {
+        settingsGraceCheck = null
+        settingsAllowedUntil = 0L
+        graceFixedAt = null
+    }
+
+    /** Checked often (every settings event) – the permission check is cached for a second. */
+    @Synchronized
+    private fun settingsGraceActive(): Boolean {
+        val check = settingsGraceCheck ?: return false
+        val now = clock.elapsedMillis()
+        if (now >= settingsAllowedUntil) {
+            endSettingsGrace()
+            return false
+        }
+        graceFixedAt?.let { fixedAt ->
+            val fg = foreground
+            val leftSettings = fg != null && fg !in SettingsGuard.packages
+            if (leftSettings || now - fixedAt >= FIXED_TAIL_MILLIS) {
+                endSettingsGrace()
+                return false
+            }
+            return true
+        }
+        if (now - graceCheckedAt >= GRACE_RECHECK_MILLIS) {
+            graceStillNeeded = check(state.settings)
+            graceCheckedAt = now
+        }
+        if (!graceStillNeeded) graceFixedAt = now // fixed: guard again once the user leaves the page
+        return true
     }
 
     /** The accessibility service saw one of Lares' own settings pages. */
@@ -359,5 +421,7 @@ class BlockingController(
         const val HEARTBEAT_TICKS = 60L
         const val PERMISSION_CHECK_TICKS = 30L
         const val SETTINGS_GRACE_MILLIS = 2 * 60_000L
+        const val GRACE_RECHECK_MILLIS = 1_000L
+        const val FIXED_TAIL_MILLIS = 30_000L
     }
 }

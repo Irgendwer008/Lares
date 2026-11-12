@@ -1,30 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lares "L" (docs/Logo.svg), mathematically centered and scaled to 78 % – inside the 66 dp safe
+     circle of adaptive icons (no clipping on round masks), with some air around it.
+     A 0.6-unit outline in the same color makes the thin serifs a bit sturdier.
+     Also the monochrome (themed) icon. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.78"
+        android:scaleY="0.78">
+        <path
+            android:fillColor="@color/lares_clay"
+            android:strokeColor="@color/lares_clay"
+            android:strokeWidth="0.6"
+            android:strokeLineJoin="miter"
+            android:strokeMiterLimit="6"
+            android:pathData="m 33.688727,82.700082 0.05049,-0.954752 1.506963,-0.80536 c 1.753454,-0.937089 2.243487,-1.424126 2.785627,-2.768596 l 0.395738,-0.981402 0.04855,-21.264916 C 38.528645,32.908981 38.458239,30.046301 37.807499,28.740115 37.16378,27.448023 36.355641,27.198382 32.022955,26.953222 l -2.051144,-0.116061 v -1.249348 -1.249348 l 0.962782,0.133287 c 1.22084,0.169014 22.514683,0.170286 23.35792,0.0014 l 0.627901,-0.125761 v 1.26339 1.263389 H 54.40761 c -0.282041,0 -1.619471,0.07958 -2.972065,0.176854 -3.986023,0.286648 -4.580239,0.796359 -4.886192,4.191318 -0.08838,0.980625 -0.159583,11.906641 -0.162754,24.972549 l -0.0056,23.22915 0.37674,0.08928 c 1.598218,0.378753 2.616176,0.458245 6.862313,0.535876 8.658729,0.158304 17.298202,-0.483925 18.678784,-1.388517 0.651706,-0.427015 1.114215,-1.705152 2.147239,-5.933878 l 0.980219,-4.012561 h 1.296274 1.296273 l -0.07807,0.460461 c -0.04294,0.253253 -0.309199,2.532534 -0.591686,5.065068 -0.524577,4.702899 -1.084529,8.850964 -1.212011,8.978447 -0.22033,0.220329 -14.752375,0.348636 -24.157193,0.213289 -9.823328,-0.14137 -16.392004,-0.09782 -17.788792,0.117941 l -0.552811,0.08539 z" />
+    </group>
 </vector>

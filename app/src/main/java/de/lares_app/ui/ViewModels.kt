@@ -18,6 +18,7 @@ import de.lares_app.core.alerts.AlertChannelRepository
 import de.lares_app.core.alerts.AlertSender
 import de.lares_app.core.alerts.ChannelDraft
 import de.lares_app.core.alerts.ChannelType
+import de.lares_app.core.data.AppSettings
 import de.lares_app.core.data.BackupCodec
 import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.data.ImportResult
@@ -240,7 +241,12 @@ private val RuleOrder: Comparator<RuleItem> = compareBy<RuleItem>(
     { it.rule.target },
 )
 
-data class HomeContent(val groups: List<GroupItem> = emptyList(), val standalone: List<RuleItem> = emptyList()) {
+data class HomeContent(
+    val groups: List<GroupItem> = emptyList(),
+    val standalone: List<RuleItem> = emptyList(),
+    /** Website rules only take effect while ON – the list warns otherwise. */
+    val websiteBlocking: WebsiteBlockingState = WebsiteBlockingState.ON,
+) {
     val isEmpty: Boolean get() = groups.isEmpty() && standalone.isEmpty()
 }
 
@@ -274,10 +280,15 @@ class HomeViewModel @Inject constructor(
         permissionRefresh.value++
     }
 
-    /** Opening a system page to fix a setup issue: the settings guard lets it through for a moment. */
-    fun intentFor(issue: SetupIssue) = permissions.intentFor(issue)?.also { blocking.allowSettingsFor() }
+    /** Opening a system page to fix [issue]: the settings guard lets it through until it's fixed. */
+    fun intentFor(issue: SetupIssue) = permissions.intentFor(issue)?.also { allowSettingsUntilFixed(issue) }
 
-    fun appDetailsIntent() = permissions.appDetailsIntent().also { blocking.allowSettingsFor() }
+    /** Fallback page when the specific one isn't available (still for fixing [issue]). */
+    fun appDetailsIntent(issue: SetupIssue) = permissions.appDetailsIntent().also { allowSettingsUntilFixed(issue) }
+
+    private fun allowSettingsUntilFixed(issue: SetupIssue) {
+        blocking.allowSettingsWhile { settings -> issue in SetupRequirements.missing(settings, permissions.current()) }
+    }
 
     fun dontKillMyAppUrl() = permissions.dontKillMyAppUrl()
 
@@ -285,7 +296,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { usage.refreshPeriod() } // load today's usage even before blocking runs
     }
 
-    val content: StateFlow<HomeContent> = combine(rules.rules, rules.groups, usage.usage) { list, groups, used ->
+    val content: StateFlow<HomeContent> = combine(rules.rules, rules.groups, usage.usage, store.state) { list, groups, used, state ->
         val items = list.map { rule ->
             when (rule.type) {
                 RuleType.APP -> catalog.describeOrFallback(rule.target).let { RuleItem(rule, it.label, it.icon) }
@@ -300,6 +311,7 @@ class HomeViewModel @Inject constructor(
             groups = groups.sortedBy { it.name.lowercase() }
                 .map { g -> GroupItem(g, items.filter { it.rule.groupId == g.id }.sortedWith(RuleOrder), used?.groupMillis?.get(g.id) ?: 0) },
             standalone = items.filter { it.rule.groupId == null || it.rule.groupId !in groupIds }.sortedWith(RuleOrder),
+            websiteBlocking = WebsiteBlockingState.of(state.settings),
         )
     }.stateIn(viewModelScope, WhileSubscribed, HomeContent())
 
@@ -426,13 +438,7 @@ class AddRuleViewModel @Inject constructor(
     private val exemptApps: ExemptApps,
 ) : ViewModel() {
     /** Website rules only take effect while website blocking is on – the screen shows a note otherwise. */
-    val websiteBlocking: StateFlow<WebsiteBlockingState> = settings.settings.map {
-        when {
-            !it.websiteBlockingAvailable -> WebsiteBlockingState.UNAVAILABLE
-            it.websiteBlocking -> WebsiteBlockingState.ON
-            else -> WebsiteBlockingState.OFF
-        }
-    }.stateIn(viewModelScope, WhileSubscribed, WebsiteBlockingState.ON)
+    val websiteBlocking: StateFlow<WebsiteBlockingState> = settings.settings.map { WebsiteBlockingState.of(it) }.stateIn(viewModelScope, WhileSubscribed, WebsiteBlockingState.ON)
 
     /** Turning website blocking on is tightening, so it's allowed without the code. */
     fun enableWebsiteBlocking() {
@@ -758,4 +764,17 @@ class ChannelEditorViewModel @Inject constructor(
 }
 
 /** ON; OFF (can be switched on); UNAVAILABLE (Usage access mode – needs Accessibility mode). */
-enum class WebsiteBlockingState { ON, OFF, UNAVAILABLE }
+enum class WebsiteBlockingState {
+    ON,
+    OFF,
+    UNAVAILABLE,
+    ;
+
+    companion object {
+        fun of(settings: AppSettings) = when {
+            !settings.websiteBlockingAvailable -> UNAVAILABLE
+            settings.websiteBlocking -> ON
+            else -> OFF
+        }
+    }
+}

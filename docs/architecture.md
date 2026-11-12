@@ -6,6 +6,9 @@ version catalog `gradle/libs.versions.toml`. Every source file carries
 
 ## Stack
 - Kotlin, Jetpack Compose (Material 3), minSdk 26, compile/targetSdk 37, JVM target 17.
+- Look: Lares theme (`ui/theme/Theme.kt`: clay orange, olive and teal accents, parchment, logo
+  brown); logo colors (parchment icon background, clay-orange "L") in `res/values/colors.xml`. Launcher icon is a pure vector adaptive icon (no PNGs – minSdk 26);
+  logo sources in `docs/Logo.svg` / `docs/Logo_long.svg`.
 - Hilt (DI), Room (rules, groups, usage, tamper events), typed DataStore (settings + unlock state
   as one JSON file), kotlinx.serialization (state, backup, network payloads).
 - Android Keystore (AES-GCM) for secrets: TOTP secret, channel tokens / passwords.

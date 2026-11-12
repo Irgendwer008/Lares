@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo colors: parchment icon background, clay-orange "L" (the theme's primary color),
+     dark brown wordmark. -->
+<resources>
+    <color name="lares_parchment">#FFEDDCC6</color>
+    <color name="lares_clay">#FF9A5326</color>
+    <color name="lares_brown">#FF28170B</color>
+</resources>

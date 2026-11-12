@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
@@ -62,9 +63,13 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         // Supported browsers: (re-)read the address bar when their content changes – bundled.
         if (pkg in SupportedBrowsers.packages && controller.readsUrls) scheduleUrlRead(pkg)
         // Settings guard: Lares' own pages in the system settings.
-        if (pkg in SettingsGuard.packages && controller.guardsSettings()) {
-            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) settingsTitle = event.text.joinToString(" ")
-            scheduleSettingsCheck(pkg)
+        if (pkg in SettingsGuard.packages) {
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                settingsTitle = event.text.joinToString(" ")
+                settingsClass = event.className?.toString()
+                BlockingLog.d { "settings window: $pkg / $settingsClass / \"$settingsTitle\" – guard ${controller.settingsGuardStatus()}" }
+            }
+            if (controller.guardsSettings()) scheduleSettingsCheck(pkg)
         }
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         // Keyboards, the notification shade, popups and dialogs of other apps also send window
@@ -79,8 +84,9 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     private var pendingUrlRead: String? = null
     private var pendingSettingsCheck = false
 
-    /** Title of the last settings window (page title, e.g. "Lares" on its accessibility page). */
+    /** Title and class of the last settings / installer window (e.g. "Lares" on its accessibility page). */
     private var settingsTitle: String? = null
+    private var settingsClass: String? = null
 
     private fun scheduleSettingsCheck(pkg: String) {
         if (pendingSettingsCheck) return
@@ -91,15 +97,44 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         }, URL_READ_DELAY_MILLIS)
     }
 
-    /** Reads only the page title and the app header of the settings window. */
+    /** Looks only for texts equal to "Lares" on the settings / installer window (and the page title). */
     private fun checkSettingsPage(pkg: String) {
         val root = rootInActiveWindow ?: return
         if (root.packageName?.toString() != pkg) return
-        val headers = SettingsGuard.headerIds.flatMap { id -> root.findAccessibilityNodeInfosByViewId(id) }.mapNotNull { it.text?.toString() }
-        if (SettingsGuard.isProtectedPage(settingsTitle, headers, getString(R.string.app_name))) {
-            BlockingLog.d { "protected settings page: $pkg / $settingsTitle / $headers" }
-            controller.onProtectedSettings(pkg)
+        val label = getString(R.string.app_name)
+        val matches = findExact(root, label).map { SettingsGuard.LabelMatch(clickable = it.isClickableNearby()) }
+        val protected = SettingsGuard.isProtectedPage(pkg, settingsTitle, settingsClass, matches, label)
+        BlockingLog.d { "settings check: $pkg / \"$settingsTitle\" / $matches → protected=$protected" }
+        if (protected) controller.onProtectedSettings(pkg)
+    }
+
+    /**
+     * Nodes whose text or description equals [label]. Walks the tree itself: the system search
+     * (`findAccessibilityNodeInfosByText`) doesn't find texts in Compose screens, and parts of
+     * the settings are Compose since Android 14. Bounded, and only texts equal to [label] are kept.
+     */
+    private fun findExact(root: AccessibilityNodeInfo, label: String): List<AccessibilityNodeInfo> {
+        val found = mutableListOf<AccessibilityNodeInfo>()
+        val queue = ArrayDeque<AccessibilityNodeInfo>().apply { add(root) }
+        var visited = 0
+        while (queue.isNotEmpty() && visited < MAX_SETTINGS_NODES) {
+            val node = queue.removeFirst()
+            visited++
+            if (listOfNotNull(node.text, node.contentDescription).any { it.toString().trim().equals(label, ignoreCase = true) }) found += node
+            for (i in 0 until node.childCount) node.getChild(i)?.let(queue::add)
         }
+        return found
+    }
+
+    /** List rows are clickable as a whole: the node itself or one of its closest parents. */
+    private fun AccessibilityNodeInfo.isClickableNearby(): Boolean {
+        var node: AccessibilityNodeInfo? = this
+        repeat(CLICKABLE_PARENT_DEPTH) {
+            val n = node ?: return false
+            if (n.isClickable) return true
+            node = n.parent
+        }
+        return false
     }
 
     /** Reads the URL bar at most every [URL_READ_DELAY_MILLIS] (content changes fire very often). */
@@ -185,6 +220,8 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     private companion object {
         val TRANSIENT = setOf("com.android.systemui")
         const val URL_READ_DELAY_MILLIS = 300L
+        const val CLICKABLE_PARENT_DEPTH = 4
+        const val MAX_SETTINGS_NODES = 600
 
         /** The system updates the list of enabled services around the unbind. */
         const val UNBIND_CHECK_DELAY_MILLIS = 2_000L

@@ -5,6 +5,9 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -66,6 +69,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.lares_app.R
+import de.lares_app.core.policy.RuleType
 import de.lares_app.core.data.SetupIssue
 import de.lares_app.core.policy.RuleGroup
 
@@ -92,7 +96,7 @@ fun HomeScreen(
             // Play policy: explain and ask for consent before sending the user to the accessibility settings.
             SetupIssue.ACCESSIBILITY -> showAccessibilityDisclosure = true
             else -> vm.intentFor(issue)?.let { intent ->
-                runCatching { context.startActivity(intent) }.onFailure { context.startActivity(vm.appDetailsIntent()) }
+                runCatching { context.startActivity(intent) }.onFailure { context.startActivity(vm.appDetailsIntent(issue)) }
             }
         }
     }
@@ -119,7 +123,15 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = {
+                    // "Lares" wordmark (docs/Logo_long.svg) instead of plain text.
+                    Image(
+                        painterResource(R.drawable.logo_wordmark),
+                        contentDescription = stringResource(R.string.app_name),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.height(26.dp).aspectRatio(WORDMARK_ASPECT),
+                    )
+                },
                 actions = {
                     IconButton(onClick = { onOpenSettings(null) }) {
                         Icon(painterResource(R.drawable.ic_menu), contentDescription = stringResource(R.string.settings_title))
@@ -170,6 +182,7 @@ fun HomeScreen(
             items(content.groups, key = { "g" + it.group.id }) { item ->
                 GroupCard(
                     item = item,
+                    websiteBlocking = content.websiteBlocking,
                     onToggle = { vm.setGroupEnabled(item.group.id, it) },
                     onEdit = { editingGroup = item.group },
                     onAddMember = { onAddRule(item.group.id) },
@@ -183,7 +196,7 @@ fun HomeScreen(
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(), border = CardDefaults.outlinedCardBorder()) {
                         content.standalone.forEachIndexed { index, item ->
                             if (index > 0) HorizontalDivider()
-                            RuleRow(item, onClick = { selected = item }, onToggle = { vm.setEnabled(item.rule.id, it) })
+                            RuleRow(item, content.websiteBlocking, onClick = { selected = item }, onToggle = { vm.setEnabled(item.rule.id, it) })
                         }
                     }
                 }
@@ -407,6 +420,7 @@ fun groupLimitLabel(limitMinutes: Int?): String =
 @Composable
 private fun GroupCard(
     item: GroupItem,
+    websiteBlocking: WebsiteBlockingState,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onAddMember: () -> Unit,
@@ -431,6 +445,7 @@ private fun GroupCard(
             )
             Column(Modifier.weight(1f)) {
                 Text(group.name, style = MaterialTheme.typography.titleMedium)
+                if (item.members.any { it.rule.type == RuleType.WEBSITE }) WebsiteWarning(websiteBlocking, inGroup = true)
                 val limit = usageLabel(group.limitMinutesPerDay, item.usedMillis, shared = true) ?: groupLimitLabel(group.limitMinutesPerDay)
                 val count = pluralStringResource(R.plurals.group_member_count, item.members.size, item.members.size)
                 Text(
@@ -448,7 +463,7 @@ private fun GroupCard(
             Switch(checked = group.enabled, onCheckedChange = onToggle)
         }
         AnimatedVisibility(visible = expanded) {
-            GroupCardContent(item, onEdit, onAddMember, onMemberClick)
+            GroupCardContent(item, websiteBlocking, onEdit, onAddMember, onMemberClick)
         }
     }
 }
@@ -456,6 +471,7 @@ private fun GroupCard(
 @Composable
 private fun GroupCardContent(
     item: GroupItem,
+    websiteBlocking: WebsiteBlockingState,
     onEdit: () -> Unit,
     onAddMember: () -> Unit,
     onMemberClick: (RuleItem) -> Unit,
@@ -472,6 +488,11 @@ private fun GroupCardContent(
             item.members.forEach { member ->
                 ListItem(
                     headlineContent = { Text(member.displayName()) },
+                    supportingContent = if (member.rule.type == RuleType.WEBSITE && websiteBlocking != WebsiteBlockingState.ON) {
+                        { WebsiteWarning(websiteBlocking, inGroup = false) }
+                    } else {
+                        null
+                    },
                     leadingContent = { RuleIcon(member, size = 32) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.clickable { onMemberClick(member) },
@@ -538,22 +559,46 @@ private fun MemberDialog(item: RuleItem, group: RuleGroup, onTakeOut: () -> Unit
 // ---- Standalone rules ------------------------------------------------------------------------------
 
 @Composable
-private fun RuleRow(item: RuleItem, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
+private fun RuleRow(item: RuleItem, websiteBlocking: WebsiteBlockingState, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
     val limit = usageLabel(item.rule.limitMinutesPerDay, item.usedMillis) ?: limitLabel(item.rule.limitMinutesPerDay)
     val disabled = stringResource(R.string.rule_disabled)
     ListItem(
         headlineContent = { Text(item.displayName()) },
         supportingContent = {
-            Text(
-                if (item.rule.enabled) limit else stringResource(R.string.rule_supporting_disabled, limit, disabled),
-                style = MaterialTheme.typography.bodySmall,
-            )
+            Column {
+                Text(
+                    if (item.rule.enabled) limit else stringResource(R.string.rule_supporting_disabled, limit, disabled),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (item.rule.type == RuleType.WEBSITE) WebsiteWarning(websiteBlocking, inGroup = false)
+            }
         },
         leadingContent = { RuleIcon(item, size = 32) },
         trailingContent = { Switch(checked = item.rule.enabled, onCheckedChange = onToggle) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick),
     )
+}
+
+/** "Not blocked": website rules have no effect while website blocking is off / unavailable. */
+@Composable
+private fun WebsiteWarning(state: WebsiteBlockingState, inGroup: Boolean) {
+    if (state == WebsiteBlockingState.ON) return
+    val text = when {
+        state == WebsiteBlockingState.UNAVAILABLE && inGroup -> R.string.group_websites_unavailable
+        state == WebsiteBlockingState.UNAVAILABLE -> R.string.rule_website_unavailable
+        inGroup -> R.string.group_websites_off
+        else -> R.string.rule_website_off
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(
+            painterResource(R.drawable.ic_warning),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(stringResource(text), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    }
 }
 
 @Composable
@@ -622,3 +667,6 @@ private fun RuleDialog(
         )
     }
 }
+
+/** Width / height of the wordmark drawable (viewport of `logo_wordmark.xml`). */
+private const val WORDMARK_ASPECT = 289.3f / 87.91f
