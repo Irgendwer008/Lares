@@ -13,20 +13,26 @@ import android.os.Looper
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
+import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
+import de.lares_app.R
 import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.policy.SupportedBrowsers
+import de.lares_app.core.protection.SettingsGuard
+import de.lares_app.platform.ProtectionMonitor
 import javax.inject.Inject
 
 /**
- * Detects the app in the foreground (window state changes) and, for supported browsers, the URL in
- * the address bar; [BlockingController] decides. Nothing else of the window content is read, and
- * nothing is stored.
+ * Detects the app in the foreground (window state changes), for supported browsers the URL in the
+ * address bar and, for the settings guard, title and app header of system-settings pages;
+ * [BlockingController] decides. Nothing else of the window content is read, and nothing is stored.
  */
 @AndroidEntryPoint
 class LaresAccessibilityService : AccessibilityService(), BlockingHost {
 
     @Inject lateinit var controller: BlockingController
+
+    @Inject lateinit var monitor: ProtectionMonitor
 
     private val main = Handler(Looper.getMainLooper())
     private var timer: TimerOverlay? = null
@@ -55,6 +61,11 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         val pkg = event.packageName?.toString() ?: return
         // Supported browsers: (re-)read the address bar when their content changes – bundled.
         if (pkg in SupportedBrowsers.packages && controller.readsUrls) scheduleUrlRead(pkg)
+        // Settings guard: Lares' own pages in the system settings.
+        if (pkg in SettingsGuard.packages && controller.guardsSettings()) {
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) settingsTitle = event.text.joinToString(" ")
+            scheduleSettingsCheck(pkg)
+        }
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         // Keyboards, the notification shade, popups and dialogs of other apps also send window
         // changes; only a real app screen (activity) changes the app in use.
@@ -66,6 +77,30 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     }
 
     private var pendingUrlRead: String? = null
+    private var pendingSettingsCheck = false
+
+    /** Title of the last settings window (page title, e.g. "Lares" on its accessibility page). */
+    private var settingsTitle: String? = null
+
+    private fun scheduleSettingsCheck(pkg: String) {
+        if (pendingSettingsCheck) return
+        pendingSettingsCheck = true
+        main.postDelayed({
+            pendingSettingsCheck = false
+            checkSettingsPage(pkg)
+        }, URL_READ_DELAY_MILLIS)
+    }
+
+    /** Reads only the page title and the app header of the settings window. */
+    private fun checkSettingsPage(pkg: String) {
+        val root = rootInActiveWindow ?: return
+        if (root.packageName?.toString() != pkg) return
+        val headers = SettingsGuard.headerIds.flatMap { id -> root.findAccessibilityNodeInfosByViewId(id) }.mapNotNull { it.text?.toString() }
+        if (SettingsGuard.isProtectedPage(settingsTitle, headers, getString(R.string.app_name))) {
+            BlockingLog.d { "protected settings page: $pkg / $settingsTitle / $headers" }
+            controller.onProtectedSettings(pkg)
+        }
+    }
 
     /** Reads the URL bar at most every [URL_READ_DELAY_MILLIS] (content changes fire very often). */
     private fun scheduleUrlRead(pkg: String) {
@@ -118,6 +153,12 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
 
     override fun onInterrupt() = Unit
 
+    /** Turned off in the settings: check right away whether that's tampering. */
+    override fun onUnbind(intent: Intent?): Boolean {
+        monitor.checkPermissions(delayMillis = UNBIND_CHECK_DELAY_MILLIS)
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
         controller.detach(BlockingMode.ACCESSIBILITY)
         events.unregister()
@@ -144,5 +185,8 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     private companion object {
         val TRANSIENT = setOf("com.android.systemui")
         const val URL_READ_DELAY_MILLIS = 300L
+
+        /** The system updates the list of enabled services around the unbind. */
+        const val UNBIND_CHECK_DELAY_MILLIS = 2_000L
     }
 }

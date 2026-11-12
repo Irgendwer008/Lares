@@ -18,6 +18,8 @@ Single `app` module:
 - `UsageCounter` / `UsageSnapshot` – foreground time per rule / group in the current period (a
   group counts once per tick).
 - `LimitWarnings` – 5 / 1 minute warnings, once per threshold, subject and period.
+- `core/protection`: `PermissionWatch`, `GapCheck`, `ClockCheck`, `SettingsGuard` – pure tamper
+  rules; `tamperReportable` (set up and locked).
 - `ForegroundTracker` – foreground app from "activity resumed" events (Usage access mode).
 
 `core/alerts`, `core/blocking`, `core/time` – pure Kotlin (no Android
@@ -111,7 +113,8 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 - `BlockActivity` – full block screen (reason, reset time, "Close", "Go to Lares").
 - `TimerOverlay` – countdown pill (accessibility overlay, or application overlay in Usage access
   mode; not touchable).
-- `LaresDeviceAdminReceiver` – declared for "prevent uninstalling"; reporting follows.
+- `LaresDeviceAdminReceiver` – "prevent uninstalling"; warns in the disable dialog and reports
+  the deactivation (sent at once, queued as fallback).
 
 `platform` (blocking)
 - `UsageRepository` – counts in memory, writes to Room at most every 15 s and on period change,
@@ -119,6 +122,11 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 - `InstalledBrowsers` – apps with a generic web-link filter (blocked if unsupported).
 - `ExemptApps` – Lares, launchers, dialers, keyboards, system UI, Settings, permission / install
   dialogs (never blocked, hidden when adding rules).
+- `ProtectionMonitor` – tamper detection (permissions lost, gaps, boots without Lares, clock /
+  time zone), records only while locked; bookkeeping in `ProtectionStore`; `ProtectionReceiver`
+  (boot, update, clock, zone), `ProtectionCheckWorker` (every 15 min).
+- `AlertDelivery` / `AlertDispatcher` / `AlertWorker` – automatic guardian notifications
+  (WorkManager, retries, per-channel cursor, digest messages).
 - `LimitNotifier` – warning notifications; permission requested only when a warning is switched
   on, returned via `revokeSelfPermissionOnKill` when all are off.
 
@@ -127,11 +135,3 @@ enable `exportSchema`, commit the schema, add migrations from then on.
   settings), main screen (setup issues, status / unlocked / pause cards, groups, single rules),
   add screen (templates, group, apps, website), unlock and pause dialogs, settings (app settings /
   info), notification channel editor, privacy policy, license, open-source libraries.
-
-## Planned (rest of the blocking milestone)
-| Component | Responsibility |
-|---|---|
-| Settings guard (D) | Blocking Lares' sensitive system-settings pages |
-| `BootReceiver` | `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` → restart monitoring |
-| `TamperDetector` | Detects gaps, clock changes, disabled services → tamper events |
-| `AlertDispatcher` | Sends tamper events through the configured channels (WorkManager, retries) |

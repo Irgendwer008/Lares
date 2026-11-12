@@ -83,8 +83,9 @@ class RepositoriesTest {
 
         settings.setProtection(Protection.UNINSTALL, true)
         assertNeedsCode { settings.setProtection(Protection.UNINSTALL, false) }
-        assertNeedsCode { settings.setProtection(Protection.RESTART_AFTER_REBOOT, false) }
-        assertEquals(setOf(Protection.RESTART_AFTER_REBOOT, Protection.UNINSTALL), store.current().settings.protections)
+        settings.setProtection(Protection.GUARDIAN_ALERTS, true)
+        assertNeedsCode { settings.setProtection(Protection.GUARDIAN_ALERTS, false) }
+        assertEquals(setOf(Protection.UNINSTALL, Protection.GUARDIAN_ALERTS), store.current().settings.protections)
 
         assertNeedsCode { settings.setResetTime(LocalTime.of(4, 0)) }
 

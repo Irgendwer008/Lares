@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import dagger.hilt.android.AndroidEntryPoint
 import de.lares_app.blocking.UsageMonitorStarter
+import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.ui.LaresRoot
 import de.lares_app.ui.theme.LaresTheme
 import javax.inject.Inject
@@ -20,6 +21,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     @Inject lateinit var usageMonitor: UsageMonitorStarter
+
+    @Inject lateinit var protection: ProtectionMonitor
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -39,5 +42,6 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         // Usage access mode: a background start may have been refused – starting works while visible.
         usageMonitor.ensureRunning()
+        protection.checkPermissions()
     }
 }

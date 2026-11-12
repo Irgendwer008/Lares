@@ -150,14 +150,16 @@ private fun BlockScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(56.dp),
             )
+            val settingsPage = reason == BlockReason.PROTECTED_SETTINGS
             Text(
-                stringResource(R.string.block_title, label),
+                if (settingsPage) stringResource(R.string.block_title_settings) else stringResource(R.string.block_title, label),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
             val text = when (reason) {
                 BlockReason.LIMIT_REACHED -> stringResource(R.string.block_reason_limit, resetText)
                 BlockReason.UNSUPPORTED_BROWSER -> stringResource(R.string.block_reason_browser)
+                BlockReason.PROTECTED_SETTINGS -> stringResource(R.string.block_reason_settings)
                 BlockReason.ALWAYS_ON -> stringResource(if (website) R.string.block_reason_always_website else R.string.block_reason_always)
             }
             Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)

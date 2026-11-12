@@ -190,7 +190,7 @@
     <string name="about_body">Version %1$s\n\nLares sperrt die Apps und Websites, die du auswählst. Einschränkungen hinzufügen geht immer – sie zu lockern erfordert einen Code, den nur dein Guardian kennt.\n\nFreie Software unter der GNU General Public License, Version 3 oder neuer.</string>
     <string name="privacy_title">Datenschutzerklärung</string>
     <string name="privacy_summary">Alles bleibt auf diesem Handy</string>
-    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking.\n• Es werden keine Daten verkauft oder an Dritte weitergegeben.\n• Deine Regeln, Nutzungszeiten und Einstellungen werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Diese Nachrichten enthalten nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“) und das Handymodell; Tokens werden verschlüsselt auf dem Handy gespeichert. Ist eine Website blockiert, kann Lares eine neutrale Seite (derzeit google.com) wie einen normalen Link in deinem Browser öffnen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App).\n• Lares sperrt Passwort-Manager, damit der Guardian-Code nie auf dem Handy gespeichert wird.</string>
+    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking.\n• Es werden keine Daten verkauft oder an Dritte weitergegeben.\n• Deine Regeln, Nutzungszeiten und Einstellungen werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, den Titel von Systemeinstellungsseiten (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Diese Nachrichten enthalten nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; Tokens werden verschlüsselt auf dem Handy gespeichert. Ist eine Website blockiert, kann Lares eine neutrale Seite (derzeit google.com) wie einen normalen Link in deinem Browser öffnen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App).\n• Lares sperrt Passwort-Manager, damit der Guardian-Code nie auf dem Handy gespeichert wird.</string>
     <string name="license_title">Lizenz</string>
     <string name="license_summary">GNU GPL, Version 3 oder neuer</string>
     <string name="license_body">Lares ist freie Software: Du kannst sie unter den Bedingungen der GNU General Public License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder neueren Version.\n\nLares wird in der Hoffnung verbreitet, dass sie nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTREIFE oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Details stehen in der GNU General Public License.\n\nRechtsverbindlich ist der englische Originaltext der Lizenz.</string>
@@ -224,8 +224,6 @@
     <string name="protection_uninstall_desc">Android verweigert die Deinstallation von Lares (Geräteadministrator).</string>
     <string name="protection_settings_guard">Systemeinstellungen schützen</string>
     <string name="protection_settings_guard_desc">Sperrt die Systemseiten zum Beenden oder Deinstallieren von Lares und zu seinen Berechtigungen. Erfordert die Bedienungshilfe.</string>
-    <string name="protection_restart">Nach Neustart fortsetzen</string>
-    <string name="protection_restart_desc">Startet den Schutz nach einem Neustart oder App-Update wieder und hält Lücken fest.</string>
     <string name="protection_alerts">Guardian benachrichtigen</string>
     <string name="protection_alerts_desc">Informiert den Guardian über Manipulationen, z. B. einen deaktivierten Schutz oder wiederholt falsche Codes.</string>
 
@@ -277,6 +275,37 @@
     <string name="channel_edit_hint">Einen Benachrichtigungskanal zu ändern oder zu löschen erfordert den Guardian-Code.</string>
 
     <!-- Guardian messages -->
+    <string name="alert_event_title">Lares: %s</string>
+    <plurals name="alert_events_title">
+        <item quantity="one">Lares: %d Schutz-Ereignis</item>
+        <item quantity="other">Lares: %d Schutz-Ereignisse</item>
+    </plurals>
+    <string name="alert_footer">Handy: %s</string>
+    <string name="alert_event_device_admin">Der Deinstallationsschutz wurde ausgeschaltet</string>
+    <string name="alert_event_accessibility">Die Bedienungshilfe für Lares wurde ausgeschaltet</string>
+    <string name="alert_event_usage_access">Der Nutzungszugriff für Lares wurde entzogen</string>
+    <string name="alert_event_overlay">„Über anderen Apps einblenden“ wurde Lares entzogen</string>
+    <string name="alert_event_permission">Eine Berechtigung von Lares wurde entzogen</string>
+    <plurals name="alert_event_stopped">
+        <item quantity="one">Lares lief %d Minute nicht, während das Handy benutzt wurde</item>
+        <item quantity="other">Lares lief %d Minuten nicht, während das Handy benutzt wurde</item>
+    </plurals>
+    <string name="alert_event_boots">Das Handy wurde ohne Lares gestartet (z. B. im abgesicherten Modus)</string>
+    <string name="alert_event_clock">Die Uhrzeit wurde verstellt</string>
+    <plurals name="alert_event_clock_forward">
+        <item quantity="one">Die Uhr wurde %d Minute vorgestellt</item>
+        <item quantity="other">Die Uhr wurde %d Minuten vorgestellt</item>
+    </plurals>
+    <plurals name="alert_event_clock_back">
+        <item quantity="one">Die Uhr wurde %d Minute zurückgestellt</item>
+        <item quantity="other">Die Uhr wurde %d Minuten zurückgestellt</item>
+    </plurals>
+    <string name="alert_event_timezone">Die Zeitzone wurde von %1$s auf %2$s geändert</string>
+    <plurals name="alert_event_wrong_code">
+        <item quantity="one">Der Guardian-Code wurde %d-mal in Folge falsch eingegeben</item>
+        <item quantity="other">Der Guardian-Code wurde %d-mal in Folge falsch eingegeben</item>
+    </plurals>
+    <string name="alert_event_recovery">Der Wiederherstellungscode wurde benutzt</string>
     <string name="alert_test_title">Lares: Testnachricht</string>
     <string name="alert_test_body">Benachrichtigungen von Lares auf „%1$s“ funktionieren. Hier wirst du über Manipulationen informiert.</string>
 
@@ -314,9 +343,9 @@
     <string name="issue_admin_action">Aktivieren</string>
     <string name="device_admin_explanation">Solange aktiv, verweigert Android die Deinstallation von Lares. Lares nutzt keine weiteren Administratorrechte.</string>
     <string name="accessibility_disclosure_title">Bedienungshilfe</string>
-    <string name="accessibility_disclosure_body">Lares nutzt die Bedienungshilfe von Android, um zu erkennen, welche App geöffnet ist – und, wenn das Sperren von Websites eingeschaltet ist, welche Website im Browser angezeigt wird –, damit es sperren kann, was du ausgewählt hast.\n\nDiese Information wird nur auf diesem Handy und nur im Moment verwendet. Sie wird nicht gespeichert und nirgendwohin gesendet.\n\nÖffne auf der nächsten Seite „Lares“ (unter installierten bzw. heruntergeladenen Apps) und schalte es ein.</string>
+    <string name="accessibility_disclosure_body">Lares nutzt die Bedienungshilfe von Android, um zu erkennen, welche App geöffnet ist – und, wenn das Sperren von Websites eingeschaltet ist, welche Website im Browser angezeigt wird, und, wenn „Systemeinstellungen schützen“ eingeschaltet ist, ob eine von Lares’ eigenen Systemeinstellungsseiten geöffnet ist –, damit es sperren kann, was du ausgewählt hast.\n\nDiese Information wird nur auf diesem Handy und nur im Moment verwendet. Sie wird nicht gespeichert und nirgendwohin gesendet.\n\nÖffne auf der nächsten Seite „Lares“ (unter installierten bzw. heruntergeladenen Apps) und schalte es ein.</string>
     <string name="accessibility_disclosure_agree">Zustimmen und weiter</string>
-    <string name="accessibility_service_description">Lares erkennt, welche App oder Website geöffnet ist, um die von dir gewählten zu sperren. Es wird nichts gespeichert oder gesendet.</string>
+    <string name="accessibility_service_description">Lares erkennt, welche App oder Website geöffnet ist, um die von dir gewählten zu sperren, und schützt seine eigenen Systemeinstellungsseiten. Es wird nichts gespeichert oder gesendet.</string>
 
     <!-- Block screen -->
     <string name="block_title">%1$s ist gesperrt</string>
@@ -329,6 +358,9 @@
     <string name="notification_channel_blocking">Blockier-Dienst</string>
     <string name="blocking_service_title">Lares blockiert</string>
     <string name="blocking_service_text">Der Modus „Nutzungszugriff“ achtet auf geöffnete Apps.</string>
+    <string name="block_title_settings">Diese Einstellungsseite ist geschützt</string>
+    <string name="block_reason_settings">Solange Lares gesperrt ist, können seine eigenen Systemeinstellungen (Beenden erzwingen, Deinstallieren, Berechtigungen) nicht geändert werden. Entsperre Lares zuerst mit dem Guardian-Code.</string>
+    <string name="device_admin_disable_warning">Dein Guardian wird benachrichtigt.</string>
     <string name="block_stay_in_browser">Im Browser bleiben</string>
     <string name="block_close_browser">Browser schließen</string>
     <string name="block_close">Schließen</string>

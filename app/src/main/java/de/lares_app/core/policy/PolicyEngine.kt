@@ -23,7 +23,14 @@ data class PolicySnapshot(
     val exemptPackages: Set<String> = emptySet(),
 )
 
-enum class BlockReason { ALWAYS_ON, LIMIT_REACHED, UNSUPPORTED_BROWSER }
+enum class BlockReason {
+    ALWAYS_ON,
+    LIMIT_REACHED,
+    UNSUPPORTED_BROWSER,
+
+    /** One of Lares' own system-settings pages (settings guard), not a rule. */
+    PROTECTED_SETTINGS,
+}
 
 sealed interface Decision {
     /**

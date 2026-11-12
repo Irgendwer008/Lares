@@ -57,22 +57,44 @@ shares the time). Moving a rule into a group that already contains the same targ
 
 ## Tamper protections (each toggleable; switching off = loosening)
 1. **Prevent uninstalling** – device administrator (no admin policies used). While active,
-   Android refuses to uninstall Lares; deactivation will be reported (`onDisabled`).
-2. **Guard system settings** – needs the Accessibility service in every blocking mode. Blocks the
-   App info page of Lares (force stop, uninstall, clear storage), its accessibility toggle, the
-   device-admin page and the special-access pages for usage access / overlay. Detection by window
-   package + content; OEM-specific, needs testing.
-3. **Restart after reboot / update** – `BOOT_COMPLETED`, `LOCKED_BOOT_COMPLETED`,
-   `MY_PACKAGE_REPLACED`; heartbeat timestamps reveal protection gaps.
-4. **Notify guardian** – see [Notifications](notifications.md).
+   Android refuses to uninstall Lares. Deactivating it shows "Your guardian will be notified" in
+   the system dialog (if notifications are on) and is reported from `onDisabled` – sent right away
+   (uninstalling may follow), queued as a fallback.
+2. **Guard system settings** – needs the Accessibility service in every blocking mode. While
+   locked, Lares' own pages in the system settings show the block screen ("This settings page is
+   protected"): App info (force stop, uninstall, clear storage), its accessibility page, the
+   device-admin page and the special-access pages (usage access, overlay, battery). Recognized by
+   page title or app header equal to "Lares" (`SettingsGuard`: settings packages and header view
+   ids – OEM-specific, verify on devices); lists that merely contain Lares are not blocked. When
+   Lares opens a settings page itself to fix a setup issue, the guard lets it through for 2 min.
+   Inactive in unlocked mode.
+3. **Notify guardian** – see [Notifications](notifications.md).
 
-Items 1–4 are stored settings today; their services come with the blocking milestone (the
-accessibility service and the device admin receiver are already declared).
+**Restart after reboot / update** is always on (no switch – the system restarts the
+Accessibility service anyway): `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` start the process,
+which restarts Usage access mode and runs the boot checks.
 
-## Tamper events
-- Device admin disabled, accessibility service disabled, usage / overlay permission revoked,
-  protection gap after reboot / force stop, system clock or time zone changed, repeated wrong
-  code, recovery code used.
+## Tamper detection
+Recorded in the tamper log only while Lares is set up and **locked** (changes in unlocked mode
+are the guardian's; a pause doesn't count as unlocked). `ProtectionMonitor`, pure rules in
+`core/protection`:
+- **Permission lost** – Accessibility service, usage access, overlay, device administrator: only
+  if the current settings need it and it was working before (never granted = setup issue, not
+  tampering). Checked every 30 s while blocking runs, 2 s after the Accessibility service is
+  turned off, every 15 min by WorkManager (also when nothing else of Lares runs) and when Lares
+  is opened.
+- **Protection gap** – the blocking of the chosen mode starts again more than 10 min after its
+  last heartbeat (every minute with the screen on, and at screen on / off) in the same boot, and
+  that heartbeat came with the screen on (stopped while in use, e.g. force stop). After the
+  screen went off, a later start says nothing about when the phone was used again → not reported.
+- **Boots without Lares** – the boot counter grew by more than one since Lares last ran (e.g.
+  safe mode, where third-party apps don't run).
+- **Clock changed** – `TIME_SET` and the offset wall clock − elapsed realtime moved by more than
+  2 min (network time corrections are smaller). Limits are unaffected anyway (`ResetSchedule`).
+- **Time zone changed** – `TIMEZONE_CHANGED` (or a different zone at process start): from → to.
+- **Repeated wrong code**, **recovery code used** – see above.
+- Bookkeeping (heartbeat, boot counter, clock offset, zone, working permissions) lives in its own
+  `SharedPreferences` (`ProtectionStore`), not in the app state.
 
 ## Known limits (out of scope)
 - Root, adb, safe mode (third-party apps don't run), factory reset. Safe mode and gaps are

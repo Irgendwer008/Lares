@@ -8,6 +8,7 @@ package de.lares_app.blocking
 import de.lares_app.core.blocking.LimitWarnings
 import de.lares_app.core.data.AppState
 import de.lares_app.core.data.BlockingMode
+import de.lares_app.core.data.Protection
 import de.lares_app.core.data.GroupStore
 import de.lares_app.core.data.RuleStore
 import de.lares_app.core.data.StateStore
@@ -19,11 +20,13 @@ import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
 import de.lares_app.core.policy.RuleType
 import de.lares_app.core.policy.SupportedBrowsers
+import de.lares_app.core.protection.tamperReportable
 import de.lares_app.core.time.Clock
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.ExemptApps
 import de.lares_app.platform.InstalledBrowsers
 import de.lares_app.platform.LimitNotifier
+import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.platform.UsageRepository
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
@@ -86,6 +89,7 @@ class BlockingController(
     private val browsers: InstalledBrowsers,
     private val catalog: AppCatalog,
     private val notifier: LimitNotifier,
+    private val monitor: ProtectionMonitor,
     private val clock: Clock,
 ) {
     private var scope: CoroutineScope? = null
@@ -115,6 +119,10 @@ class BlockingController(
     @Volatile private var ignoredUrl: Pair<Pair<String, String>, Long>? = null
 
     @Volatile private var screenOn = true
+
+    /** Protection of the chosen mode running (for the gap check / heartbeat). */
+    private var protecting = false
+    private var ticks = 0L
 
     private var lastTickElapsed = 0L
     private var lastBlocked: Pair<String, Long>? = null
@@ -172,6 +180,7 @@ class BlockingController(
         ticker = null
         timerHost = null
         foreground = null
+        protecting = false
     }
 
     /** [source] saw [packageName] in the foreground; only the source of the chosen mode counts. */
@@ -187,6 +196,7 @@ class BlockingController(
         screenOn = on
         if (!on) timerHost?.showTimer(null)
         lastTickElapsed = clock.elapsedMillis()
+        if (protecting) monitor.beat(on)
     }
 
     /** Installed apps changed (new launcher, keyboard, browser …). */
@@ -221,12 +231,51 @@ class BlockingController(
     }
 
     private suspend fun tick() {
+        ticks++
+        updateProtecting()
+        if (ticks % PERMISSION_CHECK_TICKS == 0L) monitor.checkPermissions()
+        if (protecting && screenOn && ticks % HEARTBEAT_TICKS == 0L) monitor.beat(true)
         val now = clock.elapsedMillis()
         // Cap the step so a stalled timer (device asleep) doesn't count minutes at once.
         val step = (now - lastTickElapsed).coerceIn(0, MAX_STEP_MILLIS)
         lastTickElapsed = now
         if (usage.refreshPeriod()) warnings.reset()
         evaluate(countMillis = if (screenOn) step else 0)
+    }
+
+    /** The host of the chosen mode appeared (start, mode switch): check for a gap, then beat. */
+    private fun updateProtecting() {
+        val now = activeHost != null && state.settings.setupComplete && state.unlock.isSetUp
+        if (now && !protecting) monitor.onProtectionStarted(screenOn)
+        protecting = now
+    }
+
+    /**
+     * The settings guard is on and applies now: locked (unlocked mode allows everything) and not
+     * within the short window after Lares opened a settings page itself ([allowSettingsFor]).
+     */
+    fun guardsSettings(): Boolean {
+        val st = state
+        return Protection.SETTINGS_GUARD in st.settings.protections && st.tamperReportable(clock) &&
+            clock.elapsedMillis() >= settingsAllowedUntil
+    }
+
+    @Volatile private var settingsAllowedUntil = 0L
+
+    /** Lares itself opens a system settings page (setup issue): don't guard it for a moment. */
+    fun allowSettingsFor(millis: Long = SETTINGS_GRACE_MILLIS) {
+        settingsAllowedUntil = clock.elapsedMillis() + millis
+    }
+
+    /** The accessibility service saw one of Lares' own settings pages. */
+    fun onProtectedSettings(packageName: String) {
+        scope?.launch {
+            val host = hosts[BlockingMode.ACCESSIBILITY] ?: return@launch
+            val now = clock.elapsedMillis()
+            lastBlocked?.let { (p, at) -> if (p == packageName && now - at < BLOCK_DEBOUNCE_MILLIS) return@launch }
+            lastBlocked = packageName to now
+            host.showBlockScreen(BlockInfo(packageName, catalog.describeOrFallback(packageName).label, BlockReason.PROTECTED_SETTINGS, null, 0L))
+        }
     }
 
     private suspend fun evaluate(countMillis: Long) {
@@ -307,5 +356,8 @@ class BlockingController(
         const val BLOCK_DEBOUNCE_MILLIS = 2_000L
         const val SAFE_PAGE_GRACE_MILLIS = 5_000L
         const val HOME_DELAY_MILLIS = 700L
+        const val HEARTBEAT_TICKS = 60L
+        const val PERMISSION_CHECK_TICKS = 30L
+        const val SETTINGS_GRACE_MILLIS = 2 * 60_000L
     }
 }

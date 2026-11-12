@@ -25,8 +25,14 @@ and work through the user's VPN.
   (`getUpdates`), ntfy random topic generator.
 - Texts are built in the channel's language (`AlertMessages`); the app bundle is not split by
   language, so all languages are installed.
-- Sending tamper events automatically (`AlertDispatcher`, WorkManager with retries when offline)
-  comes with the blocking milestone.
+- **Automatic sending:** every new tamper event starts `AlertWorker` (WorkManager, needs a
+  network, exponential backoff from 30 s, retried until sent). Each channel remembers up to which
+  event it got everything (`deliveredUpTo`), so a failing channel never causes duplicates on the
+  others; several pending events go out as one message ("Lares: 3 protection events" with a list).
+  An event counts as delivered once every channel has it. Events recorded while "Notify guardian"
+  is off (or no channel exists) are never sent later.
+- Message: what happened (e.g. "The clock was set forward by 125 minutes"), when, and the phone
+  model – in the channel's language.
 
 ## Setup notes
 - **Telegram**: each installation uses its **own bot**, created by the guardian with @BotFather
@@ -36,7 +42,8 @@ and work through the user's VPN.
 - **Email**: ideally a separate account for Lares; many providers need an app password.
 
 ## Limitations
-- After a force stop or uninstall the app can't send anything. A server-side dead-man's switch
+- After a force stop or uninstall the app can't send anything (a force stop is reported as a gap
+  once Lares runs again). A server-side dead-man's switch
   (missing heartbeats → alert) would solve this but is out of scope for v1.
 - Device-admin deactivation can be reported because Android calls the receiver first.
 - WhatsApp has no API usable for private guardians and is therefore not offered.

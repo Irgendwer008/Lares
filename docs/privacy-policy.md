@@ -1,6 +1,6 @@
 # Privacy Policy – Lares
 
-_Last updated: 2026-11-11_
+_Last updated: 2026-11-12_
 
 Lares works entirely on your phone.
 
@@ -20,7 +20,8 @@ Lares works entirely on your phone.
 ## System permissions
 - If the user turns on the Accessibility service or usage access, Lares uses them only to detect
   which app is in the foreground – and, while website blocking is on, the address shown in the
-  address bar of supported browsers (no other screen content). This is processed on the phone in
+  address bar of supported browsers and, while "Guard system settings" is on, the title of system
+  settings pages (no other screen content). This is processed on the phone in
   the moment and is neither stored nor transmitted.
 - The optional device administrator role is used only to prevent uninstalling Lares; no other
   administrator rights are used.
@@ -29,8 +30,8 @@ Lares works entirely on your phone.
 - Lares connects to the internet only to send guardian notifications, and only to the services
   configured in the settings (Telegram, ntfy, email via the SMTP server you enter, Matrix or a
   webhook URL). Nothing is sent unless such a channel is set up.
-- A notification contains only its text (e.g. a test message or "protection was disabled") and
-  the phone model. The data processing of the chosen service (e.g. Telegram) is subject to that
+- A notification contains only its text (e.g. a test message or "protection was disabled"), its
+  time and the phone model. The data processing of the chosen service (e.g. Telegram) is subject to that
   service's own privacy policy.
 - When a website is blocked, Lares can open a neutral page (currently google.com) in your browser
   like a normal link; the browser loads it, Lares itself sends nothing.

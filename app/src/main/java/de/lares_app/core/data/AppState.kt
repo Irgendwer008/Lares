@@ -22,7 +22,7 @@ enum class UnlockMethod { PASSWORD, TOTP }
 
 /** Tamper protections, each individually toggleable (disabling = loosening). */
 @Serializable
-enum class Protection { UNINSTALL, SETTINGS_GUARD, RESTART_AFTER_REBOOT, GUARDIAN_ALERTS }
+enum class Protection { UNINSTALL, SETTINGS_GUARD, GUARDIAN_ALERTS }
 
 @Serializable
 data class AppSettings(
@@ -30,7 +30,7 @@ data class AppSettings(
     /** null until chosen during onboarding. */
     val blockingMode: BlockingMode? = null,
     val websiteBlocking: Boolean = false,
-    val protections: Set<Protection> = setOf(Protection.RESTART_AFTER_REBOOT),
+    val protections: Set<Protection> = emptySet(),
     val resetMinuteOfDay: Int = 0,
     val pendingResetMinuteOfDay: Int? = null,
     val pendingResetEffectiveFromMillis: Long? = null,

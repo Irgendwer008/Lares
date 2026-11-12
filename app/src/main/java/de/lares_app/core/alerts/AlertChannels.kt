@@ -36,6 +36,8 @@ data class AlertChannelConfig(
     val startTls: Boolean = false,
     val username: String? = null,
     val sender: String? = null,
+    /** Highest tamper event id sent through this channel (each channel catches up on its own). */
+    val deliveredUpTo: Long = 0,
 )
 
 /** Editable, decrypted form of a channel (only in memory). */

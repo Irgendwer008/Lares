@@ -66,8 +66,10 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 ## Tamper protection (each toggleable)
 22. Prevent uninstalling (device administrator).
 23. Guard Lares' own sensitive system-settings pages (needs the Accessibility service).
-24. Restart after reboot / app update; record protection gaps.
-25. Notify the guardian on tamper events.
+24. Notify the guardian on tamper events (sent automatically, retried while offline).
+25. Always: restart after reboot / app update; record tamper events while locked (permissions
+    lost, protection gaps, boots without Lares, clock / time-zone changes, wrong codes, recovery
+    code used).
 
 ## Guardian notifications
 26. Channels: **Telegram bot**, **ntfy**, **email (SMTP)**, **webhook**, **Matrix**; each with its

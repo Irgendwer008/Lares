@@ -10,12 +10,19 @@ import android.content.pm.ApplicationInfo
 import dagger.hilt.android.HiltAndroidApp
 import de.lares_app.blocking.BlockingLog
 import de.lares_app.blocking.UsageMonitorStarter
+import de.lares_app.platform.AlertDispatcher
+import de.lares_app.platform.ProtectionCheckWorker
+import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.platform.RecoveryExport
 import javax.inject.Inject
 
 @HiltAndroidApp
 class LaresApp : Application() {
     @Inject lateinit var usageMonitor: UsageMonitorStarter
+
+    @Inject lateinit var protection: ProtectionMonitor
+
+    @Inject lateinit var alerts: AlertDispatcher
 
     override fun onCreate() {
         super.onCreate()
@@ -25,5 +32,9 @@ class LaresApp : Application() {
         BlockingLog.enabled = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         // Usage access mode: keep its foreground service running while the mode is chosen.
         usageMonitor.observe()
+        // Tamper detection: boot checks, periodic permission check, guardian notifications.
+        protection.onProcessStart()
+        ProtectionCheckWorker.schedule(this)
+        alerts.observe()
     }
 }

@@ -263,7 +263,6 @@ fun SettingsScreen(
             SettingsSubheader(stringResource(R.string.settings_group_protection))
             ProtectionSwitch(Protection.UNINSTALL, R.string.protection_uninstall, R.string.protection_uninstall_desc, ui, vm)
             ProtectionSwitch(Protection.SETTINGS_GUARD, R.string.protection_settings_guard, R.string.protection_settings_guard_desc, ui, vm)
-            ProtectionSwitch(Protection.RESTART_AFTER_REBOOT, R.string.protection_restart, R.string.protection_restart_desc, ui, vm)
             ProtectionSwitch(Protection.GUARDIAN_ALERTS, R.string.protection_alerts, R.string.protection_alerts_desc, ui, vm)
 
             // Greyed out while "Notify guardian" (above) is off.

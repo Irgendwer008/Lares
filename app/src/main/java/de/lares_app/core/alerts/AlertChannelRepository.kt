@@ -51,9 +51,9 @@ class AlertChannelRepository(
     suspend fun update(id: String, draft: ChannelDraft) {
         val clean = draft.trimmed()
         require(clean.isComplete) { "incomplete channel" }
-        requireNotNull(get(id)) { "unknown channel $id" }
+        val old = requireNotNull(get(id)) { "unknown channel $id" }
         gate.check(ChangeKind.LOOSENING)
-        val config = toConfig(id, clean)
+        val config = toConfig(id, clean).copy(deliveredUpTo = old.deliveredUpTo)
         store.update { s -> s.copy(settings = s.settings.copy(alertChannels = s.settings.alertChannels.map { if (it.id == id) config else it })) }
     }
 

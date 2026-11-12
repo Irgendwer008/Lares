@@ -2,7 +2,7 @@
 
 Design of the blocking services. **Implemented:** app blocking in both modes (Accessibility,
 Usage access), website blocking, block screen, time limits (incl. groups), countdown overlay and
-optional warnings. **Next:** settings guard / tamper detection, restart after reboot.
+optional warnings, settings guard and tamper detection (see [Unlock & Security](unlock-and-security.md)).
 
 One `BlockingController` decides for both modes. Each mode's service attaches itself as host; the
 foreground app is taken only from the host of the chosen mode, which also shows the block screen
@@ -21,7 +21,8 @@ and countdown.
 - Pros: instant, battery friendly. Cons: user must enable it manually in system settings;
   Google Play requires an Accessibility API declaration and prominent disclosure (shown before
   the main screen opens the accessibility settings).
-- Website blocking reads the address bar (`canRetrieveWindowContent`, `flagReportViewIds`).
+- Website blocking reads the address bar, the settings guard the title / app header of settings
+  pages (`canRetrieveWindowContent`, `flagReportViewIds`).
 - The system restarts an enabled accessibility service automatically after reboot.
 
 ### Usage Stats + Overlay mode
@@ -33,8 +34,8 @@ and countdown.
 - Block screen: the same `BlockActivity` – starting it from the background is allowed because
   Lares may draw over other apps. Countdown pill as `TYPE_APPLICATION_OVERLAY`. Up to ~1 s delay.
 - `UsageMonitorStarter` runs the service exactly while this mode is chosen and setup is complete
-  (follows the settings; `START_STICKY`). Android 12+ may refuse a start from the background
-  (no exemption) – then it starts the next time Lares is opened. Restart after reboot: milestone D.
+  (follows the settings; `START_STICKY`, started again after boot / update). Android 12+ may
+  refuse a start from the background (no exemption) – then it starts the next time Lares is opened.
 - Some OEMs (Xiaomi, Huawei, Samsung…) kill background services aggressively →
   the main screen recommends the battery-optimization exemption (both modes; required in practice
   for Usage Stats mode on these devices), opens the system list

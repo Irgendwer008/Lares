@@ -12,6 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.lares_app.blocking.BlockingController
 import de.lares_app.core.alerts.AlertChannelConfig
 import de.lares_app.core.alerts.AlertChannelRepository
 import de.lares_app.core.alerts.AlertSender
@@ -260,6 +261,7 @@ class HomeViewModel @Inject constructor(
     private val catalog: AppCatalog,
     private val permissions: PermissionStatus,
     private val usage: UsageRepository,
+    private val blocking: BlockingController,
 ) : ViewModel() {
     private val permissionRefresh = MutableStateFlow(0)
 
@@ -272,9 +274,10 @@ class HomeViewModel @Inject constructor(
         permissionRefresh.value++
     }
 
-    fun intentFor(issue: SetupIssue) = permissions.intentFor(issue)
+    /** Opening a system page to fix a setup issue: the settings guard lets it through for a moment. */
+    fun intentFor(issue: SetupIssue) = permissions.intentFor(issue)?.also { blocking.allowSettingsFor() }
 
-    fun appDetailsIntent() = permissions.appDetailsIntent()
+    fun appDetailsIntent() = permissions.appDetailsIntent().also { blocking.allowSettingsFor() }
 
     fun dontKillMyAppUrl() = permissions.dontKillMyAppUrl()
 

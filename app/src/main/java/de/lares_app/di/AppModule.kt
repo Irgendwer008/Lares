@@ -26,10 +26,14 @@ import de.lares_app.core.data.StateStore
 import de.lares_app.core.data.TamperLog
 import de.lares_app.core.time.Clock
 import de.lares_app.core.unlock.UnlockManager
+import de.lares_app.platform.AlertDelivery
+import de.lares_app.platform.AlertDispatcher
 import de.lares_app.platform.AlertMessages
 import de.lares_app.platform.AndroidClock
 import de.lares_app.platform.NetworkAlertSender
 import de.lares_app.platform.PermissionStatus
+import de.lares_app.platform.ProtectionMonitor
+import de.lares_app.platform.ProtectionStore
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.DataStoreStateStore
 import de.lares_app.platform.ExemptApps
@@ -91,6 +95,18 @@ object AppModule {
     fun permissionStatus(@ApplicationContext context: Context) = PermissionStatus(context)
 
     @Provides @Singleton
+    fun protectionMonitor(@ApplicationContext context: Context, store: StateStore, tamperLog: TamperLog, clock: Clock, permissions: PermissionStatus) =
+        ProtectionMonitor(store, tamperLog, clock, permissions, ProtectionStore(context))
+
+    @Provides @Singleton
+    fun alertDelivery(store: StateStore, tamperLog: TamperLog, channels: AlertChannelRepository, sender: AlertSender, messages: AlertMessages) =
+        AlertDelivery(store, tamperLog, channels, sender, messages)
+
+    @Provides @Singleton
+    fun alertDispatcher(@ApplicationContext context: Context, store: StateStore, tamperLog: TamperLog, delivery: AlertDelivery) =
+        AlertDispatcher(context, store, tamperLog, delivery)
+
+    @Provides @Singleton
     fun exemptApps(@ApplicationContext context: Context) = ExemptApps(context)
 
     @Provides @Singleton
@@ -109,9 +125,10 @@ object AppModule {
         exempt: ExemptApps,
         catalog: AppCatalog,
         notifier: LimitNotifier,
+        monitor: ProtectionMonitor,
         clock: Clock,
         @ApplicationContext context: Context,
-    ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, clock)
+    ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, monitor, clock)
 
     @Provides @Singleton
     fun usageMonitorStarter(@ApplicationContext context: Context, store: StateStore) = UsageMonitorStarter(context, store)

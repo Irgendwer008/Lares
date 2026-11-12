@@ -39,6 +39,11 @@ updated in place.
 | Usage access mode shows the normal block screen (activity), not a drawn overlay | Allowed from the background with the overlay permission; one block screen to maintain |
 | Address bar read only while website blocking is on; only the address-bar node, never other content | Least access to window content |
 | Blocked website: both block screen buttons ("Stay in browser", "Close browser") open a neutral page in the browser as a normal link | Otherwise the blocked page stays the open tab and blocks the browser again on every start; back presses depend on the history (several blocked pages, closing the browser) |
+| Tamper events only while locked | Whoever changes something in unlocked mode has the guardian code; no false alarms during maintenance |
+| Only losses of working permissions are reported; gaps only if stopped with the screen on | Few false alarms (never granted, phone asleep) – the guardian should be able to trust every message |
+| No switch for "restart after reboot" | The system restarts the Accessibility service anyway, so a switch would promise something it can't do |
+| Settings guard recognizes Lares' pages by title / app header, lets Lares' own setup links through for 2 min | Lists stay usable; setup issues can be fixed while the guard is on |
+| One digest message per channel, per-channel delivery cursor | No duplicates when one channel fails; several events don't flood the guardian |
 | The settings guard always needs the Accessibility service (also in Usage access mode) | Settings pages can only be read via Accessibility |
 | Tamper protections (prevent uninstall, settings guard, restart after reboot, notify guardian) – each toggleable | User choice |
 | Main screen lists all missing setup at once (mode, permissions, device admin – assuming the recommended Accessibility mode until one is chosen); accessibility service and device admin are declared ahead of their logic | The user sees everything blocking still needs in one go; components must exist to be enabled and checked |
