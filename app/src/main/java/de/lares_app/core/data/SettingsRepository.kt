@@ -46,6 +46,15 @@ class SettingsRepository(
         }
     }
 
+    /** Countdown overlay and warnings only inform – switching them is never loosening. */
+    suspend fun setLimitTimer(enabled: Boolean) {
+        store.update { it.copy(settings = it.settings.copy(limitTimer = enabled)) }
+    }
+
+    suspend fun setWarnings(fiveMinutes: Boolean, oneMinute: Boolean) {
+        store.update { it.copy(settings = it.settings.copy(warnFiveMinutes = fiveMinutes, warnOneMinute = oneMinute)) }
+    }
+
     /** Needs the code (either direction can grant a fresh quota); takes effect after the next reset. */
     suspend fun setResetTime(time: LocalTime) {
         val settings = store.current().settings

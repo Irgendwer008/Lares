@@ -1,14 +1,19 @@
 # Blocking
 
-Design of the blocking services (blocking milestone). Already in place: the policy logic
-(`PolicyEngine`, `UrlMatcher`, `ResetSchedule`), the declared accessibility service / device admin
-receiver, and the setup checks on the main screen.
+Design of the blocking services. **Implemented:** app blocking in Accessibility mode with block
+screen, time limits (incl. groups), countdown overlay and optional warnings. **Next:** website
+blocking, Usage access mode, settings guard / tamper detection.
 
 ## App blocking modes
 
 ### Accessibility Service mode
-- Listens to `TYPE_WINDOW_STATE_CHANGED`; `event.packageName` = foreground app.
-- On block: `performGlobalAction(GLOBAL_ACTION_HOME)` and launch the block screen.
+- Listens to `TYPE_WINDOW_STATE_CHANGED`; only events whose class is an **activity** of the
+  package change the foreground app – keyboards, the notification shade, popups and dialogs of
+  other apps are ignored (otherwise e.g. an opening keyboard would stop time counting).
+  Screen on / off via broadcasts.
+- On block: the block screen is started directly over the blocked app (own task, so the app is
+  paused underneath); "Close" / back go to the home screen. Debounced against relaunching.
+- Debuggable builds log foreground changes and decisions (Logcat tag `LaresBlocking`).
 - Pros: instant, battery friendly. Cons: user must enable it manually in system settings;
   Google Play requires an Accessibility API declaration and prominent disclosure (shown before
   the main screen opens the accessibility settings).
@@ -52,8 +57,15 @@ receiver, and the setup checks on the main screen.
   as tamper events (see [Unlock & Security](unlock-and-security.md)).
 - Group members share one counter: the group's foreground time is the sum of all members, counted
   once even if several members match at the same time (app + website).
-- Warn shortly before the limit is reached (e.g. 1 min left).
+- Time counts once per second while the app is in the foreground and the screen is on (steps are
+  capped at 2 s, so a stalled timer never counts minutes at once); not during a pause.
+- Translucent countdown pill, centered at the top, during the last 5 minutes (switchable); optional
+  notifications 5 / 1 minute before the end.
 
 ## Block screen
-- Shows what is blocked and why (always-on / limit reached), remaining time until reset,
-  and an "Unlock" entry that leads to code entry.
+- Shows what is blocked and why (always blocked / limit reached, group if any), when the limits
+  restart, "Close" (home screen) and "Enter guardian code" (opens Lares with the code dialog).
+
+## Exempt apps
+- Never blocked: Lares, launchers, dialers / emergency, keyboards, system UI, the Settings app as a
+  whole, permission and install dialogs (`ExemptApps`, computed from what is installed).

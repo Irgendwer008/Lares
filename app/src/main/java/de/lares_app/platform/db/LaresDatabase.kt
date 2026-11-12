@@ -101,9 +101,6 @@ interface RuleDao {
 @Dao
 interface UsageDao {
     @Query("SELECT * FROM usage WHERE periodStartMillis = :periodStart")
-    fun observePeriod(periodStart: Long): Flow<List<UsageEntity>>
-
-    @Query("SELECT * FROM usage WHERE periodStartMillis = :periodStart")
     suspend fun period(periodStart: Long): List<UsageEntity>
 
     @Upsert
@@ -147,6 +144,9 @@ interface GroupDao {
 
     @Upsert
     suspend fun upsertUsage(usage: GroupUsageEntity)
+
+    @Query("DELETE FROM group_usage WHERE periodStartMillis < :beforeMillis")
+    suspend fun deleteUsageOlderThan(beforeMillis: Long)
 }
 
 @Dao

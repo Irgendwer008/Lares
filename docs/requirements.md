@@ -49,29 +49,41 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 17. The main screen lists everything blocking still needs at once (mode, permissions, device
     administrator – while no mode is chosen, including what the recommended Accessibility mode
     needs) and recommends the battery-optimization exemption.
+18. Opening a blocked app (or reaching its limit while using it) shows a **full block screen**
+    immediately: what is blocked and why, time until the next reset, "Close" (home screen) and
+    "Enter guardian code". Blocking stays active in unlocked mode (only a pause suspends it).
+19. **Limit countdown:** during the last 5 minutes of a limit, a small timer is shown in a corner
+    over the app (can be switched off in the settings). Optional **notifications** 5 and/or 1
+    minute before the limit ends; the notification permission is only requested when one of them
+    is switched on, and returned when both are off again.
+20. Essential apps can't be blocked: Lares, the home screen, phone / emergency calls, the
+    keyboard, system UI and the Settings app as a whole (the settings guard covers its
+    sensitive pages). They aren't offered when adding rules.
+21. Time only counts while the app is in the foreground and the screen is on; not during a pause.
+    The main screen shows the time used today per rule / group.
 
 ## Tamper protection (each toggleable)
-18. Prevent uninstalling (device administrator).
-19. Guard Lares' own sensitive system-settings pages (needs the Accessibility service).
-20. Restart after reboot / app update; record protection gaps.
-21. Notify the guardian on tamper events.
+22. Prevent uninstalling (device administrator).
+23. Guard Lares' own sensitive system-settings pages (needs the Accessibility service).
+24. Restart after reboot / app update; record protection gaps.
+25. Notify the guardian on tamper events.
 
 ## Guardian notifications
-22. Channels: **Telegram bot**, **ntfy**, **email (SMTP)**, **webhook**, **Matrix**; each with its
+26. Channels: **Telegram bot**, **ntfy**, **email (SMTP)**, **webhook**, **Matrix**; each with its
     own message language and a test message. See [Notifications](notifications.md).
 
 ## Backup
-23. **Export** rules and groups as a JSON file (no codes, tokens or usage data). **Import adds
+27. **Export** rules and groups as a JSON file (no codes, tokens or usage data). **Import adds
     only** (never removes or loosens), so it needs no code.
 
 ## Settings
-24. Settings screen (menu icon on the main screen), split into **App settings** – guardian code,
+28. Settings screen (menu icon on the main screen), split into **App settings** – guardian code,
     blocking mode, website blocking, reset time, protections, notification channels, backup,
     language – and **Info** – about, privacy policy, license, open-source libraries.
 
 ## Platform
-25. Distributed via **Google Play and F-Droid** → FOSS-only dependencies, no Google Play Services
+29. Distributed via **Google Play and F-Droid** → FOSS-only dependencies, no Google Play Services
     (see [Distribution](distribution.md)). License **GPL-3.0-or-later**.
-26. Kotlin + Jetpack Compose, **minSdk 26**.
-27. UI in **English and German**, docs in English; adding languages must be easy
+30. Kotlin + Jetpack Compose, **minSdk 26**.
+31. UI in **English and German**, docs in English; adding languages must be easy
     (see [Localization](localization.md)).

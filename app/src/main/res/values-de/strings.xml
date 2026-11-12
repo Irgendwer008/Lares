@@ -314,4 +314,33 @@
     <string name="accessibility_disclosure_body">Lares nutzt die Bedienungshilfe von Android, um zu erkennen, welche App geöffnet ist – und, wenn das Sperren von Websites eingeschaltet ist, welche Website im Browser angezeigt wird –, damit es sperren kann, was du ausgewählt hast.\n\nDiese Information wird nur auf diesem Handy und nur im Moment verwendet. Sie wird nicht gespeichert und nirgendwohin gesendet.\n\nÖffne auf der nächsten Seite „Lares“ (unter installierten bzw. heruntergeladenen Apps) und schalte es ein.</string>
     <string name="accessibility_disclosure_agree">Zustimmen und weiter</string>
     <string name="accessibility_service_description">Lares erkennt, welche App oder Website geöffnet ist, um die von dir gewählten zu sperren. Es wird nichts gespeichert oder gesendet.</string>
+
+    <!-- Block screen -->
+    <string name="block_title">%1$s ist gesperrt</string>
+    <string name="block_reason_always">Diese App ist immer gesperrt.</string>
+    <string name="block_reason_limit">Das Tageslimit ist aufgebraucht. Wieder verfügbar ab %1$s.</string>
+    <string name="block_reason_browser">Das Sperren von Websites ist eingeschaltet, und dieser Browser wird nicht unterstützt. Verwende einen unterstützten Browser.</string>
+    <string name="block_group">Limit der Gruppe „%1$s“</string>
+    <string name="block_close">Schließen</string>
+
+    <!-- Limit countdown & warnings -->
+    <string name="timer_overlay_description">noch %1$s</string>
+    <string name="notification_channel_limits">Limit-Warnungen</string>
+    <plurals name="limit_warning_title">
+        <item quantity="one">Noch %d Minute</item>
+        <item quantity="other">Noch %d Minuten</item>
+    </plurals>
+    <string name="limit_warning_text">Das Tageslimit für %1$s ist fast aufgebraucht.</string>
+    <string name="settings_limit_timer">Countdown in den letzten 5 Minuten</string>
+    <string name="settings_limit_timer_desc">Zeigt einen kleinen Timer in der Ecke, wenn ein Limit bald abläuft.</string>
+    <string name="settings_warn_five">Benachrichtigung 5 Minuten vorher</string>
+    <string name="settings_warn_one">Benachrichtigung 1 Minute vorher</string>
+    <string name="settings_warn_desc">Benötigt die Benachrichtigungsberechtigung, die erst jetzt angefragt wird.</string>
+    <string name="settings_warn_denied">Benachrichtigungen sind nicht erlaubt. Du kannst sie in den Systemeinstellungen erlauben.</string>
+
+    <!-- Usage on the main screen -->
+    <plurals name="usage_today">
+        <item quantity="one">heute %1$d Min. von %2$s genutzt</item>
+        <item quantity="other">heute %1$d Min. von %2$s genutzt</item>
+    </plurals>
 </resources>

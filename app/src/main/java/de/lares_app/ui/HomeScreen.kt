@@ -72,7 +72,13 @@ import de.lares_app.core.policy.RuleGroup
 /** @param onAddRule opens "add rule"; with a group id the new rules become members of that group. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onAddRule: (groupId: Long?) -> Unit, onOpenSettings: (SettingsHighlight?) -> Unit, vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onAddRule: (groupId: Long?) -> Unit,
+    onOpenSettings: (SettingsHighlight?) -> Unit,
+    openUnlock: Boolean = false,
+    onUnlockOpened: () -> Unit = {},
+    vm: HomeViewModel = hiltViewModel(),
+) {
     val content by vm.content.collectAsStateWithLifecycle()
     val setupIssues by vm.setupIssues.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -95,6 +101,12 @@ fun HomeScreen(onAddRule: (groupId: Long?) -> Unit, onOpenSettings: (SettingsHig
     val session by vm.session.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var showUnlock by remember { mutableStateOf(false) }
+    LaunchedEffect(openUnlock) {
+        if (openUnlock) {
+            showUnlock = true
+            onUnlockOpened()
+        }
+    }
     var showPause by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<RuleItem?>(null) }
     var editingGroup by remember { mutableStateOf<RuleGroup?>(null) }
@@ -383,6 +395,15 @@ private fun SessionCard(
 
 // ---- Groups ----------------------------------------------------------------------------------------
 
+/** "12 min used today of 30 minutes per day" – only for rules / groups with a daily limit. */
+@Composable
+private fun usageLabel(limitMinutes: Int?, usedMillis: Long, shared: Boolean = false): String? {
+    limitMinutes ?: return null
+    val usedMinutes = (usedMillis / 60_000L).toInt()
+    val limit = if (shared) groupLimitLabel(limitMinutes) else limitLabel(limitMinutes)
+    return pluralStringResource(R.plurals.usage_today, usedMinutes, usedMinutes, limit)
+}
+
 @Composable
 fun groupLimitLabel(limitMinutes: Int?): String =
     if (limitMinutes == null) {
@@ -418,7 +439,7 @@ private fun GroupCard(
             )
             Column(Modifier.weight(1f)) {
                 Text(group.name, style = MaterialTheme.typography.titleMedium)
-                val limit = groupLimitLabel(group.limitMinutesPerDay)
+                val limit = usageLabel(group.limitMinutesPerDay, item.usedMillis, shared = true) ?: groupLimitLabel(group.limitMinutesPerDay)
                 val count = pluralStringResource(R.plurals.group_member_count, item.members.size, item.members.size)
                 Text(
                     if (group.enabled) {
@@ -526,7 +547,7 @@ private fun MemberDialog(item: RuleItem, group: RuleGroup, onTakeOut: () -> Unit
 
 @Composable
 private fun RuleRow(item: RuleItem, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
-    val limit = limitLabel(item.rule.limitMinutesPerDay)
+    val limit = usageLabel(item.rule.limitMinutesPerDay, item.usedMillis) ?: limitLabel(item.rule.limitMinutesPerDay)
     val disabled = stringResource(R.string.rule_disabled)
     ListItem(
         headlineContent = { Text(item.displayName()) },

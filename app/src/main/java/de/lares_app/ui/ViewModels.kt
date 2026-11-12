@@ -41,8 +41,11 @@ import de.lares_app.core.unlock.UnlockManager
 import de.lares_app.core.unlock.VerifyResult
 import de.lares_app.platform.AlertMessages
 import de.lares_app.platform.AppCatalog
+import de.lares_app.platform.ExemptApps
 import de.lares_app.platform.InstalledApp
+import de.lares_app.platform.LimitNotifier
 import de.lares_app.platform.PermissionStatus
+import de.lares_app.platform.UsageRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -212,9 +215,16 @@ class SetupViewModel @Inject constructor(
 // ---- Home ----------------------------------------------------------------------------------------
 
 /** @property brandColor template brand color (ARGB) for the letter icon if [icon] is missing. */
-data class RuleItem(val rule: Rule, val label: String, val icon: ImageBitmap?, val brandColor: Long? = null)
+data class RuleItem(
+    val rule: Rule,
+    val label: String,
+    val icon: ImageBitmap?,
+    val brandColor: Long? = null,
+    /** Foreground time today (current usage period). */
+    val usedMillis: Long = 0,
+)
 
-data class GroupItem(val group: RuleGroup, val members: List<RuleItem>)
+data class GroupItem(val group: RuleGroup, val members: List<RuleItem>, val usedMillis: Long = 0)
 
 /** Apps first (by name), then websites by base domain, so `youtube.com` and `m.youtube.com` sit together. */
 private val RuleOrder: Comparator<RuleItem> = compareBy<RuleItem>(
@@ -249,6 +259,7 @@ class HomeViewModel @Inject constructor(
     clock: Clock,
     private val catalog: AppCatalog,
     private val permissions: PermissionStatus,
+    private val usage: UsageRepository,
 ) : ViewModel() {
     private val permissionRefresh = MutableStateFlow(0)
 
@@ -267,17 +278,24 @@ class HomeViewModel @Inject constructor(
 
     fun dontKillMyAppUrl() = permissions.dontKillMyAppUrl()
 
-    val content: StateFlow<HomeContent> = combine(rules.rules, rules.groups) { list, groups ->
+    init {
+        viewModelScope.launch { usage.refreshPeriod() } // load today's usage even before blocking runs
+    }
+
+    val content: StateFlow<HomeContent> = combine(rules.rules, rules.groups, usage.usage) { list, groups, used ->
         val items = list.map { rule ->
             when (rule.type) {
                 RuleType.APP -> catalog.describeOrFallback(rule.target).let { RuleItem(rule, it.label, it.icon) }
                 RuleType.WEBSITE -> RuleItem(rule, rule.target, null)
-            }.copy(brandColor = RuleTemplates.colorFor(rule.type, rule.target))
+            }.copy(
+                brandColor = RuleTemplates.colorFor(rule.type, rule.target),
+                usedMillis = used?.ruleMillis?.get(rule.id) ?: 0,
+            )
         }
         val groupIds = groups.map { it.id }.toSet()
         HomeContent(
             groups = groups.sortedBy { it.name.lowercase() }
-                .map { g -> GroupItem(g, items.filter { it.rule.groupId == g.id }.sortedWith(RuleOrder)) },
+                .map { g -> GroupItem(g, items.filter { it.rule.groupId == g.id }.sortedWith(RuleOrder), used?.groupMillis?.get(g.id) ?: 0) },
             standalone = items.filter { it.rule.groupId == null || it.rule.groupId !in groupIds }.sortedWith(RuleOrder),
         )
     }.stateIn(viewModelScope, WhileSubscribed, HomeContent())
@@ -402,6 +420,7 @@ class AddRuleViewModel @Inject constructor(
     private val settings: SettingsRepository,
     catalog: AppCatalog,
     savedState: SavedStateHandle,
+    private val exemptApps: ExemptApps,
 ) : ViewModel() {
     /** Website rules only take effect while website blocking is on – the screen shows a note otherwise. */
     val websiteBlocking: StateFlow<Boolean> = settings.settings.map { it.websiteBlocking }
@@ -417,8 +436,11 @@ class AddRuleViewModel @Inject constructor(
     val group: StateFlow<RuleGroup?> = rules.groups.map { list -> list.firstOrNull { it.id == groupId } }
         .stateIn(viewModelScope, WhileSubscribed, null)
 
-    val apps: StateFlow<List<InstalledApp>?> = flow { emit(catalog.launchableApps()) }
-        .stateIn(viewModelScope, WhileSubscribed, null)
+    /** Installed apps without the ones that can never be blocked (launcher, phone, settings …). */
+    val apps: StateFlow<List<InstalledApp>?> = flow {
+        val exempt = exemptApps.packages()
+        emit(catalog.launchableApps().filterNot { it.packageName in exempt })
+    }.stateIn(viewModelScope, WhileSubscribed, null)
 
     val templates: List<RuleTemplate> = RuleTemplates.all
 
@@ -473,6 +495,9 @@ data class SettingsUi(
     val websiteBlocking: Boolean = false,
     val protections: Set<Protection> = emptySet(),
     val channels: List<AlertChannelConfig> = emptyList(),
+    val limitTimer: Boolean = true,
+    val warnFiveMinutes: Boolean = false,
+    val warnOneMinute: Boolean = false,
 )
 
 sealed interface SettingsEvent {
@@ -495,6 +520,7 @@ class SettingsViewModel @Inject constructor(
     private val unlock: UnlockManager,
     private val rules: RuleRepository,
     private val channels: AlertChannelRepository,
+    private val notifier: LimitNotifier,
     clock: Clock,
     savedState: SavedStateHandle,
 ) : ViewModel() {
@@ -527,6 +553,9 @@ class SettingsViewModel @Inject constructor(
             websiteBlocking = s.settings.websiteBlocking,
             protections = s.settings.protections,
             channels = s.settings.alertChannels,
+            limitTimer = s.settings.limitTimer,
+            warnFiveMinutes = s.settings.warnFiveMinutes,
+            warnOneMinute = s.settings.warnOneMinute,
         )
     }.stateIn(viewModelScope, WhileSubscribed, SettingsUi())
 
@@ -558,6 +587,17 @@ class SettingsViewModel @Inject constructor(
     fun setWebsiteBlocking(enabled: Boolean) = guarded { settings.setWebsiteBlocking(enabled) }
 
     fun setProtection(protection: Protection, enabled: Boolean) = guarded { settings.setProtection(protection, enabled) }
+
+    fun setLimitTimer(enabled: Boolean) = guarded { settings.setLimitTimer(enabled) }
+
+    /** True if switching a warning on first needs the notification permission from the user. */
+    fun warningNeedsPermission(): Boolean = !notifier.hasPermission()
+
+    /** Sets the warnings; returns the notification permission once both are off. */
+    fun setWarnings(fiveMinutes: Boolean, oneMinute: Boolean) = guarded {
+        settings.setWarnings(fiveMinutes, oneMinute)
+        if (!fiveMinutes && !oneMinute) notifier.returnPermission()
+    }
 
     /** Writes the rules file (JSON, no secrets) via [write]; returns the file content first. */
     fun export(write: suspend (String) -> Boolean) {

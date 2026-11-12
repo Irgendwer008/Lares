@@ -6,6 +6,8 @@
 package de.lares_app.ui
 
 import android.text.format.DateFormat
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
@@ -128,6 +130,22 @@ fun SettingsScreen(
         }
     }
 
+    // Notification permission: requested only when a warning is switched on.
+    val deniedText = stringResource(R.string.settings_warn_denied)
+    var pendingWarning by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) pendingWarning?.invoke() else scope.launch { snackbar.showSnackbar(deniedText) }
+        pendingWarning = null
+    }
+    val requestWarning: (Boolean, () -> Unit) -> Unit = { on, apply ->
+        if (on && vm.warningNeedsPermission() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pendingWarning = apply
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            apply()
+        }
+    }
+
     val needsCodeText = stringResource(R.string.home_needs_code)
     val enterCodeText = stringResource(R.string.home_unlock)
     val exportedText = stringResource(R.string.backup_exported)
@@ -217,6 +235,24 @@ fun SettingsScreen(
                     stringResource(R.string.settings_reset_time_pending, formatTime(ui.resetTime), formatTime(it))
                 } ?: formatTime(ui.resetTime),
                 onClick = { showResetTime = true },
+            )
+            SwitchItem(
+                title = stringResource(R.string.settings_limit_timer),
+                summary = stringResource(R.string.settings_limit_timer_desc),
+                checked = ui.limitTimer,
+                onChange = vm::setLimitTimer,
+            )
+            SwitchItem(
+                title = stringResource(R.string.settings_warn_five),
+                summary = stringResource(R.string.settings_warn_desc),
+                checked = ui.warnFiveMinutes,
+                onChange = { on -> requestWarning(on) { vm.setWarnings(on, ui.warnOneMinute) } },
+            )
+            SwitchItem(
+                title = stringResource(R.string.settings_warn_one),
+                summary = stringResource(R.string.settings_warn_desc),
+                checked = ui.warnOneMinute,
+                onChange = { on -> requestWarning(on) { vm.setWarnings(ui.warnFiveMinutes, on) } },
             )
 
             SettingsSubheader(stringResource(R.string.settings_group_protection))

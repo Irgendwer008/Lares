@@ -14,11 +14,17 @@ version catalog `gradle/libs.versions.toml`. Every source file carries
 
 ## Packages
 Single `app` module:
-- `core/policy`, `core/unlock`, `core/data`, `core/alerts`, `core/time` – pure Kotlin (no Android
+- `core/policy`, `core/unlock`, `core/data`, `core/blocking`
+- `UsageCounter` / `UsageSnapshot` – foreground time per rule / group in the current period (a
+  group counts once per tick).
+- `LimitWarnings` – 5 / 1 minute warnings, once per threshold, subject and period.
+
+`core/alerts`, `core/blocking`, `core/time` – pure Kotlin (no Android
   imports), unit-tested with in-memory fakes (`app/src/test/.../testing/Fakes.kt`).
 - `platform` – Android implementations (Room, DataStore, Keystore, clock, app catalog,
   permission checks, network senders, recovery-code sharing).
-- `blocking` – Android components for blocking (accessibility service, device admin receiver).
+- `blocking` – Android components for blocking (accessibility service, blocking controller, block
+  screen, countdown overlay, device admin receiver).
 - `di` – Hilt wiring (`AppModule`), the only place that connects core and platform.
 - `ui` – Compose screens and ViewModels.
 
@@ -30,7 +36,8 @@ Single `app` module:
   foregroundMillis)` – keyed by usage period start (see `ResetSchedule`).
 - `TamperEvent(id, type, timestamp, details, delivered)`
 - `AppState` (DataStore): `AppSettings` (setup complete, blocking mode, website blocking,
-  protections, reset time + pending change, `AlertChannelConfig` list) and `UnlockState` (method,
+  protections, reset time + pending change, `AlertChannelConfig` list, countdown / warning
+  switches), `TrackedPeriod` (the usage period currently counted) and `UnlockState` (method,
   password hash / encrypted TOTP secret, last TOTP counter, recovery hash, re-setup flag, failed
   attempts, lockout, pause, unlocked session).
 - `AlertChannelConfig(id, type, language, server, address, port, startTls, username, sender,
@@ -85,9 +92,25 @@ enable `exportSchema`, commit the schema, add migrations from then on.
   device admin, battery optimization + intents), `NetworkAlertSender` + `SmtpMailer`,
   `AlertMessages` (texts in the channel's language), `RecoveryExport` (clipboard, share sheet).
 
-`blocking`
-- `LaresAccessibilityService`, `LaresDeviceAdminReceiver` – declared so they can be enabled and
-  checked; no blocking logic yet.
+`blocking` (Accessibility mode)
+- `LaresAccessibilityService` – reports the foreground app (`TYPE_WINDOW_STATE_CHANGED` of
+  activities only, package name only, no window content) and screen on / off; hosts the block
+  screen and countdown. `BlockingLog` – diagnostics in debuggable builds only.
+- `BlockingController` – one-second loop on a single thread: `PolicyEngine` decision for the
+  foreground app, time counting via `UsageRepository`, block screen (debounced), countdown overlay
+  in the last 5 minutes, optional warnings. Active only when setup is complete and the mode is
+  Accessibility; blocking stays active in unlocked mode.
+- `BlockActivity` – full block screen (reason, reset time, "Close", "Enter guardian code").
+- `TimerOverlay` – accessibility overlay pill (no extra permission, not touchable).
+- `LaresDeviceAdminReceiver` – declared for "prevent uninstalling"; reporting follows.
+
+`platform` (blocking)
+- `UsageRepository` – counts in memory, writes to Room at most every 15 s and on period change,
+  advances the tracked period via `ResetSchedule.advance()`, drops older periods.
+- `ExemptApps` – Lares, launchers, dialers, keyboards, system UI, Settings, permission / install
+  dialogs (never blocked, hidden when adding rules).
+- `LimitNotifier` – warning notifications; permission requested only when a warning is switched
+  on, returned via `revokeSelfPermissionOnKill` when all are off.
 
 `ui`
 - Setup flow (`SetupMode`: FIRST with intro, RECOVERY after the recovery code, CHANGE from the
@@ -95,13 +118,12 @@ enable `exportSchema`, commit the schema, add migrations from then on.
   add screen (templates, group, apps, website), unlock and pause dialogs, settings (app settings /
   info), notification channel editor, privacy policy, license, open-source libraries.
 
-## Planned (blocking milestone)
+## Planned (rest of the blocking milestone)
 | Component | Responsibility |
 |---|---|
-| `LaresAccessibilityService` (logic) | Foreground app detection, URL-bar reading, settings-page guard |
-| `UsageMonitorService` | Foreground service polling `UsageStatsManager` (Usage access mode) |
-| `BlockScreen` | Full-screen activity / overlay shown when something is blocked |
-| `UsageTracker` | Accumulates foreground time per rule / group for daily limits |
+| URL-bar reading (B) | Website blocking in supported browsers, blocking unsupported browsers |
+| `UsageMonitorService` (C) | Foreground service polling `UsageStatsManager`, overlay block screen (Usage access mode) |
+| Settings guard (D) | Blocking Lares' sensitive system-settings pages |
 | `BootReceiver` | `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` → restart monitoring |
 | `TamperDetector` | Detects gaps, clock changes, disabled services → tamper events |
 | `AlertDispatcher` | Sends tamper events through the configured channels (WorkManager, retries) |

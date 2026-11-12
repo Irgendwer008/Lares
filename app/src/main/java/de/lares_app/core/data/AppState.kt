@@ -36,6 +36,11 @@ data class AppSettings(
     val pendingResetEffectiveFromMillis: Long? = null,
     /** Guardian notification channels (secrets encrypted, see AlertChannelConfig). */
     val alertChannels: List<AlertChannelConfig> = emptyList(),
+    /** Countdown overlay in the last 5 minutes of a limit. */
+    val limitTimer: Boolean = true,
+    /** Optional notifications before a limit ends (need the notification permission on Android 13+). */
+    val warnFiveMinutes: Boolean = false,
+    val warnOneMinute: Boolean = false,
 ) {
     val resetSchedule: ResetSchedule
         get() = ResetSchedule(
@@ -76,10 +81,15 @@ data class UnlockState(
     val isSetUp: Boolean get() = method != null
 }
 
+/** The usage period currently counted (advanced monotonically, see ResetSchedule.advance). */
+@Serializable
+data class TrackedPeriod(val startMillis: Long, val endMillis: Long)
+
 @Serializable
 data class AppState(
     val settings: AppSettings = AppSettings(),
     val unlock: UnlockState = UnlockState(),
+    val trackedPeriod: TrackedPeriod? = null,
 )
 
 /** Persistent, atomically updated app state (DataStore in production, in-memory in tests). */

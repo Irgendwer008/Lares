@@ -6,15 +6,124 @@
 package de.lares_app.blocking
 
 import android.accessibilityservice.AccessibilityService
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
+import android.view.inputmethod.InputMethodManager
+import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
- * Detects the foreground app (and later the browser URL) for blocking. Declared now so the user can
- * enable it and the setup check can see it; the detection / blocking logic is added with the
- * blocking services. Events are ignored and nothing is stored.
+ * Detects the app in the foreground (window state changes) and lets [BlockingController] decide.
+ * Nothing about the window content is read or stored – only the package name of the active app.
  */
-class LaresAccessibilityService : AccessibilityService() {
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+@AndroidEntryPoint
+class LaresAccessibilityService : AccessibilityService(), BlockingHost {
+
+    @Inject lateinit var controller: BlockingController
+
+    private val main = Handler(Looper.getMainLooper())
+    private var timer: TimerOverlay? = null
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> controller.onScreen(false)
+                Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> controller.onScreen(true)
+                else -> { // packages changed
+                    controller.refreshExemptApps()
+                    refreshKeyboards()
+                    activityCache.clear()
+                }
+            }
+        }
+    }
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        timer = TimerOverlay(this)
+        refreshKeyboards()
+        val screen = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        ContextCompat.registerReceiver(this, receiver, screen, ContextCompat.RECEIVER_NOT_EXPORTED)
+        val packages = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addDataScheme("package")
+        }
+        ContextCompat.registerReceiver(this, receiver, packages, ContextCompat.RECEIVER_NOT_EXPORTED)
+        controller.start(this)
+    }
+
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        val pkg = event.packageName?.toString() ?: return
+        // Keyboards, the notification shade, popups and dialogs of other apps also send window
+        // changes; only a real app screen (activity) changes the app in use.
+        if (pkg in TRANSIENT || pkg in keyboards || !isActivity(pkg, event.className?.toString())) {
+            BlockingLog.d { "ignored window change: $pkg / ${event.className}" }
+            return
+        }
+        controller.onForeground(pkg)
+    }
+
+    private val activityCache = HashMap<ComponentName, Boolean>()
+    private var keyboards: Set<String> = emptySet()
+
+    /**
+     * True if [className] is an activity of [pkg]. If the package isn't visible to Lares (package
+     * visibility rules), it can't be checked – then the change is accepted.
+     */
+    private fun isActivity(pkg: String, className: String?): Boolean {
+        if (className.isNullOrEmpty()) return false
+        val component = ComponentName(pkg, className)
+        return activityCache.getOrPut(component) {
+            try {
+                packageManager.getActivityInfo(component, 0)
+                true
+            } catch (_: PackageManager.NameNotFoundException) {
+                // Visible package but no such activity → a dialog / popup / view; invisible package → accept.
+                runCatching { packageManager.getPackageInfo(pkg, 0) }.isFailure
+            }
+        }
+    }
+
+    private fun refreshKeyboards() {
+        keyboards = getSystemService(InputMethodManager::class.java)?.inputMethodList?.map { it.packageName }?.toSet().orEmpty()
+    }
 
     override fun onInterrupt() = Unit
+
+    override fun onDestroy() {
+        controller.stop()
+        runCatching { unregisterReceiver(receiver) }
+        timer?.hide()
+        timer = null
+        super.onDestroy()
+    }
+
+    // ---- BlockingHost (called from the controller's thread) -----------------------------------
+
+    override fun showBlockScreen(info: BlockInfo) {
+        // Shown directly over the blocked app (a home action first would race with it and cover it).
+        main.post { startActivity(BlockActivity.intent(this, info)) }
+    }
+
+    override fun showTimer(remainingMillis: Long?) {
+        main.post { if (remainingMillis == null) timer?.hide() else timer?.show(remainingMillis) }
+    }
+
+    private companion object {
+        val TRANSIENT = setOf("com.android.systemui")
+    }
 }

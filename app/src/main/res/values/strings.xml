@@ -336,4 +336,39 @@
     <string name="accessibility_disclosure_agree">Agree and continue</string>
     <!-- Shown in the system's accessibility settings -->
     <string name="accessibility_service_description">Lares detects which app or website is open to block the ones you chose. Nothing is stored or sent.</string>
+
+    <!-- Block screen -->
+    <!-- %1$s = app name -->
+    <string name="block_title">%1$s is blocked</string>
+    <string name="block_reason_always">This app is always blocked.</string>
+    <!-- %1$s = time when the daily limits restart, e.g. "00:00" -->
+    <string name="block_reason_limit">The daily limit is used up. Available again at %1$s.</string>
+    <string name="block_reason_browser">Website blocking is on, and this browser isn’t supported. Use a supported browser.</string>
+    <!-- %1$s = group name -->
+    <string name="block_group">Limit of the group “%1$s”</string>
+    <string name="block_close">Close</string>
+
+    <!-- Limit countdown & warnings -->
+    <!-- %1$s = remaining time, e.g. "4:59" (screen readers) -->
+    <string name="timer_overlay_description">%1$s left</string>
+    <string name="notification_channel_limits">Limit warnings</string>
+    <plurals name="limit_warning_title">
+        <item quantity="one">%d minute left</item>
+        <item quantity="other">%d minutes left</item>
+    </plurals>
+    <!-- %1$s = app name -->
+    <string name="limit_warning_text">The daily limit for %1$s is almost used up.</string>
+    <string name="settings_limit_timer">Countdown in the last 5 minutes</string>
+    <string name="settings_limit_timer_desc">Shows a small timer in the corner when a limit is about to run out.</string>
+    <string name="settings_warn_five">Notification 5 minutes before</string>
+    <string name="settings_warn_one">Notification 1 minute before</string>
+    <string name="settings_warn_desc">Needs the notification permission, which is only requested now.</string>
+    <string name="settings_warn_denied">Notifications aren’t allowed. You can allow them in the system settings.</string>
+
+    <!-- Usage on the main screen -->
+    <!-- %1$d = minutes used today, %2$s = limit, e.g. "30 minutes per day" -->
+    <plurals name="usage_today">
+        <item quantity="one">%1$d min used today of %2$s</item>
+        <item quantity="other">%1$d min used today of %2$s</item>
+    </plurals>
 </resources>

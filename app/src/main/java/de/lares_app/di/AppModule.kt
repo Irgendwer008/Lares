@@ -12,6 +12,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import de.lares_app.blocking.BlockingController
 import de.lares_app.core.alerts.AlertChannelRepository
 import de.lares_app.core.alerts.AlertSender
 import de.lares_app.core.data.UnlockGate
@@ -30,6 +31,9 @@ import de.lares_app.platform.NetworkAlertSender
 import de.lares_app.platform.PermissionStatus
 import de.lares_app.platform.AppCatalog
 import de.lares_app.platform.DataStoreStateStore
+import de.lares_app.platform.ExemptApps
+import de.lares_app.platform.LimitNotifier
+import de.lares_app.platform.UsageRepository
 import de.lares_app.platform.KeystoreSecretCipher
 import de.lares_app.platform.db.LaresDatabase
 import de.lares_app.platform.db.RoomGroupStore
@@ -83,6 +87,28 @@ object AppModule {
 
     @Provides @Singleton
     fun permissionStatus(@ApplicationContext context: Context) = PermissionStatus(context)
+
+    @Provides @Singleton
+    fun exemptApps(@ApplicationContext context: Context) = ExemptApps(context)
+
+    @Provides @Singleton
+    fun limitNotifier(@ApplicationContext context: Context) = LimitNotifier(context)
+
+    @Provides @Singleton
+    fun usageRepository(db: LaresDatabase, store: StateStore, clock: Clock) =
+        UsageRepository(db.usageDao(), db.groupDao(), db.ruleDao(), store, clock)
+
+    @Provides @Singleton
+    fun blockingController(
+        rules: RuleStore,
+        groups: GroupStore,
+        store: StateStore,
+        usage: UsageRepository,
+        exempt: ExemptApps,
+        catalog: AppCatalog,
+        notifier: LimitNotifier,
+        clock: Clock,
+    ) = BlockingController(rules, groups, store, usage, exempt, catalog, notifier, clock)
 
     @Provides @Singleton
     fun appCatalog(@ApplicationContext context: Context) = AppCatalog(context)

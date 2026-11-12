@@ -9,6 +9,7 @@ trusted person (friend, family member – the **guardian**) set up.
 | Page | Content |
 |---|---|
 | [Requirements](requirements.md) | Agreed product requirements (the "what") |
+| [Roadmap](roadmap.md) | Milestones until the first release |
 | [Architecture](architecture.md) | Stack, packages, data model, what is implemented (the "how") |
 | [Blocking](blocking.md) | App blocking modes, website blocking, time limits |
 | [Unlock & Security](unlock-and-security.md) | Password / TOTP, recovery, unlocked mode, tighten / loosen policy, tamper protection |

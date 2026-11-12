@@ -11,6 +11,9 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- Optional "limit almost reached" warnings; requested only when the user switches them on. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- App list without QUERY_ALL_PACKAGES (restricted on Play): launchable apps + browsers. -->
     <queries>
         <intent>
@@ -20,6 +23,18 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
+        </intent>
+        <!-- Exempt apps (never blocked): home screens, dialers, settings. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SETTINGS" />
         </intent>
     </queries>
 
@@ -45,6 +60,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Full-screen block page, started by the accessibility service over a blocked app. -->
+        <activity
+            android:name=".blocking.BlockActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:taskAffinity="de.lares_app.block" />
 
         <!-- Foreground app / website detection (Accessibility blocking mode, website blocking, settings guard). -->
         <service
