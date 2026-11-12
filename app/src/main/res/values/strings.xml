@@ -48,7 +48,7 @@
     <string name="setup_recovery_title">Recovery code</string>
     <string name="setup_recovery_body">If the code is ever lost, this recovery code unlocks Lares once. It is shown only now. Guardian: write it down or store it safely – don’t leave it with the phone owner.</string>
     <string name="setup_recovery_confirm">I have stored the recovery code safely</string>
-    <string name="setup_resetup_notice">The recovery code was used. Please set up a new code now.</string>
+    <string name="setup_re_setup_notice">The recovery code was used. Please set up a new code now.</string>
     <string name="setup_recovery_copy">Copy</string>
     <string name="setup_recovery_copied">Copied to the clipboard.</string>
     <!-- Content of the downloaded text file. %1$s = recovery code, %2$s = date and time -->
@@ -205,7 +205,7 @@
     <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Adding restrictions is always possible – loosening them needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>
     <string name="privacy_summary">Everything stays on this phone</string>
-    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking.\n• No data is sold or shared with third parties.\n• Your rules, usage times and settings are stored only on this phone. They are excluded from Android backups and device transfers.\\\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app (or website) is open. This is processed on the phone in the moment and neither stored nor sent.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). These messages contain only the notification text (e.g. “protection was disabled”) and the phone model; tokens are stored encrypted on the phone.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app).\n• Lares blocks password managers, so the guardian code is never saved on the phone.</string>
+    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking.\n• No data is sold or shared with third parties.\n• Your rules, usage times and settings are stored only on this phone. They are excluded from Android backups and device transfers.\\\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app (or website) is open. This is processed only on the phone at any given time and neither stored nor sent.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). These messages contain only the notification text (e.g. “protection was disabled”) and the phone model; tokens are stored encrypted on the phone.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app).\n• Lares blocks password managers, so the guardian code is never saved on the phone.</string>
     <string name="license_title">License</string>
     <string name="license_summary">GNU GPL, version 3 or later</string>
     <string name="license_body">Lares is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nLares is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
@@ -221,7 +221,7 @@
     <string name="settings_group_backup">Backup</string>
     <string name="settings_group_app">App</string>
 
-    <!-- Settings: blocking -->find ~/.var/app/com.google.AndroidStudio -maxdepth 4 -name '.lock' -path '*AndroidStudio*' -print --delete
+    <!-- Settings: blocking -->
     <string name="settings_blocking_mode">App blocking mode</string>
     <string name="blocking_mode_accessibility">Accessibility service</string>
     <string name="blocking_mode_accessibility_recommended">Accessibility service (recommended)</string>
@@ -332,7 +332,7 @@
     <string name="issue_admin_action">Activate</string>
     <string name="device_admin_explanation">While active, Android refuses to uninstall Lares. Lares uses no other administrator rights.</string>
     <string name="accessibility_disclosure_title">Accessibility service</string>
-    <string name="accessibility_disclosure_body">Lares uses Android’s Accessibility service to find out which app is open – and, if website blocking is on, which website is shown in the browser – so it can block what you chose.\n\nThis information is used only on this phone, in the moment. It is not stored and never sent anywhere.\n\nOn the next screen, open “Lares” (under installed or downloaded apps) and turn it on.</string>
+    <string name="accessibility_disclosure_body">Lares uses Android’s Accessibility service to find out which app is open – and, if website blocking is on, which website is shown in the browser – so it can block what you chose.\n\nThis information is used only on this device, it is not stored and never sent anywhere.\n\nOn the next screen, open “Lares” (under installed or downloaded apps) and turn it on.</string>
     <string name="accessibility_disclosure_agree">Agree and continue</string>
     <!-- Shown in the system's accessibility settings -->
     <string name="accessibility_service_description">Lares detects which app or website is open to block the ones you chose. Nothing is stored or sent.</string>

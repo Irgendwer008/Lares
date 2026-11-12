@@ -111,7 +111,7 @@ private fun Intro(onStart: () -> Unit) {
 @Composable
 private fun ChooseMethod(mode: SetupMode, onPassword: () -> Unit, onTotp: () -> Unit, onCancel: () -> Unit) {
     when (mode) {
-        SetupMode.RECOVERY -> Text(stringResource(R.string.setup_resetup_notice), color = MaterialTheme.colorScheme.error)
+        SetupMode.RECOVERY -> Text(stringResource(R.string.setup_re_setup_notice), color = MaterialTheme.colorScheme.error)
         SetupMode.CHANGE -> Text(stringResource(R.string.setup_change_notice), color = MaterialTheme.colorScheme.primary)
         SetupMode.FIRST -> Unit
     }

@@ -44,7 +44,7 @@
     <string name="setup_recovery_title">Wiederherstellungscode</string>
     <string name="setup_recovery_body">Falls der Code einmal verloren geht, entsperrt dieser Wiederherstellungscode Lares einmalig. Er wird nur jetzt angezeigt. Guardian: Schreib ihn auf oder bewahre ihn sicher auf – lass ihn nicht bei der Person, der das Handy gehört.</string>
     <string name="setup_recovery_confirm">Ich habe den Wiederherstellungscode sicher aufbewahrt</string>
-    <string name="setup_resetup_notice">Der Wiederherstellungscode wurde verwendet. Bitte lege jetzt einen neuen Code fest.</string>
+    <string name="setup_re_setup_notice">Der Wiederherstellungscode wurde verwendet. Bitte lege jetzt einen neuen Code fest.</string>
     <string name="setup_recovery_copy">Kopieren</string>
     <string name="setup_recovery_copied">In die Zwischenablage kopiert.</string>
     <string name="recovery_file_content">Lares – Wiederherstellungscode\n\n%1$s\n\nErstellt: %2$s\n\nDieser Code entsperrt Lares einmalig, falls der Guardian-Code verloren geht. Bewahre ihn außerhalb der Reichweite der Person auf, der das Handy gehört.\n</string>
