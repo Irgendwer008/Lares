@@ -3,6 +3,8 @@
 Categories:
   - System
 License: GPL-3.0-or-later
+AuthorName: IRG008
+AuthorWebSite: https://github.com/Irgendwer008
 SourceCode: https://github.com/Irgendwer008/Lares
 IssueTracker: https://github.com/Irgendwer008/Lares/issues
 Changelog: https://github.com/Irgendwer008/Lares/tree/master/fastlane/metadata/android/en-US/changelogs
@@ -18,9 +20,9 @@ RepoType: git
 Repo: https://github.com/Irgendwer008/Lares.git
 
 Builds:
-  - versionName: 1.0.0
+  - versionName: '1.0.0'
     versionCode: 10000
-    commit: v1.0.0
+    commit: a9a700f66b584eb70f7367708433d9f08856d289
     subdir: app
     gradle:
       - yes

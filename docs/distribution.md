@@ -34,7 +34,9 @@ only if a store forces divergence – currently none is planned.
   other optional channels depending on the service). Acceptable.
 - Metadata in `fastlane/metadata/android/<locale>/` (also usable for Play) – EN + DE.
 - **Build recipe** for fdroiddata: [`docs/fdroid/de.lares_app.yml`](fdroid/de.lares_app.yml)
-  (builds tag `v<versionName>`, update check by tags reading `appVersion` / `appVersionCode`).
+  (builds the full commit hash of tag `v<versionName>`, update check by tags reading `appVersion`
+  / `appVersionCode`). F-Droid signs with its own key (no developer-signed reproducible builds:
+  the app is distributed via Play with Play App Signing, no separate signed APKs are published).
 - **Reproducible:** two clean release builds (no caches) and a build in another directory give
   byte-identical APKs; the only possible difference is `META-INF/version-control-info.textproto`
   (the git commit, so it matches when built from the same tag). Gradle runs on the installed JDK
