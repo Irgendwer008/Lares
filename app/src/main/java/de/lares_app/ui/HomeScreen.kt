@@ -54,7 +54,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -533,6 +532,7 @@ private fun GroupCardContent(
             HorizontalDivider()
             item.members.forEach { member ->
                 ListItem(
+                    colors = clearListItemColors(),
                     headlineContent = { Text(member.displayName()) },
                     supportingContent = if (member.rule.type == RuleType.WEBSITE && websiteBlocking != WebsiteBlockingState.ON) {
                         { WebsiteWarning(websiteBlocking, inGroup = false) }
@@ -540,7 +540,6 @@ private fun GroupCardContent(
                         null
                     },
                     leadingContent = { RuleIcon(member, size = 32) },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.clickable { onMemberClick(member) },
                 )
             }
@@ -609,6 +608,7 @@ private fun RuleRow(item: RuleItem, websiteBlocking: WebsiteBlockingState, onCli
     val limit = limitLabel(item.rule.limitMinutesPerDay)
     val disabled = stringResource(R.string.rule_disabled)
     ListItem(
+        colors = clearListItemColors(),
         headlineContent = { Text(item.displayName()) },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -629,7 +629,6 @@ private fun RuleRow(item: RuleItem, websiteBlocking: WebsiteBlockingState, onCli
             val name = item.displayName().text
             Switch(checked = item.rule.enabled, onCheckedChange = onToggle, modifier = Modifier.semantics { contentDescription = name })
         },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick),
     )
 }

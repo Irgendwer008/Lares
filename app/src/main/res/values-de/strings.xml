@@ -337,7 +337,8 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Regeln exportieren</string>
-    <string name="backup_export_desc">Speichert oder teilt Regeln und Gruppen als Datei – keine Tokens; den Authenticator-Code nur, wenn unten eingeschaltet (verschlüsselt).</string>
+    <string name="backup_export_desc">Speichert oder teilt Regeln und Gruppen als Datei; den Authenticator-Code nur, wenn unten eingeschaltet (verschlüsselt).</string>
+    <string name="backup_export_desc_no_totp">Speichert oder teilt Regeln und Gruppen als Datei.</string>
     <string name="backup_export_save">Als Datei speichern</string>
     <string name="backup_export_share">Teilen</string>
     <string name="backup_export_empty">Noch keine Regeln zum Exportieren.</string>

@@ -360,7 +360,8 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Export rules</string>
-    <string name="backup_export_desc">Saves or shares rules and groups as a file – no tokens; the authenticator code only if switched on below (encrypted).</string>
+    <string name="backup_export_desc">Saves or shares rules and groups as a file; the authenticator code only if switched on below (encrypted).</string>
+    <string name="backup_export_desc_no_totp">Saves or shares rules and groups as a file.</string>
     <string name="backup_export_save">Save as file</string>
     <string name="backup_export_share">Share</string>
     <string name="backup_export_empty">No rules to export yet.</string>

@@ -9,6 +9,8 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.view.View
+import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.material3.TextButton
@@ -371,3 +373,7 @@ fun TotpRestoreDialog(
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) } },
     )
 }
+
+/** List rows without their own background: they take the color of the screen or card they're on. */
+@Composable
+fun clearListItemColors(): ListItemColors = ListItemDefaults.colors(containerColor = Color.Transparent)

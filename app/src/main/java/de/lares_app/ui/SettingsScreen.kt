@@ -116,6 +116,8 @@ fun SettingsScreen(
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    /** The export text mentions the authenticator code only where the switch for it exists. */
+    val exportDesc = if (ui.totpTransfer == TotpTransferState.NOT_TOTP) R.string.backup_export_desc_no_totp else R.string.backup_export_desc
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -351,7 +353,7 @@ fun SettingsScreen(
             // Greyed out without rules; otherwise save as a file or share (messenger, mail, cloud …).
             SettingsItem(
                 title = stringResource(R.string.backup_export),
-                summary = stringResource(if (hasRules) R.string.backup_export_desc else R.string.backup_export_empty),
+                summary = stringResource(if (hasRules) exportDesc else R.string.backup_export_empty),
                 icon = R.drawable.ic_upload,
                 enabled = hasRules,
                 modifier = Modifier.alpha(if (hasRules) 1f else DISABLED_ALPHA),
@@ -461,7 +463,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showExport = false },
             title = { Text(stringResource(R.string.backup_export)) },
-            text = { Text(stringResource(R.string.backup_export_desc)) },
+            text = { Text(stringResource(exportDesc)) },
             confirmButton = {
                 TextButton(onClick = {
                     showExport = false
@@ -552,6 +554,7 @@ private fun SwitchItem(
     onChange: (Boolean) -> Unit,
 ) {
     ListItem(
+        colors = clearListItemColors(),
         headlineContent = { Text(title) },
         supportingContent = { Text(summary) },
         leadingContent = icon?.let { { SettingsIcon(it) } },
@@ -627,6 +630,7 @@ private fun SettingsItem(
     onClick: () -> Unit,
 ) {
     ListItem(
+        colors = clearListItemColors(),
         headlineContent = { Text(title) },
         supportingContent = { Text(summary) },
         leadingContent = icon?.let { { SettingsIcon(it) } },
@@ -814,6 +818,7 @@ fun LibrariesScreen(onBack: () -> Unit) {
                 val open = author in expanded
                 item(key = "a:$author") {
                     ListItem(
+                        colors = clearListItemColors(),
                         headlineContent = { Text(author, style = MaterialTheme.typography.titleMedium) },
                         supportingContent = { Text(pluralStringResource(R.plurals.libraries_count, libs.size, libs.size)) },
                         trailingContent = {
@@ -834,6 +839,7 @@ fun LibrariesScreen(onBack: () -> Unit) {
                     items(libs, key = { "l:$author:${it.uniqueId}" }) { lib ->
                         val link = lib.scm?.url?.takeIf { it.isNotBlank() } ?: lib.website?.takeIf { it.isNotBlank() }
                         ListItem(
+                            colors = clearListItemColors(),
                             headlineContent = { Text(lib.name) },
                             supportingContent = {
                                 Text(listOfNotNull(lib.artifactVersion, lib.licenses.joinToString { it.spdxId ?: it.name }.ifBlank { null }).joinToString(" · "))

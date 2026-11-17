@@ -356,7 +356,8 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Exporter les règles</string>
-    <string name="backup_export_desc">Enregistre ou partage les règles et les groupes dans un fichier – sans jetons ; le code d’authentification seulement si activé ci-dessous (chiffré).</string>
+    <string name="backup_export_desc">Enregistre ou partage les règles et les groupes dans un fichier ; le code d’authentification seulement si activé ci-dessous (chiffré).</string>
+    <string name="backup_export_desc_no_totp">Enregistre ou partage les règles et les groupes dans un fichier.</string>
     <string name="backup_export_save">Enregistrer comme fichier</string>
     <string name="backup_export_share">Partager</string>
     <string name="backup_export_empty">Pas encore de règles à exporter.</string>

@@ -164,6 +164,7 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
             val sitesText = pluralStringResource(R.plurals.add_rule_template_websites, template.websites.size, template.websites.size)
             val isInstalled = template.apps.any { it in installed }
             ListItem(
+                colors = clearListItemColors(),
                 headlineContent = { Text(template.name) },
                 supportingContent = {
                     Text(
@@ -257,6 +258,7 @@ private fun AppsTab(vm: AddRuleViewModel, inGroup: Boolean) {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(filtered, key = { it.packageName }) { app ->
                     ListItem(
+                        colors = clearListItemColors(),
                         headlineContent = { Text(app.label) },
                         supportingContent = { Text(app.packageName) },
                         leadingContent = { app.icon?.let { Image(it, contentDescription = null, modifier = Modifier.size(40.dp)) } },
