@@ -27,7 +27,7 @@ e.g. a friend or family member – knows.
   webhook): permissions turned off, protection gaps, clock changes, repeated wrong codes.
 - **Countdown and warnings** before a limit runs out; usage bars on the main screen.
 - **Two blocking modes** – Accessibility service (recommended) or usage access + overlay.
-- English and German; Lares colors or your wallpaper colors (Material You).
+- English, German and French; Lares colors or your wallpaper colors (Material You).
 
 ## Privacy
 Lares works entirely on your phone: no account, no analytics, no tracking, no ads. It only asks for

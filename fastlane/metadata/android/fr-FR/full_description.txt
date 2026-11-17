@@ -1,0 +1,28 @@
+Lares t’aide à passer moins de temps sur les réseaux sociaux. Tu choisis les applis et les sites web à bloquer – toujours, ou après une limite de temps quotidienne. Tu peux toujours ajouter des restrictions ; pour les supprimer ou les assouplir, il faut un code que seule une personne de confiance connaît : ton <b>gardien</b>, par exemple un ami ou un membre de ta famille.
+
+<b>Blocage</b>
+• Bloque des applis et des sites toujours ou après une limite quotidienne, avec un écran de blocage clair.
+• Le blocage des sites lit la barre d’adresse des navigateurs pris en charge (Chrome, Firefox, Brave, Edge, Samsung Internet, DuckDuckGo et d’autres) ; les autres navigateurs sont bloqués tant qu’il est activé. Pas de VPN – ton propre VPN continue de fonctionner.
+• Groupes : plusieurs applis et sites partagent une même limite, p. ex. l’appli YouTube, youtube.com et les clients alternatifs.
+• Modèles pour les réseaux sociaux populaires, clients alternatifs compris.
+• Un petit compte à rebours pendant les dernières minutes et des avertissements facultatifs avant la fin d’une limite.
+
+<b>Code du gardien</b>
+• Le gardien définit un mot de passe ou une appli d’authentification (TOTP), ainsi qu’un code de récupération à usage unique.
+• Un code correct déverrouille Lares pendant 10 minutes pour tout modifier ou démarrer une pause.
+• Des codes incorrects répétés entraînent un temps d’attente croissant.
+
+<b>Protection contre le contournement</b>
+• Empêcher la désinstallation (administrateur de l’appareil).
+• Protéger les pages des paramètres système propres à Lares.
+• Prévenir le gardien des tentatives de contournement – via Telegram, ntfy, e-mail, Matrix ou un webhook : autorisations désactivées, interruptions de la protection, heure modifiée, codes incorrects répétés.
+
+<b>Confidentialité</b>
+Lares fonctionne entièrement sur ton téléphone : pas de compte, pas d’analyse, pas de pistage, pas de publicité. Il se connecte à Internet uniquement pour envoyer des notifications au gardien, aux services que tu configures toi-même. Il ne demande que les autorisations dont tes paramètres ont besoin.
+
+<b>Autorisations</b>
+• Service d’accessibilité (mode recommandé) : pour détecter quelle appli est ouverte, lire la barre d’adresse des navigateurs pris en charge et reconnaître les pages des paramètres propres à Lares. Rien d’autre de l’écran n’est lu, et rien n’est enregistré ni envoyé.
+• Accès aux données d’utilisation et « Superposition sur d’autres applis » : le mode alternatif.
+• Administrateur de l’appareil (facultatif) : uniquement pour empêcher la désinstallation de Lares.
+
+Lares est un logiciel libre sous licence GNU GPL v3 ou ultérieure. Français, anglais et allemand.

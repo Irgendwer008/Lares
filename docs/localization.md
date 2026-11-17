@@ -1,6 +1,6 @@
 # Localization
 
-Languages v1: English (default, `values/`) and German (`values-de/`). Docs are English.
+Languages: English (default, `values/`), German (`values-de/`) and French (`values-fr/`); German and French use the informal address (du / tu). Docs are English.
 
 ## Rules
 - **No hardcoded user-visible text** in Kotlin/Compose – always `stringResource(R.string.…)`.

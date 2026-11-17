@@ -1,0 +1,1 @@
+Première version : blocage d’applis et de sites avec limites quotidiennes, groupes et modèles, code du gardien (mot de passe ou TOTP), protection contre le contournement et notifications au gardien.

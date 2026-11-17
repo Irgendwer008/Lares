@@ -13,4 +13,5 @@ package de.lares_app.ui
 val AppLanguages: List<Pair<String, String>> = listOf(
     "en" to "English",
     "de" to "Deutsch",
+    "fr" to "Français",
 )

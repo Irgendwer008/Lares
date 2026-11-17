@@ -32,7 +32,7 @@ only if a store forces divergence – currently none is planned.
   (pinned dependency versions, no build-time timestamps).
 - Likely anti-feature tag: `NonFreeNet` (optional Telegram channel; also possible for the
   other optional channels depending on the service). Acceptable.
-- Metadata in `fastlane/metadata/android/<locale>/` (also usable for Play) – EN + DE.
+- Metadata in `fastlane/metadata/android/<locale>/` (also usable for Play) – EN, DE and FR.
 - **Build recipe** for fdroiddata: [`docs/fdroid/de.lares_app.yml`](fdroid/de.lares_app.yml)
   (builds the full commit hash of tag `v<versionName>`, update check by tags reading `appVersion`
   / `appVersionCode`). F-Droid signs with its own key (no developer-signed reproducible builds:

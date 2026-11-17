@@ -25,4 +25,4 @@ Lares works entirely on your phone: no account, no analytics, no tracking, no ad
 • Usage access and "display over other apps": the alternative blocking mode.
 • Device administrator (optional): only to prevent uninstalling Lares.
 
-Lares is free software under the GNU GPL v3 or later. English and German.
+Lares is free software under the GNU GPL v3 or later. English, German and French.

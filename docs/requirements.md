@@ -92,5 +92,5 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 29. Distributed via **Google Play and F-Droid** → FOSS-only dependencies, no Google Play Services
     (see [Distribution](distribution.md)). License **GPL-3.0-or-later**.
 30. Kotlin + Jetpack Compose, **minSdk 26**.
-31. UI in **English and German**, docs in English; adding languages must be easy
+31. UI in **English, German and French**, docs in English; adding languages must be easy
     (see [Localization](localization.md)).

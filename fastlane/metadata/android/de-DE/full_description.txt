@@ -25,4 +25,4 @@ Lares arbeitet vollständig auf deinem Handy: kein Konto, keine Analyse, kein Tr
 • Nutzungszugriff und „Über anderen Apps einblenden“: der alternative Modus.
 • Geräteadministrator (optional): nur, um das Deinstallieren von Lares zu verhindern.
 
-Lares ist freie Software unter der GNU GPL v3 oder neuer. Deutsch und Englisch.
+Lares ist freie Software unter der GNU GPL v3 oder neuer. Deutsch, Englisch und Französisch.

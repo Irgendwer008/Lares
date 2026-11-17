@@ -5,7 +5,7 @@ are in `fastlane/metadata/android/<locale>/`. Play policies change – check eac
 wording before submitting.
 
 ## Store listing
-- **App name / short / full description:** `fastlane/metadata/android/en-US/` and `de-DE/`.
+- **App name / short / full description:** `fastlane/metadata/android/en-US/`, `de-DE/` and `fr-FR/`.
 - **Category:** Productivity. **Tags:** digital wellbeing, focus.
 - **Graphics:** app icon (512 × 512) and feature graphic (1024 × 500) in
   `fastlane/metadata/android/en-US/images/`, rendered from the logo SVGs with
