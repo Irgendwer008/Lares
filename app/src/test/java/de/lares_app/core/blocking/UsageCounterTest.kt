@@ -35,16 +35,36 @@ class UsageCounterTest {
         assertEquals(40 * min, counter.snapshot.ruleMillis[1L])
     }
 
-    @Test fun warningsFireOncePerThresholdAndPeriod() {
+    @Test fun warningFollowsTheRemainingTime() {
         val warnings = LimitWarnings()
         val both = listOf(FIVE_MINUTES, ONE_MINUTE)
-        assertEquals(emptyList<Long>(), warnings.crossed("a", 6 * 60_000L, both))
-        assertEquals(listOf(FIVE_MINUTES), warnings.crossed("a", FIVE_MINUTES, both))
-        assertEquals(emptyList<Long>(), warnings.crossed("a", 4 * 60_000L, both)) // already sent
-        assertEquals(listOf(ONE_MINUTE), warnings.crossed("a", 59_000L, both))
-        assertEquals(listOf(FIVE_MINUTES, ONE_MINUTE), warnings.crossed("b", 30_000L, both)) // other subject
-        assertEquals(emptyList<Long>(), warnings.crossed("c", 0L, both)) // already blocked, no warning
-        warnings.reset()
-        assertEquals(listOf(FIVE_MINUTES), warnings.crossed("a", FIVE_MINUTES, listOf(FIVE_MINUTES)))
+        val show5 = LimitWarnings.Change.Show(FIVE_MINUTES)
+        val show1 = LimitWarnings.Change.Show(ONE_MINUTE)
+        assertEquals(null, warnings.update("a", 6 * 60_000L, both))
+        assertEquals(show5, warnings.update("a", FIVE_MINUTES, both))
+        assertEquals(null, warnings.update("a", 4 * 60_000L, both)) // already shown
+        assertEquals(show1, warnings.update("a", 59_000L, both))
+        // Limit raised: 30 s → 2 min left goes back to the 5-minute warning …
+        assertEquals(show5, warnings.update("a", 2 * 60_000L, both))
+        // … and above 5 minutes the warning disappears; it fires again when time runs low.
+        assertEquals(LimitWarnings.Change.Remove, warnings.update("a", 10 * 60_000L, both))
+        assertEquals(show5, warnings.update("a", 4 * 60_000L, both))
+        assertEquals(show1, warnings.update("b", 30_000L, both)) // other subject: straight to 1 min
+        assertEquals(null, warnings.update("c", 0L, both)) // already used up: nothing to show
+        // Warnings switched off: a shown one is removed.
+        assertEquals(LimitWarnings.Change.Remove, warnings.update("b", 30_000L, emptyList()))
+        assertEquals(setOf("a"), warnings.reset())
+        assertEquals(show5, warnings.update("a", FIVE_MINUTES, listOf(FIVE_MINUTES)))
+    }
+
+    @Test fun warningsOfLimitsNoLongerEvaluatedAreRemoved() {
+        val warnings = LimitWarnings()
+        val both = listOf(FIVE_MINUTES, ONE_MINUTE)
+        warnings.update("a", 30_000L, both)
+        warnings.update("b", 4 * 60_000L, both)
+        // A pause started / app "b" closed: only "a" is still evaluated with time left.
+        assertEquals(setOf("b"), warnings.removeAllExcept(setOf("a")))
+        assertEquals(emptySet<String>(), warnings.removeAllExcept(setOf("a")))
+        assertEquals(LimitWarnings.Change.Show(FIVE_MINUTES), warnings.update("b", 4 * 60_000L, both)) // fires again
     }
 }

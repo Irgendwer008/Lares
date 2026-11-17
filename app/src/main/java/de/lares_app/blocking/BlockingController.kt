@@ -55,17 +55,29 @@ data class BlockInfo(
 )
 
 /**
+ * One countdown pill: the app whose limit is running out (for a website the browser) – its icon
+ * is shown in front of the time.
+ */
+data class TimerItem(val packageName: String, val remainingMillis: Long)
+
+/**
  * Effects the controller asks its host to perform: the accessibility service (Accessibility mode)
  * or [UsageMonitorService] (Usage access mode).
  */
 interface BlockingHost {
     fun showBlockScreen(info: BlockInfo)
 
-    /** Countdown overlay: [remainingMillis] = null hides it. */
-    fun showTimer(remainingMillis: Long?)
+    /** Countdown pills, one per limit running out (stacked downward); empty = none. */
+    fun showTimers(items: List<TimerItem>)
 
     /** Go to the home screen after [delayMillis] (lets another app's activity start first). */
     fun goHome(delayMillis: Long)
+
+    /**
+     * Brings [packageName] back to the front (out of picture-in-picture / the other half of a split
+     * screen), so the normal block screen can cover it. @return false if that's not possible.
+     */
+    fun bringToFront(packageName: String): Boolean = false
 }
 
 /**
@@ -125,6 +137,12 @@ class BlockingController(
 
     @Volatile private var foreground: String? = null
 
+    /** All apps with a visible window (picture-in-picture, split screen) – Accessibility mode only. */
+    @Volatile private var visibleApps: Set<String> = emptySet()
+    private val lastBroughtToFront = HashMap<String, Long>()
+    private val bringToFrontTries = HashMap<String, Int>()
+    private val ownPackage: String = exemptApps.ownPackage
+
     /** URL of the last blocked page (browser, URL), and an ignored URL while the neutral page loads. */
     @Volatile private var blockedUrl: Pair<String, String>? = null
 
@@ -153,7 +171,7 @@ class BlockingController(
     /** The host of [mode] stopped. */
     @Synchronized
     fun detach(mode: BlockingMode) {
-        hosts.remove(mode)?.showTimer(null)
+        hosts.remove(mode)?.showTimers(emptyList())
         if (hosts.isEmpty()) stop()
     }
 
@@ -199,6 +217,7 @@ class BlockingController(
         scope = null
         timerHost = null
         foreground = null
+        visibleApps = emptySet()
         protecting = false
     }
 
@@ -208,7 +227,20 @@ class BlockingController(
         if (source != state.settings.blockingMode || packageName == foreground) return
         BlockingLog.d { "foreground: $packageName" }
         foreground = packageName
+        // The window list belongs to the previous screen until the service re-reads it (a moment
+        // later) – otherwise e.g. the app just blocked would count as "visible beside" its own block
+        // screen and be brought back over it.
+        visibleApps = emptySet()
         if (url?.first != packageName) url = null
+        scope?.launch { evaluate(countMillis = 0) }
+    }
+
+    /** Apps with a visible window right now (from the accessibility service's window list). */
+    fun onVisibleApps(packages: Set<String>) {
+        if (packages == visibleApps) return
+        BlockingLog.d { "visible apps: $packages" }
+        visibleApps = packages
+        bringToFrontTries.keys.retainAll(packages) // apps that went away start counting again
         scope?.launch { evaluate(countMillis = 0) }
     }
 
@@ -216,7 +248,7 @@ class BlockingController(
         screenOn = on
         // The rest on the loop's thread (it owns these fields).
         scope?.launch {
-            if (!on) timerHost?.showTimer(null)
+            if (!on) timerHost?.showTimers(emptyList())
             lastTickElapsed = clock.elapsedMillis()
             if (protecting) monitor.beat()
         }
@@ -276,7 +308,7 @@ class BlockingController(
         // Cap the step so a stalled timer (device asleep) doesn't count minutes at once.
         val step = (now - lastTickElapsed).coerceIn(0, MAX_STEP_MILLIS)
         lastTickElapsed = now
-        if (usage.refreshPeriod()) warnings.reset()
+        if (usage.refreshPeriod()) warnings.reset().forEach(notifier::cancel)
         evaluate(countMillis = if (screenOn) step else 0)
     }
 
@@ -388,13 +420,13 @@ class BlockingController(
         val st = state
         val host = activeHost
         if (timerHost !== host) {
-            timerHost?.showTimer(null) // mode switched: the old host's countdown goes away
+            timerHost?.showTimers(emptyList()) // mode switched: the old host's countdown goes away
             timerHost = host
         }
         val pkg = foreground ?: return
         val active = st.settings.setupComplete && st.unlock.isSetUp && host != null
         if (!active || !screenOn) {
-            host?.showTimer(null)
+            host?.showTimers(emptyList())
             return
         }
         val snapshot = usage.usage.value ?: run { usage.refreshPeriod(); usage.usage.value } ?: return
@@ -412,18 +444,67 @@ class BlockingController(
         val currentUrl = url?.takeIf { it.first == pkg }?.second
         val decision = PolicyEngine.evaluate(pkg, currentUrl, policy)
         if (countMillis == 0L || decision is Decision.Block) BlockingLog.d { "$pkg → $decision" }
-        when (decision) {
-            is Decision.Block -> {
-                host.showTimer(null)
-                block(host, pkg, decision, snapshot.periodEndMillis)
-            }
-            is Decision.Allow -> {
-                if (countMillis > 0) usage.add(decision, countMillis)
-                val remaining = decision.remainingMillis?.minus(countMillis)
-                host.showTimer(remaining?.takeIf { st.settings.limitTimer && it in 1..LimitWarnings.TIMER_THRESHOLD })
-                if (remaining != null) warn(pkg, decision, remaining)
+        // Other visible apps (picture-in-picture, the other half of a split screen): blocked ones
+        // are brought back to the front (then the normal block screen covers them), allowed ones
+        // count their time too – a video in a PiP window uses up the limit like a full-screen one.
+        // Lares itself in front (block screen, or Lares next to another app in split screen):
+        // nothing is pulled forward over it.
+        val others = if (st.settings.blockingMode == BlockingMode.ACCESSIBILITY && pkg != ownPackage) visibleApps - pkg else emptySet()
+        val otherAllowed = mutableListOf<Pair<String, Decision.Allow>>()
+        for (other in others) {
+            // A browser half in split screen keeps its address bar URL (website rules apply there too).
+            val otherUrl = url?.takeIf { it.first == other }?.second
+            when (val d = PolicyEngine.evaluate(other, otherUrl, policy)) {
+                is Decision.Block -> bringToFront(host, other, d, snapshot.periodEndMillis)
+                is Decision.Allow -> otherAllowed += other to d
             }
         }
+        if (countMillis > 0 && otherAllowed.isNotEmpty()) {
+            // One add for everything visible, so a group shown twice (e.g. app + PiP) counts once.
+            val counted = (otherAllowed.map { it.second } + listOfNotNull(decision as? Decision.Allow))
+            usage.add(
+                Decision.Allow(counted.flatMap { it.countedRuleIds }.toSet(), null, counted.flatMap { it.countedGroupIds }.toSet()),
+                countMillis,
+            )
+        }
+        // Countdowns: the foreground app first, then the other visible apps – one pill per limit
+        // (a group visible twice, e.g. app + PiP, gets one pill).
+        val timers = mutableListOf<TimerItem>()
+        val timerSubjects = mutableSetOf<String>()
+        val warnedSubjects = mutableSetOf<String>()
+        suspend fun countdown(app: String, d: Decision.Allow) {
+            val remaining = d.remainingMillis?.minus(countMillis) ?: return
+            warnedSubjects += LimitWarnings.subjectOf(d)
+            warn(app, d, remaining)
+            if (st.settings.limitTimer && remaining in 1..LimitWarnings.TIMER_THRESHOLD && timerSubjects.add(LimitWarnings.subjectOf(d))) {
+                timers += TimerItem(app, remaining)
+            }
+        }
+        when (decision) {
+            is Decision.Block -> block(host, pkg, decision, snapshot.periodEndMillis)
+            is Decision.Allow -> {
+                if (countMillis > 0 && otherAllowed.isEmpty()) usage.add(decision, countMillis)
+                countdown(pkg, decision)
+            }
+        }
+        for ((app, d) in otherAllowed) countdown(app, d)
+        host.showTimers(timers)
+        // Limits not evaluated any more with time left (app closed, pause started, subject changed):
+        // their warning goes away.
+        warnings.removeAllExcept(warnedSubjects).forEach(notifier::cancel)
+    }
+
+    /** A blocked app is visible next to the foreground app: bring it to the front (debounced). */
+    private suspend fun bringToFront(host: BlockingHost, pkg: String, decision: Decision.Block, periodEndMillis: Long) {
+        val now = clock.elapsedMillis()
+        if ((lastBroughtToFront[pkg] ?: Long.MIN_VALUE / 2) + BLOCK_DEBOUNCE_MILLIS > now) return
+        lastBroughtToFront[pkg] = now
+        // Still visible after several tries (e.g. its PiP lives in its own task) or no launch intent:
+        // show the block screen directly instead of retrying forever.
+        val tries = (bringToFrontTries[pkg] ?: 0) + 1
+        bringToFrontTries[pkg] = tries
+        BlockingLog.d { "blocked app visible beside the foreground app: $pkg (try $tries)" }
+        if (tries > MAX_BRING_TO_FRONT_TRIES || !host.bringToFront(pkg)) block(host, pkg, decision, periodEndMillis)
     }
 
     private suspend fun block(host: BlockingHost, pkg: String, decision: Decision.Block, periodEndMillis: Long) {
@@ -451,14 +532,18 @@ class BlockingController(
             if (settings.warnFiveMinutes) add(LimitWarnings.FIVE_MINUTES)
             if (settings.warnOneMinute) add(LimitWarnings.ONE_MINUTE)
         }
-        if (thresholds.isEmpty()) return
-        val crossed = warnings.crossed(LimitWarnings.subjectOf(decision), remainingMillis, thresholds)
-        crossed.minOrNull()?.let { t ->
-            // What the limit is about: the website (not the browser), the group, or the app.
-            val label = rules.firstOrNull { it.id in decision.countedRuleIds && it.type == RuleType.WEBSITE }?.target
-                ?: decision.countedGroupIds.firstNotNullOfOrNull { groups[it]?.name }
-                ?: catalog.describeOrFallback(pkg).label
-            notifier.warn(label, (t / 60_000L).toInt())
+        val subject = LimitWarnings.subjectOf(decision)
+        // Warnings switched off: still evaluated, so a shown one is removed.
+        when (val change = warnings.update(subject, remainingMillis, thresholds)) {
+            is LimitWarnings.Change.Show -> {
+                // What the limit is about: the website (not the browser), the group, or the app.
+                val label = rules.firstOrNull { it.id in decision.countedRuleIds && it.type == RuleType.WEBSITE }?.target
+                    ?: decision.countedGroupIds.firstNotNullOfOrNull { groups[it]?.name }
+                    ?: catalog.describeOrFallback(pkg).label
+                notifier.warn(subject, label, (change.thresholdMillis / 60_000L).toInt())
+            }
+            LimitWarnings.Change.Remove -> notifier.cancel(subject)
+            null -> Unit
         }
     }
 
@@ -471,6 +556,7 @@ class BlockingController(
         const val HEARTBEAT_TICKS = 60L
         const val PERMISSION_CHECK_TICKS = 30L
         const val SETTINGS_GRACE_MILLIS = 2 * 60_000L
+        const val MAX_BRING_TO_FRONT_TRIES = 3
         const val GRACE_RECHECK_MILLIS = 1_000L
         const val FIXED_TAIL_MILLIS = 30_000L
     }

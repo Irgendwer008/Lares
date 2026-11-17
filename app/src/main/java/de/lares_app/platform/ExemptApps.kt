@@ -22,6 +22,9 @@ import androidx.core.net.toUri
  */
 class ExemptApps(private val context: Context) {
 
+    /** Lares itself. */
+    val ownPackage: String get() = context.packageName
+
     fun packages(): Set<String> = buildSet {
         add(context.packageName)
         addAll(FIXED)

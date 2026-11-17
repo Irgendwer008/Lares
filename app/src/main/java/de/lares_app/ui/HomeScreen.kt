@@ -5,6 +5,9 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
@@ -18,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.aspectRatio
@@ -169,23 +173,42 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val (required, recommended) = setupIssues.partition { it.required }
-            if (required.isNotEmpty()) {
-                item {
-                    SetupIssuesCard(R.string.setup_issues_title, required, MaterialTheme.colorScheme.errorContainer, openIssue, vm::dontKillMyAppUrl)
-                }
-            }
-            if (recommended.isNotEmpty()) {
-                item {
-                    SetupIssuesCard(R.string.setup_recommendations_title, recommended, MaterialTheme.colorScheme.primaryContainer, openIssue, vm::dontKillMyAppUrl)
-                }
-            }
-            item {
-                StatusCard(
-                    session = session,
-                    onUnlock = { showUnlock = true },
-                    onLock = vm::lock,
-                    onPause = { showPause = true },
-                    onEndPause = vm::endPause,
+            // The info boxes: one below the other on phones, side by side on wide screens.
+            item(key = "info-tiles") {
+                InfoTiles(
+                    buildList {
+                        if (required.isNotEmpty()) {
+                            add { m ->
+                                SetupIssuesCard(R.string.setup_issues_title, required, MaterialTheme.colorScheme.errorContainer, openIssue, vm::dontKillMyAppUrl, m)
+                            }
+                        }
+                        if (recommended.isNotEmpty()) {
+                            add { m ->
+                                SetupIssuesCard(R.string.setup_recommendations_title, recommended, MaterialTheme.colorScheme.primaryContainer, openIssue, vm::dontKillMyAppUrl, m)
+                            }
+                        }
+                        if (content.websiteHint) {
+                            add { m ->
+                                WebsiteHintCard(
+                                    unavailable = content.websiteBlocking == WebsiteBlockingState.UNAVAILABLE,
+                                    onEnable = vm::enableWebsiteBlocking,
+                                    onChangeMode = { onOpenSettings(SettingsHighlight.BLOCKING_MODE) },
+                                    onDismiss = vm::dismissWebsiteHint,
+                                    modifier = m,
+                                )
+                            }
+                        }
+                        add { m ->
+                            StatusCard(
+                                session = session,
+                                onUnlock = { showUnlock = true },
+                                onLock = vm::lock,
+                                onPause = { showPause = true },
+                                onEndPause = vm::endPause,
+                                modifier = m,
+                            )
+                        }
+                    },
                 )
             }
             if (content.isEmpty) {
@@ -308,9 +331,10 @@ private fun SetupIssuesCard(
     container: Color,
     onFix: (SetupIssue) -> Unit,
     dontKillMyAppUrl: () -> String,
+    modifier: Modifier = Modifier,
 ) {
     val uri = LocalUriHandler.current
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = container)) {
+    Card(modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = container)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
             issues.forEach { issue ->
@@ -348,8 +372,9 @@ private fun StatusCard(
     onLock: () -> Unit,
     onPause: () -> Unit,
     onEndPause: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         session.unlockedRemainingMillis?.let { remaining ->
             SessionCard(
                 title = stringResource(R.string.home_status_unlocked_title),
@@ -360,6 +385,8 @@ private fun StatusCard(
                 container = MaterialTheme.colorScheme.secondaryContainer,
                 secondaryAction = if (session.pauseRemainingMillis == null) stringResource(R.string.home_pause) else null,
                 onSecondaryAction = onPause,
+                // The last card fills the rest of the tile (same height as its neighbours on wide screens).
+                modifier = if (session.pauseRemainingMillis == null) Modifier.weight(1f) else Modifier,
             )
         }
         session.pauseRemainingMillis?.let { remaining ->
@@ -370,10 +397,11 @@ private fun StatusCard(
                 action = stringResource(R.string.home_end_pause),
                 onAction = onEndPause,
                 container = MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = if (session.isUnlocked) Modifier.weight(1f) else Modifier, // last card while unlocked
             )
         }
         if (!session.isUnlocked) {
-            Card(Modifier.fillMaxWidth()) {
+            Card(Modifier.fillMaxWidth().weight(1f)) { // always the last card
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(painterResource(R.drawable.ic_lock), contentDescription = null)
@@ -395,10 +423,11 @@ private fun SessionCard(
     action: String,
     onAction: () -> Unit,
     container: Color,
+    modifier: Modifier = Modifier,
     secondaryAction: String? = null,
     onSecondaryAction: () -> Unit = {},
 ) {
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = container)) {
+    Card(modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = container)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             body?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
@@ -530,7 +559,7 @@ private fun GroupDialog(initial: RuleGroup, onSave: (String, Int?) -> Unit, onDe
     val limit = rememberLimitState(initial.limitMinutesPerDay)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.group_edit_title)) },
+        title = { Text(stringResource(R.string.group_edit)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -756,6 +785,58 @@ private fun EmptyState() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Info boxes as tiles: one column on phones, 2 from 600 dp width (tablets, landscape, unfolded
+ * foldables), 3 from 1200 dp. Tiles in a row get equal width and height; a short last row keeps
+ * the tile width instead of stretching.
+ */
+@Composable
+private fun InfoTiles(tiles: List<@Composable (Modifier) -> Unit>) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val columns = when {
+            maxWidth >= 1200.dp -> 3
+            maxWidth >= 600.dp -> 2
+            else -> 1
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            tiles.chunked(columns).forEach { row ->
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { tile -> tile(Modifier.weight(1f).fillMaxHeight()) }
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
+/** Info box: website blocking is off (or unavailable in Usage access mode) – can be dismissed. */
+@Composable
+private fun WebsiteHintCard(
+    unavailable: Boolean,
+    onEnable: () -> Unit,
+    onChangeMode: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.website_hint_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(if (unavailable) R.string.website_hint_body_unavailable else R.string.website_hint_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (unavailable) {
+                    CardOutlinedButton(onClick = onChangeMode) { Text(stringResource(R.string.website_blocking_change_mode)) }
+                } else {
+                    CardOutlinedButton(onClick = onEnable) { Text(stringResource(R.string.website_hint_turn_on)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.website_hint_dismiss)) }
+            }
+        }
     }
 }
 

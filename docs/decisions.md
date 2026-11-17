@@ -14,6 +14,7 @@ updated in place.
 | Taking a member out of a group is loosening (unless its own limit is stricter); deleting a group deletes its members | Leaving ends the time sharing; keeps the model simple |
 | Templates for popular social apps incl. alternative clients (NewPipe, ReVanced, LibreTube …), optionally as a group | One-tap setup; alternative clients would otherwise be an easy bypass |
 | Backup: export rules and groups (no secrets, no usage data); import only adds | Device change without re-entering everything; add-only import never loosens, so it needs no code |
+| TOTP can move to a new phone in the export, encrypted with the recovery code; passwords don't move | Same authenticator app on the new phone without a readable secret in the file (100-bit key only the guardian has); a password is simply typed again |
 
 ## Guardian code & unlocking
 | Decision | Reason |
@@ -84,4 +85,4 @@ updated in place.
 | Android backup and device-to-device transfer disabled | Keystore-bound secrets can't be restored elsewhere; rules move via the explicit export |
 | App bundle not split by language | In-app language switch and guardian messages in another language need all languages; Play Core isn't FOSS |
 | Whole-app R8 optimization in release builds | Partial optimization scopes broke Kotlin's package-private classes |
-| Pre-release: no DB migrations or compatibility code; schema changed in place | No released version, no user data to keep; migrations start with the first release |
+| Released (1.0.0): stored data keeps working across updates – only additive app-state fields; Room migrations from its first schema change | Users have real rules and guardian setups that an update must never break |

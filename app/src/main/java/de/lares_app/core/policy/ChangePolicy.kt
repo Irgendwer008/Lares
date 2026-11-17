@@ -24,6 +24,14 @@ object ChangePolicy {
     /** Strictness of an enabled rule: always-on is as strict as a 0 minute limit. */
     private fun allowedMinutes(rule: Rule): Int = rule.limitMinutesPerDay ?: 0
 
+    /** [broader] blocks at least everything [narrower] blocks (website rules only). */
+    private fun covers(broader: Rule, narrower: Rule): Boolean {
+        if (broader.type != RuleType.WEBSITE || narrower.type != RuleType.WEBSITE) return false
+        val b = UrlMatcher.normalizeRule(broader.target) ?: return false
+        val n = UrlMatcher.normalizeRule(narrower.target) ?: return false
+        return UrlMatcher.matches(n, b)
+    }
+
     /** @param old null = rule is being added. @param new null = rule is being removed. */
     fun classify(old: Rule?, new: Rule?): ChangeKind {
         val oldActive = old?.takeIf { it.enabled }
@@ -32,7 +40,9 @@ object ChangePolicy {
             oldActive == null && newActive == null -> ChangeKind.NONE
             oldActive == null -> ChangeKind.TIGHTENING
             newActive == null -> ChangeKind.LOOSENING
-            oldActive.key != newActive.key -> ChangeKind.LOOSENING // retargeting removes the old restriction
+            // Retargeting removes the old restriction – unless the new website rule still covers
+            // everything the old one blocked (e.g. youtube.com/shorts → youtube.com).
+            oldActive.key != newActive.key && !covers(newActive, oldActive) -> ChangeKind.LOOSENING
             else -> {
                 val before = allowedMinutes(oldActive)
                 val after = allowedMinutes(newActive)

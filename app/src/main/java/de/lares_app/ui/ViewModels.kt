@@ -12,6 +12,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.lares_app.R
 import de.lares_app.ui.theme.wallpaperColorsAvailable
 import de.lares_app.blocking.BlockingController
 import de.lares_app.core.alerts.AlertChannelConfig
@@ -42,6 +43,8 @@ import de.lares_app.core.policy.UrlMatcher
 import de.lares_app.core.time.Clock
 import de.lares_app.core.unlock.TotpSetup
 import de.lares_app.core.unlock.UnlockManager
+import de.lares_app.core.unlock.RestoreResult
+import de.lares_app.core.unlock.TotpTransfer
 import de.lares_app.core.unlock.VerifyResult
 import de.lares_app.platform.AlertMessages
 import de.lares_app.platform.AppCatalog
@@ -123,12 +126,46 @@ sealed interface SetupStep {
 
 enum class PasswordError { TOO_SHORT, MISMATCH }
 
+data class SetupProtections(val websiteBlocking: Boolean = false, val protections: Set<Protection> = emptySet())
+
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val unlock: UnlockManager,
     private val settings: SettingsRepository,
+    private val rules: RuleRepository,
     store: StateStore,
 ) : ViewModel() {
+    /** Message after "Restore from export" (string resource), shown on the code page. */
+    private val _restoreMessage = MutableStateFlow<Int?>(null)
+    val restoreMessage: StateFlow<Int?> = _restoreMessage.asStateFlow()
+
+    /**
+     * First setup, "Restore from export": imports the file's rules (adding only) and returns its
+     * authenticator package, if any – then the guardian enters the old phone's recovery code.
+     */
+    suspend fun importForRestore(text: String?): String? {
+        val backup = text?.let { runCatching { BackupCodec.decode(it) }.getOrNull() }
+        if (backup == null) {
+            _restoreMessage.value = R.string.setup_restore_failed
+            return null
+        }
+        runCatching { rules.importBackup(backup) }
+        val pkg = backup.guardianTotp?.takeIf(TotpTransfer::isPackage)
+        _restoreMessage.value = if (pkg == null) R.string.setup_restore_no_totp else null
+        return pkg
+    }
+
+    suspend fun restoreTotp(sealed: String, recoveryCode: String): RestoreResult? =
+        runCatching { unlock.restoreTotp(sealed, recoveryCode) }.getOrNull()
+
+    /** Recovery code dialog cancelled: the rules are already in – say so. */
+    fun restoreCancelled() {
+        _restoreMessage.value = R.string.setup_restore_cancelled
+    }
+
+    /** Restored: the guardian already has the recovery code, so the setup is complete. */
+    fun finishRestore() = finish()
+
     /** Colors, chosen on the first screen (before handing the phone to the guardian). */
     private val settingsState = store.state.map { it.settings }
 
@@ -179,15 +216,28 @@ class SetupViewModel @Inject constructor(
     /** Chosen blocking mode (null = not yet), to mark the current choice. */
     val blockingMode: StateFlow<BlockingMode?> = settingsState.map { it.blockingMode }.stateIn(viewModelScope, WhileSubscribed, null)
 
-    /** Choosing the mode during the first setup is free (nothing is protected yet). */
+    /** Website blocking and protections, switchable on the blocking-mode page. */
+    val protections: StateFlow<SetupProtections> = settingsState.map { SetupProtections(it.websiteBlocking, it.protections) }
+        .stateIn(viewModelScope, WhileSubscribed, SetupProtections())
+
+    /**
+     * Choosing the mode and the protections during the first setup is free (nothing is protected
+     * until the setup is complete).
+     */
     fun chooseBlockingMode(mode: BlockingMode) {
-        viewModelScope.launch {
-            runCatching { settings.setBlockingMode(mode) } // a code set meanwhile: keep the earlier choice
-            if (_step.value == SetupStep.BlockingMode) _step.value = SetupStep.ChooseMethod
-        }
+        viewModelScope.launch { runCatching { settings.setBlockingMode(mode) } }
     }
 
-    fun skipBlockingMode() {
+    fun setWebsiteBlocking(enabled: Boolean) {
+        viewModelScope.launch { runCatching { settings.setWebsiteBlocking(enabled) } }
+    }
+
+    fun setProtection(protection: Protection, enabled: Boolean) {
+        viewModelScope.launch { runCatching { settings.setProtection(protection, enabled) } }
+    }
+
+    /** Mode and protections done (a mode can also be chosen later in the settings). */
+    fun continueFromMode() {
         if (_step.value == SetupStep.BlockingMode) _step.value = SetupStep.ChooseMethod
     }
 
@@ -292,6 +342,8 @@ data class HomeContent(
     val standalone: List<RuleItem> = emptyList(),
     /** Website rules only take effect while ON – the list warns otherwise. */
     val websiteBlocking: WebsiteBlockingState = WebsiteBlockingState.ON,
+    /** Show the info box "website blocking is off" (not ON and not dismissed). */
+    val websiteHint: Boolean = false,
 ) {
     val isEmpty: Boolean get() = groups.isEmpty() && standalone.isEmpty()
 }
@@ -314,6 +366,7 @@ class HomeViewModel @Inject constructor(
     private val permissions: PermissionStatus,
     private val usage: UsageRepository,
     private val blocking: BlockingController,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
     private val permissionRefresh = MutableStateFlow(0)
 
@@ -341,6 +394,15 @@ class HomeViewModel @Inject constructor(
 
     fun dontKillMyAppUrl() = permissions.dontKillMyAppUrl()
 
+    /** Turning website blocking on is tightening – no code. */
+    fun enableWebsiteBlocking() {
+        viewModelScope.launch { runCatching { settings.setWebsiteBlocking(true) } }
+    }
+
+    fun dismissWebsiteHint() {
+        viewModelScope.launch { settings.dismissWebsiteHint() }
+    }
+
     init {
         viewModelScope.launch { usage.refreshPeriod() } // load today's usage even before blocking runs
     }
@@ -361,6 +423,8 @@ class HomeViewModel @Inject constructor(
                 .map { g -> GroupItem(g, items.filter { it.rule.groupId == g.id }.sortedWith(RuleOrder), used?.groupMillis?.get(g.id) ?: 0) },
             standalone = items.filter { it.rule.groupId == null || it.rule.groupId !in groupIds }.sortedWith(RuleOrder),
             websiteBlocking = WebsiteBlockingState.of(state.settings),
+            websiteHint = state.settings.setupComplete && !state.settings.websiteHintDismissed &&
+                WebsiteBlockingState.of(state.settings) != WebsiteBlockingState.ON,
         )
     }.stateIn(viewModelScope, WhileSubscribed, HomeContent())
 
@@ -562,7 +626,19 @@ data class SettingsUi(
     val warnFiveMinutes: Boolean = false,
     val warnOneMinute: Boolean = false,
     val theme: AppTheme = AppTheme.LARES,
+    val totpTransfer: TotpTransferState = TotpTransferState.NOT_TOTP,
+    val exportIncludesTotp: Boolean = true,
 )
+
+/** Can the authenticator code go into the rules export? */
+enum class TotpTransferState {
+    /** Password (just type it again on the new phone). */
+    NOT_TOTP,
+
+    /** TOTP set up before this existed – change the code once to create the package. */
+    UNAVAILABLE,
+    AVAILABLE,
+}
 
 sealed interface SettingsEvent {
     data object NeedsCode : SettingsEvent
@@ -574,12 +650,13 @@ sealed interface SettingsEvent {
 
     data class Exported(val ok: Boolean) : SettingsEvent
 
-    data class Imported(val result: ImportResult?) : SettingsEvent
+    /** @param totpPackage the file also contains an authenticator code (offered to take over). */
+    data class Imported(val result: ImportResult?, val totpPackage: String? = null) : SettingsEvent
 }
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    store: StateStore,
+    private val store: StateStore,
     private val settings: SettingsRepository,
     private val unlock: UnlockManager,
     private val rules: RuleRepository,
@@ -619,6 +696,12 @@ class SettingsViewModel @Inject constructor(
             limitTimer = s.settings.limitTimer,
             warnFiveMinutes = s.settings.warnFiveMinutes,
             warnOneMinute = s.settings.warnOneMinute,
+            totpTransfer = when {
+                s.unlock.method != UnlockMethod.TOTP -> TotpTransferState.NOT_TOTP
+                s.unlock.totpTransfer == null -> TotpTransferState.UNAVAILABLE
+                else -> TotpTransferState.AVAILABLE
+            },
+            exportIncludesTotp = s.settings.exportIncludesTotp,
             theme = s.settings.theme,
         )
     }.stateIn(viewModelScope, WhileSubscribed, SettingsUi())
@@ -665,20 +748,53 @@ class SettingsViewModel @Inject constructor(
         if (!fiveMinutes && !oneMinute) notifier.returnPermission()
     }
 
-    /** Writes the rules file (JSON, no secrets) via [write]; returns the file content first. */
+    /** Something to export: at least one rule or group (otherwise the export is greyed out). */
+    val hasRules: StateFlow<Boolean> = combine(rules.rules, rules.groups) { r, g -> r.isNotEmpty() || g.isNotEmpty() }
+        .stateIn(viewModelScope, WhileSubscribed, true) // not greyed out for a moment while loading
+
+    /** Hands the rules file content (JSON, no readable secrets) to [share] (the share sheet). */
+    fun shareExport(share: (String) -> Unit) {
+        viewModelScope.launch {
+            runCatching { share(exportContent()) }.onFailure { _events.tryEmit(SettingsEvent.Exported(false)) }
+        }
+    }
+
+    /** Writes the rules file via [write]. */
     fun export(write: suspend (String) -> Boolean) {
         viewModelScope.launch {
-            val ok = runCatching { write(BackupCodec.encode(rules.exportBackup())) }.getOrDefault(false)
+            val ok = runCatching { write(exportContent()) }.getOrDefault(false)
             _events.tryEmit(SettingsEvent.Exported(ok))
         }
     }
 
+    /** Rules and groups – plus the encrypted authenticator code if it exists and is switched on. */
+    private suspend fun exportContent(): String {
+        val s = store.current()
+        val totp = s.unlock.totpTransfer.takeIf { s.unlock.method == UnlockMethod.TOTP && s.settings.exportIncludesTotp }
+        return BackupCodec.encode(rules.exportBackup().copy(guardianTotp = totp))
+    }
+
+    fun setExportIncludesTotp(enabled: Boolean) = guarded { settings.setExportIncludesTotp(enabled) }
+
     fun import(read: suspend () -> String?) {
         viewModelScope.launch {
-            val result = runCatching { read()?.let { rules.importBackup(BackupCodec.decode(it)) } }.getOrNull()
-            _events.tryEmit(SettingsEvent.Imported(result))
+            val backup = runCatching { read()?.let(BackupCodec::decode) }.getOrNull()
+            val result = backup?.let { runCatching { rules.importBackup(it) }.getOrNull() }
+            // The authenticator code is only offered if the file was imported at all.
+            // Not offered either if it's this phone's own code (same package, e.g. its own export).
+            val pkg = backup?.guardianTotp?.takeIf {
+                result != null && TotpTransfer.isPackage(it) && it != store.current().unlock.totpTransfer
+            }
+            _events.tryEmit(SettingsEvent.Imported(result, pkg))
         }
     }
+
+    /** Taking over another phone's authenticator code replaces the guardian code: only while unlocked. */
+    suspend fun canTakeOverTotp(): Boolean = unlock.canChangeMethod()
+
+    /** @return the result; [RestoreResult.Restored] replaces the guardian code with the file's one. */
+    suspend fun restoreTotp(sealed: String, recoveryCode: String): RestoreResult? =
+        runCatching { unlock.restoreTotp(sealed, recoveryCode) }.getOrNull()
 
     private fun guarded(block: suspend () -> Unit) {
         viewModelScope.launch {

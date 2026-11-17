@@ -58,4 +58,12 @@ class UrlMatcherTest {
         assertTrue(UrlMatcher.matches("https://reddit.com/r/x?u=ftp://y", "reddit.com"))
         assertEquals(null, UrlMatcher.parse("ftp://reddit.com"))
     }
+
+    @Test fun pathSpellingDoesNotEscapeRules() {
+        assertTrue(UrlMatcher.matches("youtube.com//shorts/abc", "youtube.com/shorts"))
+        assertTrue(UrlMatcher.matches("youtube.com/%73horts", "youtube.com/shorts"))
+        assertTrue(UrlMatcher.matches("youtube.com/%53HORTS/x", "youtube.com/shorts"))
+        // Encoded reserved characters keep their meaning (no new path segments).
+        assertFalse(UrlMatcher.matches("youtube.com/shorts%2Fabc", "youtube.com/shorts/abc"))
+    }
 }

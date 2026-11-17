@@ -43,6 +43,7 @@ import de.lares_app.core.policy.BlockReason
 import de.lares_app.core.data.StateStore
 import de.lares_app.ui.theme.LaresTheme
 import de.lares_app.ui.theme.initialTheme
+import java.util.Calendar
 import java.util.Date
 import javax.inject.Inject
 
@@ -66,8 +67,12 @@ class BlockActivity : AppCompatActivity() {
         val website = intent.getBooleanExtra(EXTRA_WEBSITE, false)
         val browser = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
         val resetAt = intent.getLongExtra(EXTRA_RESET_AT, 0L)
-        val resetText = if (resetAt > 0) DateFormat.getTimeFormat(this).format(Date(resetAt)) else ""
-        val theme = initialTheme(store)
+        val resetText = when {
+            resetAt <= 0 -> ""
+            isMidnight(resetAt) -> getString(R.string.block_reset_midnight)
+            else -> DateFormat.getTimeFormat(this).format(Date(resetAt))
+        }
+        val theme = initialTheme(this, store)
         setContent {
             LaresTheme(store, theme) {
                 BlockScreen(
@@ -108,6 +113,10 @@ class BlockActivity : AppCompatActivity() {
         controller.onSafePageOpened(browser, thenHome)
         finish()
     }
+
+    /** The limits restart at 00:00 local time ("at midnight" reads better than "at 00:00" / "12:00 AM"). */
+    private fun isMidnight(millis: Long): Boolean =
+        Calendar.getInstance().apply { timeInMillis = millis }.let { it.get(Calendar.HOUR_OF_DAY) == 0 && it.get(Calendar.MINUTE) == 0 }
 
     private fun goHome() {
         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -183,7 +192,7 @@ private fun BlockScreen(
                 }
             } else {
                 Button(onClick = onClose, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                    Text(stringResource(R.string.block_close))
+                    Text(stringResource(R.string.close))
                 }
             }
             // Opens Lares (e.g. to unlock, start a pause or check the limits) – the code may already

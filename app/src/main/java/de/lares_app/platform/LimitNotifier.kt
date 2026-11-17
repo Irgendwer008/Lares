@@ -30,8 +30,13 @@ class LimitNotifier(private val context: Context) {
         if (needsPermission && hasPermission()) context.revokeSelfPermissionOnKill(Manifest.permission.POST_NOTIFICATIONS)
     }
 
-    /** @param label app name; @param minutes minutes left (5 or 1). */
-    fun warn(label: String, minutes: Int) {
+    /**
+     * @param subject what is counted (one notification per limit, so several limits running out
+     *   at once – e.g. an app in picture-in-picture – each get their own; the 1-minute warning
+     *   replaces the 5-minute one of the same limit)
+     * @param label app name; @param minutes minutes left (5 or 1).
+     */
+    fun warn(subject: String, label: String, minutes: Int) {
         if (!hasPermission()) return
         val manager = context.getSystemService(NotificationManager::class.java)
         if (manager.getNotificationChannel(CHANNEL) == null) {
@@ -47,14 +52,20 @@ class LimitNotifier(private val context: Context) {
             .setTimeoutAfter(minutes * 60_000L)
             .build()
         try {
-            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_TAG, subject.hashCode(), notification)
         } catch (_: SecurityException) {
             // Permission revoked in the meantime.
         }
     }
 
+    /** Removes the warning of [subject] (more time left again, or a new period). */
+    fun cancel(subject: String) {
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_TAG, subject.hashCode())
+    }
+
     private companion object {
         const val CHANNEL = "limit_warnings"
-        const val NOTIFICATION_ID = 1
+        /** Tag keeps these ids apart from the blocking-service notification. */
+        const val NOTIFICATION_TAG = "limit_warning"
     }
 }

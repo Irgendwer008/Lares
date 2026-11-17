@@ -56,22 +56,46 @@ class UsageCounter(initial: UsageSnapshot) {
 }
 
 /**
- * Decides when to send the optional "limit almost reached" warnings: each threshold fires once
- * per period and limit subject, when the remaining time drops to or below it.
+ * Decides which optional "limit almost reached" warning each limit should show: the smallest
+ * enabled threshold the remaining time is at or below. Only changes are reported, so the
+ * notification follows the remaining time – also when it grows again (e.g. a higher limit):
+ * back to the 5-minute warning, or gone above 5 minutes (and the warnings fire again later).
  */
 class LimitWarnings {
-    private val sent = mutableSetOf<Pair<String, Long>>()
+    private val shown = mutableMapOf<String, Long>()
+
+    sealed interface Change {
+        data class Show(val thresholdMillis: Long) : Change
+
+        data object Remove : Change
+    }
 
     /**
      * @param subject identifies what is counted (e.g. the counted rule / group ids).
-     * @param thresholds enabled thresholds in millis (e.g. 5 min, 1 min).
-     * @return the thresholds that were just crossed (usually none or one).
+     * @param thresholds enabled thresholds in millis (e.g. 5 min, 1 min); empty = warnings off.
+     * @return what to do with the subject's notification, or null if nothing changed.
      */
-    fun crossed(subject: String, remainingMillis: Long, thresholds: Collection<Long>): List<Long> =
-        thresholds.filter { t -> remainingMillis in 1..t && sent.add(subject to t) }
+    fun update(subject: String, remainingMillis: Long, thresholds: Collection<Long>): Change? {
+        val wanted = thresholds.filter { remainingMillis in 1..it }.minOrNull()
+        if (wanted == shown[subject]) return null
+        return if (wanted == null) {
+            shown.remove(subject)
+            Change.Remove
+        } else {
+            shown[subject] = wanted
+            Change.Show(wanted)
+        }
+    }
 
-    /** New period: every warning may fire again. */
-    fun reset() = sent.clear()
+    /** Subjects not in [current] lose their warning. @return those that had one (to remove it). */
+    fun removeAllExcept(current: Set<String>): Set<String> {
+        val gone = shown.keys - current
+        gone.forEach(shown::remove)
+        return gone
+    }
+
+    /** New period: forget everything. @return the subjects whose warning was shown (to remove it). */
+    fun reset(): Set<String> = shown.keys.toSet().also { shown.clear() }
 
     companion object {
         const val FIVE_MINUTES = 5 * 60_000L

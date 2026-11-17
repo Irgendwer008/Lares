@@ -117,4 +117,23 @@ class RepositoriesTest {
         assertEquals(LocalDateTime.parse("2026-11-12T00:00").atZone(zone).toInstant().toEpochMilli(), s.pendingResetEffectiveFromMillis)
         assertEquals(LocalTime.MIDNIGHT, s.resetSchedule.resetTime)
     }
+
+    @Test fun cancellingAPendingResetChangeNeedsNoCode() = runTest {
+        clock.wall = LocalDateTime.parse("2026-11-11T21:00").atZone(zone).toInstant().toEpochMilli()
+        unlockApp()
+        settings.setResetTime(LocalTime.of(4, 0))
+        store.update { it.copy(unlock = it.unlock.copy(unlockedSession = null)) } // locked again
+        assertNeedsCode { settings.setResetTime(LocalTime.of(5, 0)) } // another change: loosening
+        settings.setResetTime(LocalTime.MIDNIGHT) // back to the time in effect: free
+        assertEquals(null, store.current().settings.pendingResetMinuteOfDay)
+    }
+
+    @Test fun cancellingAfterTheChangeAppliedNeedsTheCode() = runTest {
+        clock.wall = LocalDateTime.parse("2026-11-11T21:00").atZone(zone).toInstant().toEpochMilli()
+        unlockApp()
+        settings.setResetTime(LocalTime.of(4, 0)) // applies from midnight
+        store.update { it.copy(unlock = it.unlock.copy(unlockedSession = null)) }
+        clock.wall = LocalDateTime.parse("2026-11-12T01:00").atZone(zone).toInstant().toEpochMilli() // transition running
+        assertNeedsCode { settings.setResetTime(LocalTime.MIDNIGHT) }
+    }
 }

@@ -44,8 +44,9 @@
         </intent>
     </queries>
 
-    <!-- allowBackup=false: rules/settings move via the explicit export (no secrets),
-         and Keystore-encrypted secrets can't be restored on another device anyway. -->
+    <!-- allowBackup=false: rules/settings move via the explicit export (no readable secrets; the
+         authenticator code only encrypted with the recovery code), and Keystore-encrypted secrets
+         can't be restored on another device anyway. -->
     <application
         android:name=".LaresApp"
         android:allowBackup="false"

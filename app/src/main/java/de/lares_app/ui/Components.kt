@@ -9,6 +9,10 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.view.View
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.Image
@@ -68,12 +72,14 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import de.lares_app.R
+import de.lares_app.core.unlock.RestoreResult
 import de.lares_app.core.data.AppTheme
 import de.lares_app.core.policy.RuleType
 import kotlin.math.PI
 import kotlin.math.ceil
 import kotlin.math.sin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * App name followed by the package ID in parentheses, smaller and muted, e.g.
@@ -155,7 +161,7 @@ private val LimitStateSaver = listSaver<LimitState, Any>(
 @Composable
 fun LimitSelector(state: LimitState, modifier: Modifier = Modifier) {
     Column(modifier.selectableGroup()) {
-        RadioRow(stringResource(R.string.limit_always), state.alwaysOn) { state.alwaysOn = true }
+        RadioRow(stringResource(R.string.rule_always_blocked), state.alwaysOn) { state.alwaysOn = true }
         RadioRow(stringResource(R.string.limit_daily), !state.alwaysOn) { state.alwaysOn = false }
         if (!state.alwaysOn) {
             OutlinedTextField(
@@ -304,4 +310,64 @@ fun QrCode(content: String, contentDescription: String, modifier: Modifier = Mod
 fun ThemeOptions(selected: AppTheme, onSelect: (AppTheme) -> Unit) {
     RadioRow(stringResource(R.string.theme_lares), selected == AppTheme.LARES) { onSelect(AppTheme.LARES) }
     RadioRow(stringResource(R.string.theme_wallpaper), selected == AppTheme.WALLPAPER) { onSelect(AppTheme.WALLPAPER) }
+}
+
+/**
+ * Asks for the recovery code of another phone to take over its authenticator code from a rules
+ * export (settings import and first setup). [restore] returns the result (null = not allowed).
+ */
+@Composable
+fun TotpRestoreDialog(
+    title: String,
+    body: String,
+    confirm: String,
+    restore: suspend (String) -> RestoreResult?,
+    onDone: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var code by rememberSaveable { mutableStateOf("") }
+    /** Message under the field: wrong recovery code, or not allowed right now (unlocked mode ended). */
+    var error by rememberSaveable { mutableStateOf<Int?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(body)
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = {
+                        code = it
+                        error = null
+                    },
+                    label = { Text(stringResource(R.string.setup_recovery_title)) },
+                    singleLine = true,
+                    isError = error != null,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = code.isNotBlank() && !busy,
+                onClick = {
+                    busy = true
+                    scope.launch {
+                        val result = restore(code)
+                        busy = false
+                        when (result) {
+                            RestoreResult.Restored -> onDone()
+                            null -> error = R.string.backup_totp_not_allowed
+                            else -> error = R.string.backup_totp_wrong
+                        }
+                    }
+                },
+            ) { Text(confirm) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) } },
+    )
 }

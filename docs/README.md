@@ -9,7 +9,7 @@ trusted person (friend, family member – the **guardian**) set up.
 | Page | Content |
 |---|---|
 | [Requirements](requirements.md) | Agreed product requirements (the "what") |
-| [Roadmap](roadmap.md) | Milestones until the first release |
+| [Roadmap](roadmap.md) | Versions: released, in progress, planned, ideas |
 | [Architecture](architecture.md) | Stack, packages, data model, what is implemented (the "how") |
 | [Blocking](blocking.md) | App blocking modes, website blocking, time limits |
 | [Unlock & Security](unlock-and-security.md) | Password / TOTP, recovery, unlocked mode, tighten / loosen policy, tamper protection |
@@ -21,8 +21,8 @@ trusted person (friend, family member – the **guardian**) set up.
 | [Decisions](decisions.md) | Current design decisions and their reasons |
 | [Open Questions](open-questions.md) | Things not decided yet |
 
-The project is **pre-release**: docs describe the current state only, and data formats / the
-database are changed in place (no migrations, no compatibility code) until the first release.
+Lares is **released** (1.0.0 on Google Play): docs describe the current state only, and stored data
+must keep working across updates (see [Architecture](architecture.md), data model).
 
 ## Glossary
 

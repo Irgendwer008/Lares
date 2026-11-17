@@ -14,6 +14,7 @@ import android.os.PowerManager
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import android.view.inputmethod.InputMethodManager
 import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
@@ -64,6 +65,12 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
+        // Window list changes (PiP, split screen) come without a package – handled before the
+        // package check below, which would otherwise drop them.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
+            scheduleWindowsCheck()
+            return
+        }
         val pkg = event.packageName?.toString() ?: return
         // Supported browsers: (re-)read the address bar when their content changes – bundled.
         if (pkg in SupportedBrowsers.packages && controller.readsUrls) scheduleUrlRead(pkg)
@@ -77,6 +84,7 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
             if (controller.guardsSettings()) scheduleSettingsCheck(pkg)
         }
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        scheduleWindowsCheck() // a new screen can also change what else is visible
         // Keyboards, the notification shade, popups and dialogs of other apps also send window
         // changes; only a real app screen (activity) changes the app in use.
         if (pkg in TRANSIENT || pkg in keyboards || !isActivity(pkg, event.className?.toString())) {
@@ -89,6 +97,36 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
     private fun seedForeground(pkg: String) {
         if (pkg in TRANSIENT || pkg in keyboards) return
         controller.onForeground(BlockingMode.ACCESSIBILITY, pkg)
+    }
+
+    private var pendingWindowsCheck = false
+
+    /** The set of windows changed (PiP, split screen, …): report the apps that are visible – bundled. */
+    private fun scheduleWindowsCheck() {
+        if (pendingWindowsCheck) return
+        pendingWindowsCheck = true
+        main.postDelayed({
+            pendingWindowsCheck = false
+            // Only the package of each app window (nothing of its content).
+            val all = windows
+            // Notification shade, quick settings, … in front: the apps below are reported as not
+            // visible, although they are just covered for a moment – keep the last known apps.
+            if (all.any { it.root?.packageName?.toString() in TRANSIENT && (it.isActive || it.isFocused) }) {
+                BlockingLog.d { "windows: system window in front – visible apps unchanged" }
+                main.postDelayed({ scheduleWindowsCheck() }, WINDOWS_RECHECK_MILLIS) // look again once it's gone
+                return@postDelayed
+            }
+            val appWindows = all.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            BlockingLog.d {
+                "windows: " + appWindows.joinToString { w ->
+                    "${w.root?.packageName ?: "?"} (pip=${w.isInPictureInPictureMode})"
+                }
+            }
+            val apps = appWindows.mapNotNull { it.root?.packageName?.toString() }
+                .filterNot { it in TRANSIENT || it in keyboards }
+                .toSet()
+            controller.onVisibleApps(apps)
+        }, URL_READ_DELAY_MILLIS)
     }
 
     private var pendingUrlRead: String? = null
@@ -224,18 +262,25 @@ class LaresAccessibilityService : AccessibilityService(), BlockingHost {
         main.post { startActivity(BlockActivity.intent(this, info)) }
     }
 
+    override fun bringToFront(packageName: String): Boolean {
+        val launch = packageManager.getLaunchIntentForPackage(packageName)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
+        main.post { runCatching { startActivity(launch) } }
+        return true
+    }
+
     override fun goHome(delayMillis: Long) {
         main.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, delayMillis)
     }
 
-    override fun showTimer(remainingMillis: Long?) {
-        main.post { if (remainingMillis == null) timer?.hide() else timer?.show(remainingMillis) }
+    override fun showTimers(items: List<TimerItem>) {
+        main.post { timer?.show(items) }
     }
 
     private companion object {
         val TRANSIENT = setOf("com.android.systemui")
         const val URL_READ_DELAY_MILLIS = 300L
         const val CLICKABLE_PARENT_DEPTH = 4
+        const val WINDOWS_RECHECK_MILLIS = 1_000L
         const val SEED_DELAY_MILLIS = 1_500L
         const val RECHECK_MILLIS = 2_200L
         const val MAX_SETTINGS_NODES = 600

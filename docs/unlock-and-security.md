@@ -14,6 +14,24 @@
   rejected (no replay), and so are codes older than the highest time step seen at any unlock
   attempt (also during a waiting time) – a saved code can't be replayed by setting the clock back.
 
+### Moving the authenticator code to a new phone (TOTP only)
+- While the recovery code is known (TOTP setup), Lares encrypts the TOTP secret with it
+  (`TotpTransfer`: AES-256-GCM, key = SHA-256(salt ‖ recovery code)) and stores the package. The
+  recovery code itself is still never stored.
+- The rules export includes the package if "Include authenticator code" is on (default). Without
+  the recovery code (100 random bits) the file is useless for this.
+- New phone: first setup → "Restore from export" (rules + package) → enter the old recovery code →
+  same TOTP secret and same recovery code, setup complete. On a set-up phone the settings import
+  imports the rules and then asks which guardian code to use: keep the current one (password or
+  authenticator) or switch to the file's authenticator code (needs the recovery code, only while
+  unlocked; when locked, a note says the current code stays). Not asked if the file holds this
+  phone's own package.
+- Passwords aren't moved (only a hash exists; typing the password again is easier). TOTP set up
+  before this existed has no package – change the code once.
+- After a restore both phones share the same recovery code. Changing the guardian code on one phone
+  gives it a new secret and recovery code (separates them). Using the recovery code on a phone
+  removes its package (the code is known to whoever used it); the next TOTP setup creates a new one.
+
 ### Recovery code
 - 20 random characters (Crockford Base32, 100 bits), shown once; can be copied or shared, never
   stored on the phone in plain text. Stored as a salted SHA-256 hash – with 100 random bits a slow
@@ -53,7 +71,8 @@
 | Remove / disable a rule, raise a limit, take a member out of a group, delete a group | Yes |
 | Choose the blocking mode for the first time / switch it later | No / Yes |
 | Switch website blocking or a protection off | Yes |
-| Change the daily reset time (either direction can grant a fresh quota) | Yes |
+| Change the daily reset time (either direction can grant a fresh quota) / cancel a pending change | Yes / No |
+| Broaden a website rule (e.g. `youtube.com/shorts` → `youtube.com`) without raising its limit | No |
 | Add a notification channel / edit or delete one | No / Yes |
 | Change the guardian code | Yes |
 | Export rules / import rules (import only adds) | No / No |

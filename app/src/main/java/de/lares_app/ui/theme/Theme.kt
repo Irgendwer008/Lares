@@ -19,10 +19,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import de.lares_app.platform.SettingsCache
 import de.lares_app.core.data.AppTheme
 import de.lares_app.core.data.StateStore
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -128,8 +130,12 @@ fun previewColorScheme(theme: AppTheme, dark: Boolean = isSystemInDarkTheme()): 
 /** Material You needs Android 12+ – below, the choice isn't offered and the Lares theme is used. */
 val wallpaperColorsAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-/** Current theme choice, read once synchronously so the first frame already has the right colors. */
-fun initialTheme(store: StateStore): AppTheme = runBlocking { store.state.first().settings.theme }
+/**
+ * Current theme choice for the first frame, from [SettingsCache] (no blocking read of the state –
+ * except once right after updating from a version without the mirror).
+ */
+fun initialTheme(context: Context, store: StateStore): AppTheme =
+    SettingsCache.theme(context) { runBlocking { store.state.first().settings.theme } }
 
 /** [LaresTheme] following the theme setting (changes apply right away). */
 @Composable

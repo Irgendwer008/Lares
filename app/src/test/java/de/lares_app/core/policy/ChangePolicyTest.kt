@@ -50,4 +50,14 @@ class ChangePolicyTest {
         assertEquals(LOOSENING, ChangePolicy.classifyResetTime(LocalTime.of(4, 0), LocalTime.MIDNIGHT))
         assertEquals(NONE, ChangePolicy.classifyResetTime(LocalTime.NOON, LocalTime.NOON))
     }
+
+    @Test fun broadeningAWebsiteRuleIsNotLoosening() {
+        val shorts = Rule(1, RuleType.WEBSITE, "youtube.com/shorts", limitMinutesPerDay = null)
+        assertEquals(ChangeKind.NONE, ChangePolicy.classify(shorts, shorts.copy(target = "youtube.com")))
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(shorts.copy(target = "youtube.com"), shorts)) // narrowing
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(shorts, shorts.copy(target = "reddit.com"))) // other site
+        // Broader target, but a higher limit: still loosening.
+        val limited = shorts.copy(limitMinutesPerDay = 10)
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(limited, limited.copy(target = "youtube.com", limitMinutesPerDay = 20)))
+    }
 }

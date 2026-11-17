@@ -1,0 +1,6 @@
+• Image dans l’image & écran partagé : blocage et temps décompté
+• Comptes à rebours multiples avec icônes ; avertissements selon le temps restant
+• Config. : blocage des sites et protections dès le départ. Accueil : avis s’il est inactif
+• Partager les règles – en option avec le code d’authentification, pour un nouvel appareil
+• Moins de changements exigent le code ; règles de sites : aussi « // » et adresses encodées
+• « De nouveau disponible à minuit » ; traduction française

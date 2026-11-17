@@ -6,12 +6,17 @@
 package de.lares_app.ui
 
 import android.app.Activity
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,10 +76,14 @@ import de.lares_app.ui.theme.previewColorScheme
 import de.lares_app.ui.theme.wallpaperColorsAvailable
 import de.lares_app.core.data.AppTheme
 import de.lares_app.core.data.BlockingMode
+import de.lares_app.core.data.Protection
 import de.lares_app.core.unlock.UnlockManager
 import de.lares_app.platform.RecoveryExport
 import java.text.DateFormat
 import java.util.Date
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 /**
@@ -87,6 +96,23 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
     val busy by vm.busy.collectAsStateWithLifecycle()
     val needsCode by vm.needsCode.collectAsStateWithLifecycle()
     var showUnlock by remember { mutableStateOf(false) }
+    var restorePackage by rememberSaveable { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val text = withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            input.readNBytesCompat(MAX_IMPORT_BYTES + 1).takeIf { it.size <= MAX_IMPORT_BYTES }?.decodeToString()
+                        }
+                    }.getOrNull()
+                }
+                vm.importForRestore(text)?.let { restorePackage = it }
+            }
+        }
+    }
     LaunchedEffect(mode) { vm.start(mode) }
     LaunchedEffect(Unit) { vm.done.collect { onDone() } }
     // One page back – the same for the back arrow and the system back gesture. None on the first
@@ -124,9 +150,32 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
                 SetupStep.Intro -> Intro(showWordmark = !wallpaperColorsAvailable, onBack = goBack, onStart = vm::skipIntro)
                 SetupStep.BlockingMode -> {
                     val current by vm.blockingMode.collectAsStateWithLifecycle()
-                    ChooseBlockingMode(current, onBack = goBack, onChoose = vm::chooseBlockingMode, onLater = vm::skipBlockingMode)
+                    val protections by vm.protections.collectAsStateWithLifecycle()
+                    ChooseBlockingMode(
+                        current = current,
+                        protections = protections,
+                        onBack = goBack,
+                        onChoose = vm::chooseBlockingMode,
+                        onWebsiteBlocking = vm::setWebsiteBlocking,
+                        onProtection = vm::setProtection,
+                        onContinue = vm::continueFromMode,
+                    )
                 }
-                SetupStep.ChooseMethod -> ChooseMethod(mode, onPassword = vm::choosePassword, onTotp = vm::chooseTotp, onCancel = onCancel)
+                SetupStep.ChooseMethod -> {
+                    val restoreMessage by vm.restoreMessage.collectAsStateWithLifecycle()
+                    ChooseMethod(
+                        mode,
+                        onPassword = vm::choosePassword,
+                        onTotp = vm::chooseTotp,
+                        onCancel = onCancel,
+                        onRestore = if (mode == SetupMode.FIRST) {
+                            { restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+                        } else {
+                            null
+                        },
+                        restoreMessage = restoreMessage,
+                    )
+                }
                 is SetupStep.Password -> PasswordStep(s.error, busy, onSubmit = vm::submitPassword, onBack = vm::back)
                 is SetupStep.Totp -> TotpStep(s, busy, onConfirm = vm::confirmTotp, onBack = vm::back)
                 is SetupStep.Recovery -> RecoveryStep(s.code, busy, onFinish = vm::finish)
@@ -136,9 +185,25 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
             val ownBackButton = step is SetupStep.Password || step is SetupStep.Totp || step == SetupStep.Intro ||
                 step == SetupStep.BlockingMode || (step == SetupStep.ChooseMethod && mode == SetupMode.CHANGE)
             if (goBack != null && !ownBackButton) {
-                TextButton(onClick = goBack) { Text(stringResource(R.string.setup_back)) }
+                TextButton(onClick = goBack) { Text(stringResource(R.string.back)) }
             }
         }
+    }
+    restorePackage?.let { pkg ->
+        TotpRestoreDialog(
+            title = stringResource(R.string.setup_restore),
+            body = stringResource(R.string.setup_restore_body),
+            confirm = stringResource(R.string.backup_totp_take_over),
+            restore = { code -> vm.restoreTotp(pkg, code) },
+            onDone = {
+                restorePackage = null
+                vm.finishRestore()
+            },
+            onDismiss = {
+                restorePackage = null
+                vm.restoreCancelled()
+            },
+        )
     }
     if (showUnlock) {
         UnlockDialog(onDismiss = { showUnlock = false }, onUnlocked = vm::codeEntered)
@@ -228,14 +293,22 @@ private fun Intro(showWordmark: Boolean, onBack: (() -> Unit)?, onStart: () -> U
 @Composable
 private fun BackAndNext(onBack: (() -> Unit)?, next: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        if (onBack != null) TextButton(onClick = onBack) { Text(stringResource(R.string.setup_back)) } else Spacer(Modifier)
+        if (onBack != null) TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } else Spacer(Modifier)
         next()
     }
 }
 
 /** First setup: the guardian may already choose how Lares detects apps (free now, code later). */
 @Composable
-private fun ChooseBlockingMode(current: BlockingMode?, onBack: (() -> Unit)?, onChoose: (BlockingMode) -> Unit, onLater: () -> Unit) {
+private fun ChooseBlockingMode(
+    current: BlockingMode?,
+    protections: SetupProtections,
+    onBack: (() -> Unit)?,
+    onChoose: (BlockingMode) -> Unit,
+    onWebsiteBlocking: (Boolean) -> Unit,
+    onProtection: (Protection, Boolean) -> Unit,
+    onContinue: () -> Unit,
+) {
     Title(stringResource(R.string.setup_mode_title))
     Text(stringResource(R.string.setup_mode_body))
     MethodCard(
@@ -249,11 +322,54 @@ private fun ChooseBlockingMode(current: BlockingMode?, onBack: (() -> Unit)?, on
         selected = current == BlockingMode.USAGE_STATS,
     ) { onChoose(BlockingMode.USAGE_STATS) }
     Text(stringResource(R.string.blocking_mode_hint), style = MaterialTheme.typography.bodySmall)
-    BackAndNext(onBack) { OutlinedButton(onClick = onLater) { Text(stringResource(R.string.setup_mode_later)) } }
+    // The protections right here, so the guardian doesn't miss them (all free during setup).
+    Text(stringResource(R.string.settings_group_protection), style = MaterialTheme.typography.titleMedium)
+    val websiteAvailable = current != BlockingMode.USAGE_STATS
+    SetupSwitch(
+        title = stringResource(R.string.settings_website_blocking),
+        description = stringResource(
+            if (websiteAvailable) R.string.settings_website_blocking_desc else R.string.settings_website_blocking_unavailable,
+        ),
+        checked = protections.websiteBlocking && websiteAvailable,
+        enabled = websiteAvailable,
+        onChange = onWebsiteBlocking,
+    )
+    listOf(
+        Triple(Protection.UNINSTALL, R.string.protection_uninstall, R.string.protection_uninstall_desc),
+        Triple(Protection.SETTINGS_GUARD, R.string.protection_settings_guard, R.string.protection_settings_guard_desc),
+        Triple(Protection.GUARDIAN_ALERTS, R.string.protection_alerts, R.string.protection_alerts_desc),
+    ).forEach { (protection, title, desc) ->
+        SetupSwitch(stringResource(title), stringResource(desc), protection in protections.protections) { onProtection(protection, it) }
+    }
+    Text(stringResource(R.string.setup_protection_hint), style = MaterialTheme.typography.bodySmall)
+    BackAndNext(onBack) { Button(onClick = onContinue) { Text(stringResource(R.string.setup_continue)) } }
+}
+
+/** A setting with title, description and switch – the whole row toggles (one TalkBack target). */
+@Composable
+private fun SetupSwitch(title: String, description: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(description, style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+    }
 }
 
 @Composable
-private fun ChooseMethod(mode: SetupMode, onPassword: () -> Unit, onTotp: () -> Unit, onCancel: () -> Unit) {
+private fun ChooseMethod(
+    mode: SetupMode,
+    onPassword: () -> Unit,
+    onTotp: () -> Unit,
+    onCancel: () -> Unit,
+    onRestore: (() -> Unit)? = null,
+    restoreMessage: Int? = null,
+) {
     when (mode) {
         SetupMode.RECOVERY -> Text(stringResource(R.string.setup_re_setup_notice), color = MaterialTheme.colorScheme.error)
         SetupMode.CHANGE -> Text(stringResource(R.string.setup_change_notice), color = MaterialTheme.colorScheme.primary)
@@ -263,6 +379,11 @@ private fun ChooseMethod(mode: SetupMode, onPassword: () -> Unit, onTotp: () -> 
     Text(stringResource(R.string.setup_method_body))
     MethodCard(stringResource(R.string.setup_method_password_title), stringResource(R.string.setup_method_password_desc), onClick = onPassword)
     MethodCard(stringResource(R.string.setup_method_totp_title), stringResource(R.string.setup_method_totp_desc), onClick = onTotp)
+    // New phone: take over rules and the authenticator code from an export of the old one.
+    onRestore?.let { restore ->
+        OutlinedButton(onClick = restore, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.setup_restore)) }
+        restoreMessage?.let { Text(stringResource(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
+    }
     if (mode == SetupMode.CHANGE) TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
 }
 
@@ -398,7 +519,7 @@ private fun RecoveryStep(code: String, busy: Boolean, onFinish: () -> Unit) {
 @Composable
 private fun NavButtons(busy: Boolean, onBack: () -> Unit, onNext: () -> Unit, nextLabel: String = stringResource(R.string.setup_continue)) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        TextButton(onClick = onBack, enabled = !busy) { Text(stringResource(R.string.setup_back)) }
+        TextButton(onClick = onBack, enabled = !busy) { Text(stringResource(R.string.back)) }
         ProgressButton(text = nextLabel, busy = busy, onClick = onNext)
     }
 }

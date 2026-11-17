@@ -1,0 +1,6 @@
+• Bild-im-Bild & geteilter Bildschirm: auch dort gesperrt, Zeit zählt mit
+• Mehrere Countdowns mit App-Icons; Warnungen pro App folgen der Restzeit
+• Einrichtung: Websites sperren und Schutz direkt wählbar. Startseite: Hinweis, wenn es aus ist
+• Regeln teilen – optional mit Authenticator-Code fürs neue Handy
+• Weniger Änderungen brauchen den Code; Website-Regeln greifen auch bei „//“ und kodierten Adressen
+• „Wieder verfügbar ab Mitternacht“; Französisch

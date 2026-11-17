@@ -14,6 +14,8 @@ import de.lares_app.platform.AlertDispatcher
 import de.lares_app.platform.ProtectionCheckWorker
 import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.platform.RecoveryExport
+import de.lares_app.platform.SettingsCache
+import de.lares_app.core.data.StateStore
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -23,6 +25,8 @@ class LaresApp : Application() {
     @Inject lateinit var protection: ProtectionMonitor
 
     @Inject lateinit var alerts: AlertDispatcher
+
+    @Inject lateinit var store: StateStore
 
     override fun onCreate() {
         super.onCreate()
@@ -36,5 +40,6 @@ class LaresApp : Application() {
         protection.onProcessStart()
         ProtectionCheckWorker.schedule(this)
         alerts.observe()
+        SettingsCache.follow(this, store)
     }
 }

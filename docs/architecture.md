@@ -24,6 +24,8 @@ Single `app` module:
     current period, a group counts once per tick; carries used time along when a rule changes
     group), `LimitWarnings` (5 / 1 minute warnings), `ForegroundTracker` (foreground app from
     "activity resumed" events, Usage access mode).
+  - `core/unlock`: `TotpTransfer` – TOTP secret sealed with the recovery code (AES-GCM) for
+    moving it to a new phone via the export.
   - `core/protection`: `PermissionWatch`, `GapCheck`, `ClockCheck`, `SettingsGuard` – pure tamper
     rules; `tamperReportable` (set up and locked).
 - `platform` – Android implementations (Room, DataStore, Keystore, clock, app catalog,
@@ -50,9 +52,10 @@ Single `app` module:
 - `AlertChannelConfig(id, type, language, server, address, port, startTls, username, sender,
   secretEncrypted, deliveredUpTo)` – field use per type documented in the class.
 
-Room stays at version 1 and is changed in place until the first release (no migrations, no schema
-export). After a schema change, uninstall the app or clear its data. Before the first release:
-enable `exportSchema`, commit the schema, add migrations from then on.
+Lares is released (1.0.0), so stored data must keep working across updates: the app state (JSON)
+only gets new fields with defaults (no removed / renamed fields or enum values). Room is still at
+version 1 without schema export – before its first schema change, turn on `exportSchema`, record
+the 1.0.0 schema as version 1 and add a migration.
 
 ## Implemented
 
@@ -98,7 +101,8 @@ enable `exportSchema`, commit the schema, add migrations from then on.
 - `DataStoreStateStore`, `KeystoreSecretCipher`, `AndroidClock`, Room stores, `AppCatalog`
   (launchable apps via `<queries>`), `PermissionStatus` (accessibility, usage access, overlay,
   device admin, battery optimization + intents), `NetworkAlertSender` + `SmtpMailer`,
-  `AlertMessages` (texts in the channel's language), `RecoveryExport` (clipboard, share sheet).
+  `AlertMessages` (texts in the channel's language), `RecoveryExport` (clipboard, share sheet – recovery code and rules file),
+  `SettingsCache` (theme and "notify guardian" mirrored for synchronous main-thread reads).
 
 `blocking`
 - `LaresAccessibilityService` – reports the foreground app (`TYPE_WINDOW_STATE_CHANGED` of
@@ -115,8 +119,8 @@ enable `exportSchema`, commit the schema, add migrations from then on.
   chosen mode supplies the foreground app and performs the effects. Active only when setup is
   complete; blocking stays active in unlocked mode.
 - `BlockActivity` – full block screen (reason, reset time, "Close", "Go to Lares").
-- `TimerOverlay` – countdown pill (accessibility overlay, or application overlay in Usage access
-  mode; not touchable).
+- `TimerOverlay` – countdown pills, one per limit running out, with the app icon (accessibility
+  overlay, or application overlay in Usage access mode; not touchable).
 - `LaresDeviceAdminReceiver` – "prevent uninstalling"; warns in the disable dialog and reports
   the deactivation (sent at once, queued as fallback).
 

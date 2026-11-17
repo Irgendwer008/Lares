@@ -175,8 +175,8 @@ class UsageMonitorService : Service(), BlockingHost {
         }, delayMillis)
     }
 
-    override fun showTimer(remainingMillis: Long?) {
-        main.post { if (remainingMillis == null) timer?.hide() else timer?.show(remainingMillis) }
+    override fun showTimers(items: List<TimerItem>) {
+        main.post { timer?.show(items) }
     }
 
     companion object {

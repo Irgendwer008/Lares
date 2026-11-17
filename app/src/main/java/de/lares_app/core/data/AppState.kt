@@ -47,6 +47,10 @@ data class AppSettings(
     val warnOneMinute: Boolean = false,
     /** Asked on the first setup screen; purely cosmetic (no code needed). */
     val theme: AppTheme = AppTheme.LARES,
+    /** Rules export includes the TOTP package (only when the method is TOTP and the package exists). */
+    val exportIncludesTotp: Boolean = true,
+    /** The main-screen hint "website blocking is off" was dismissed (shown again after it's switched on and off). */
+    val websiteHintDismissed: Boolean = false,
 ) {
     /** Website blocking needs the Accessibility service, so it works only in Accessibility mode. */
     val websiteBlockingAvailable: Boolean
@@ -86,6 +90,12 @@ data class UnlockState(
     val totpLastCounter: Long = Long.MIN_VALUE,
     /** Highest TOTP time step seen at any unlock attempt (no replay after setting the clock back). */
     val totpMaxSeenCounter: Long = Long.MIN_VALUE,
+    /**
+     * The TOTP secret encrypted with the recovery code ([de.lares_app.core.unlock.TotpTransfer]),
+     * for moving it to another phone via the rules export. Null for passwords and for TOTP set up
+     * before this existed (change the code once to create it).
+     */
+    val totpTransfer: String? = null,
     val recoveryHash: String? = null,
     /** Set after the recovery code was used: the guardian must set up a new code. */
     val reSetupRequired: Boolean = false,

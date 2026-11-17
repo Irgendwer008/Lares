@@ -20,7 +20,7 @@
     <string name="setup_intro_start">Los geht’s</string>
     <string name="setup_mode_title">Guardian: Modus für App-Sperren wählen</string>
     <string name="setup_mode_body">Wie soll Lares erkennen, welche App geöffnet ist? Du kannst das auch später in den Einstellungen entscheiden.</string>
-    <string name="setup_mode_later">Später entscheiden</string>
+    <string name="setup_protection_hint">Was dafür noch erlaubt werden muss, zeigt Lares danach auf dem Hauptbildschirm. Benachrichtigungskanäle für den Guardian fügst du in den Einstellungen hinzu.</string>
     <string name="setup_method_title">Guardian: Code festlegen</string>
     <string name="setup_method_body">Der Code wird gebraucht, wenn Einschränkungen pausiert oder gelockert werden sollen. Verrate ihn nicht der Person, der das Handy gehört.</string>
     <string name="setup_method_password_title">Passwort</string>
@@ -36,7 +36,6 @@
     </plurals>
     <string name="setup_password_mismatch">Die Passwörter stimmen nicht überein.</string>
     <string name="setup_continue">Weiter</string>
-    <string name="setup_back">Zurück</string>
     <string name="setup_totp_title">Mit der Authenticator-App scannen</string>
     <string name="setup_totp_body">Öffne deine Authenticator-App, füge ein neues Konto hinzu und scanne diesen Code. Gib dann den 6-stelligen Code ein, den die App anzeigt.</string>
     <string name="setup_totp_qr_description">QR-Code für die Authenticator-App</string>
@@ -88,7 +87,6 @@
     <string name="rule_dialog_hint">Lockern (entfernen, deaktivieren, Limit erhöhen) erfordert den Guardian-Code.</string>
     <string name="rule_dialog_save">Speichern</string>
     <string name="rule_dialog_remove">Regel entfernen</string>
-    <string name="limit_always">Immer gesperrt</string>
     <string name="limit_daily">Tägliches Zeitlimit</string>
     <string name="limit_minutes_label">Minuten pro Tag</string>
 
@@ -108,7 +106,6 @@
     <string name="group_empty">Noch keine Apps oder Websites in dieser Gruppe.</string>
     <string name="group_add_member">App oder Website hinzufügen</string>
     <string name="group_edit">Gruppe bearbeiten</string>
-    <string name="group_edit_title">Gruppe bearbeiten</string>
     <string name="group_name_label">Name</string>
     <string name="group_name_hint">z. B. Social Media</string>
     <string name="group_explanation">Alle Apps und Websites einer Gruppe teilen sich dieses Limit – ihre Zeit wird zusammengezählt. Der Schalter aktiviert oder deaktiviert alle gleichzeitig.</string>
@@ -150,6 +147,11 @@
     <string name="rule_website_unavailable">Nicht gesperrt – „Websites sperren“ geht nur im Modus „Bedienungshilfe“</string>
     <string name="group_websites_off">Websites nicht gesperrt – „Websites sperren“ ist aus</string>
     <string name="group_websites_unavailable">Websites nicht gesperrt – „Websites sperren“ geht nur im Modus „Bedienungshilfe“</string>
+    <string name="website_hint_title">„Websites sperren“ ist aus</string>
+    <string name="website_hint_body">Website-Regeln und nicht unterstützte Browser werden nicht gesperrt. Schalte es ein, um auch Websites zu sperren.</string>
+    <string name="website_hint_body_unavailable">Websites sperren funktioniert nur im Modus „Bedienungshilfe“ – Website-Regeln wirken im Moment nicht.</string>
+    <string name="website_hint_turn_on">Einschalten</string>
+    <string name="website_hint_dismiss">Ausblenden</string>
     <string name="website_blocking_off_note">Das Sperren von Websites ist in den Einstellungen ausgeschaltet – Website-Regeln wirken daher noch nicht.</string>
     <string name="website_blocking_unavailable_note">Websites sperren funktioniert nur im Modus „Bedienungshilfe“, daher wirken Website-Regeln im Modus „Nutzungszugriff + Overlay“ nicht.</string>
     <string name="website_blocking_change_mode">Modus für App-Sperren ändern</string>
@@ -204,7 +206,7 @@
     <string name="about_body">Version %1$s\n\nLares sperrt die Apps und Websites, die du auswählst. Einschränkungen hinzufügen geht immer – sie zu lockern erfordert einen Code, den nur dein Guardian kennt.\n\nFreie Software unter der GNU General Public License, Version 3 oder neuer.</string>
     <string name="privacy_title">Datenschutzerklärung</string>
     <string name="privacy_summary">Alles bleibt auf diesem Handy</string>
-    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking, keine Absturzberichte.\n• Es werden keine Daten verkauft. Nichts wird an Dritte weitergegeben – außer an die Benachrichtigungsdienste, die du selbst einrichtest (siehe unten).\n• Deine Regeln, Nutzungszeiten, Einstellungen und ein Protokoll der Schutz-Ereignisse (z. B. „Uhrzeit verstellt“) werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App). Der Wiederherstellungscode wird nur als geschützter Hash gespeichert.\n• Lares schaltet das Android-Autofill aus, damit Passwort-Manager nie anbieten, den Guardian-Code zu speichern.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, ob eine Systemeinstellungsseite oder ein Deinstallationsdialog Lares betrifft (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Die optionale Rolle als Geräteadministrator wird nur genutzt, um das Deinstallieren von Lares zu verhindern.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Ohne eingerichteten Kanal wird nichts gesendet. Eine Nachricht enthält nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; es gilt die Datenschutzerklärung des gewählten Dienstes. Tokens und Passwörter werden verschlüsselt auf dem Handy gespeichert.\n• Manche Links öffnen sich in deinem Browser, der sie lädt: die neutrale Lares-Seite, wenn eine Website gesperrt ist (bei GitHub Pages; es gilt die Datenschutzerklärung von GitHub), Herstellertipps und Seiten der Bibliotheken.\n• Exportierte Regeldateien enthalten nur Regeln und Gruppen – keine Codes, Tokens oder Nutzungsdaten.</string>
+    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking, keine Absturzberichte.\n• Es werden keine Daten verkauft. Nichts wird an Dritte weitergegeben – außer an die Benachrichtigungsdienste, die du selbst einrichtest (siehe unten).\n• Deine Regeln, Nutzungszeiten, Einstellungen und ein Protokoll der Schutz-Ereignisse (z. B. „Uhrzeit verstellt“) werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App) – ein Authenticator-Code zusätzlich verschlüsselt mit dem Wiederherstellungscode, um ihn auf ein neues Handy mitzunehmen. Der Wiederherstellungscode wird nur als geschützter Hash gespeichert.\n• Lares schaltet das Android-Autofill aus, damit Passwort-Manager nie anbieten, den Guardian-Code zu speichern.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, ob eine Systemeinstellungsseite oder ein Deinstallationsdialog Lares betrifft (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Die optionale Rolle als Geräteadministrator wird nur genutzt, um das Deinstallieren von Lares zu verhindern.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Ohne eingerichteten Kanal wird nichts gesendet. Eine Nachricht enthält nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; es gilt die Datenschutzerklärung des gewählten Dienstes. Tokens und Passwörter werden verschlüsselt auf dem Handy gespeichert.\n• Manche Links öffnen sich in deinem Browser, der sie lädt: die neutrale Lares-Seite, wenn eine Website gesperrt ist (bei GitHub Pages; es gilt die Datenschutzerklärung von GitHub), Herstellertipps und Seiten der Bibliotheken.\n• Exportierte Regeldateien enthalten Regeln und Gruppen – keine Tokens oder Nutzungsdaten. Wenn eingeschaltet, enthalten sie auch den Authenticator-Code, verschlüsselt mit dem Wiederherstellungscode (ohne ihn nutzlos); nie das Passwort.</string>
     <string name="license_title">Lizenz</string>
     <string name="license_summary">GNU GPL, Version 3 oder neuer</string>
     <string name="license_body">Lares ist freie Software: Du kannst sie unter den Bedingungen der GNU General Public License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder neueren Version.\n\nLares wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTREIFE oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Details stehen in der GNU General Public License.\n\nRechtsverbindlich ist der englische Originaltext der Lizenz.</string>
@@ -335,15 +337,47 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Regeln exportieren</string>
-    <string name="backup_export_desc">Speichert Regeln und Gruppen als Datei (ohne Codes oder Tokens).</string>
+    <string name="backup_export_desc">Speichert oder teilt Regeln und Gruppen als Datei – keine Tokens; den Authenticator-Code nur, wenn unten eingeschaltet (verschlüsselt).</string>
+    <string name="backup_export_save">Als Datei speichern</string>
+    <string name="backup_export_share">Teilen</string>
+    <string name="backup_export_empty">Noch keine Regeln zum Exportieren.</string>
+    <string name="backup_share_title">Lares-Regeln teilen</string>
+    <string name="backup_include_totp">Authenticator-Code einschließen</string>
+    <string name="backup_include_totp_desc">Die gleiche Authenticator-App funktioniert dann auch auf einem neuen Handy – nach Eingabe des Wiederherstellungscodes dort. Ohne den Wiederherstellungscode ist die Datei dafür nutzlos.</string>
+    <string name="backup_include_totp_unavailable">Ändere den Guardian-Code einmal, damit das verfügbar wird.</string>
+    <string name="backup_totp_choice_title">Welcher Guardian-Code soll gelten?</string>
+    <string name="backup_totp_choice_body">Die Datei enthält auch einen Authenticator-Code von einem anderen Handy. Den aktuellen Guardian-Code dieses Handys behalten (%1$s) oder stattdessen den Authenticator-Code aus der Datei nutzen? Zum Wechseln brauchst du den Wiederherstellungscode des Handys, von dem die Datei stammt.</string>
+    <string name="backup_totp_keep">Aktuellen behalten</string>
+    <string name="backup_totp_use_file">Den aus der Datei</string>
+    <string name="backup_totp_found_title">Authenticator-Code übernehmen?</string>
+    <string name="backup_totp_found_body">Gib den Wiederherstellungscode des Handys ein, von dem die Datei stammt. Das ersetzt den aktuellen Guardian-Code, und der eingegebene Wiederherstellungscode wird zum Wiederherstellungscode dieses Handys.</string>
+    <string name="backup_totp_take_over">Übernehmen</string>
+    <string name="backup_totp_wrong">Dieser Wiederherstellungscode öffnet den Authenticator-Code der Datei nicht.</string>
+    <string name="backup_totp_not_allowed">Entsperre zuerst Lares und versuche es dann erneut.</string>
+    <string name="setup_restore_cancelled">Die Regeln der Datei wurden importiert – richte jetzt bitte einen Code ein.</string>
+    <string name="backup_totp_restored">Authenticator-Code übernommen.</string>
+    <string name="backup_totp_locked">Die Datei enthält auch einen Authenticator-Code. Der aktuelle Guardian-Code bleibt. Um stattdessen den aus der Datei zu nutzen, entsperre Lares und importiere die Datei erneut.</string>
+    <string name="setup_restore">Aus Export wiederherstellen</string>
+    <string name="setup_restore_body">Gib den Wiederherstellungscode des alten Handys ein. Lares übernimmt seine Regeln, und die gleiche Authenticator-App funktioniert hier.</string>
+    <string name="setup_restore_no_totp">Diese Datei enthält keinen Authenticator-Code. Ihre Regeln wurden importiert – richte jetzt bitte einen Code ein.</string>
+    <string name="setup_restore_failed">Diese Datei konnte nicht als Lares-Regeln gelesen werden.</string>
     <string name="backup_import">Regeln importieren</string>
     <string name="backup_import_desc">Fügt Regeln und Gruppen aus einer Datei hinzu. Bestehende Regeln bleiben unverändert.</string>
     <string name="backup_exported">Regeln exportiert.</string>
     <string name="backup_export_failed">Export fehlgeschlagen.</string>
     <string name="backup_import_failed">Diese Datei konnte nicht als Lares-Regeln gelesen werden.</string>
-    <plurals name="backup_imported">
-        <item quantity="one">%1$d Regel und %2$d Gruppe(n) hinzugefügt, %3$d übersprungen.</item>
-        <item quantity="other">%1$d Regeln und %2$d Gruppe(n) hinzugefügt, %3$d übersprungen.</item>
+    <string name="backup_imported">%1$s und %2$s hinzugefügt, %3$s.</string>
+    <plurals name="backup_imported_rules">
+        <item quantity="one">%d Regel</item>
+        <item quantity="other">%d Regeln</item>
+    </plurals>
+    <plurals name="backup_imported_groups">
+        <item quantity="one">%d Gruppe</item>
+        <item quantity="other">%d Gruppen</item>
+    </plurals>
+    <plurals name="backup_imported_skipped">
+        <item quantity="one">%d übersprungen</item>
+        <item quantity="other">%d übersprungen</item>
     </plurals>
 
     <!-- Setup issues -->
@@ -375,6 +409,7 @@
     <string name="block_title">%1$s ist gesperrt</string>
     <string name="block_reason_always">Diese App ist immer gesperrt.</string>
     <string name="block_reason_always_website">Diese Website ist immer gesperrt.</string>
+    <string name="block_reset_midnight">Mitternacht</string>
     <string name="block_reason_limit">Das Tageslimit ist aufgebraucht. Wieder verfügbar ab %1$s.</string>
     <string name="block_reason_browser">Das Sperren von Websites ist eingeschaltet, und dieser Browser wird nicht unterstützt. Verwende einen unterstützten Browser.</string>
     <string name="block_group">Gruppe „%1$s“</string>
@@ -387,10 +422,9 @@
     <string name="device_admin_disable_warning">Dein Guardian wird benachrichtigt.</string>
     <string name="block_stay_in_browser">Im Browser bleiben</string>
     <string name="block_close_browser">Browser schließen</string>
-    <string name="block_close">Schließen</string>
 
     <!-- Limit countdown & warnings -->
-    <string name="timer_overlay_description">noch %1$s</string>
+    <string name="timer_overlay_app_description">%1$s – noch %2$s</string>
     <string name="notification_channel_limits">Limit-Warnungen</string>
     <plurals name="limit_warning_title">
         <item quantity="one">Noch %d Minute</item>

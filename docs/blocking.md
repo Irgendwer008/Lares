@@ -17,6 +17,11 @@ and countdown.
   Screen on / off via broadcasts.
 - On block: the block screen is started directly over the blocked app (own task, so the app is
   paused underneath); "Close" / back go to the home screen. Debounced against relaunching.
+- Picture-in-picture and split screen: the window list (`typeWindowsChanged`,
+  `flagRetrieveInteractiveWindows`; only the package of each app window) reports every visible
+  app. A blocked app visible beside the foreground app is brought back to the front (its launch
+  intent), where the normal block screen covers it; allowed visible apps count their time too
+  (one count per tick, so a group shown twice counts once).
 - Debuggable builds log foreground changes and decisions (Logcat tag `LaresBlocking`).
 - Pros: instant, battery friendly. Cons: user must enable it manually in system settings;
   Google Play requires an Accessibility API declaration and prominent disclosure (shown before
@@ -56,7 +61,9 @@ and countdown.
   Ids can change with browser updates → verify on devices and adjust the table.
 - Read on window-content changes of a supported browser, bundled to one read per 300 ms; only
   while website blocking is on. While the bar is focused (user typing), nothing is evaluated.
-- Matching via `UrlMatcher`: host incl. subdomains, `www.` / scheme ignored, path rules by segment.
+- Matching via `UrlMatcher`: host incl. subdomains, `www.` / scheme ignored, path rules by segment;
+  paths are normalized first (repeated slashes collapsed, percent-encoded unreserved characters
+  decoded), so `youtube.com//shorts` or `/%73horts` don't escape `youtube.com/shorts`.
   Browsers that show only the domain (e.g. Firefox) can't distinguish path rules like
   `youtube.com/shorts` – domain rules work everywhere.
 - On a blocked website: block screen over the browser ("reddit.com is blocked") with "Stay in
@@ -85,7 +92,9 @@ and countdown.
   once even if several members match at the same time (app + website).
 - Time counts once per second while the app is in the foreground and the screen is on (steps are
   capped at 2 s, so a stalled timer never counts minutes at once); not during a pause.
-- Translucent countdown pill, centered at the top, during the last 5 minutes (switchable); optional
+- Translucent countdown pills, centered at the top, during the last 5 minutes (switchable) – one per
+  limit running out (the app in front and apps visible in picture-in-picture / split screen; a group
+  visible twice gets one), stacked downward, each with the icon of its app; optional
   notifications 5 / 1 minute before the end.
 
 ## Block screen
@@ -93,8 +102,8 @@ and countdown.
   restart, "Close" (home screen) and "Go to Lares" (opens the app).
 
 ## Known limits
-- Picture-in-picture and split screen: only the app of the last opened screen counts, so a
-  blocked video can keep playing in a PiP window or the other half of the screen.
+- Picture-in-picture and split screen are only covered in Accessibility mode (Usage access mode
+  only sees the app of the last opened screen).
 - A supported browser whose address bar can't be read (e.g. its view id changed in an update)
   is only subject to app rules until the `SupportedBrowsers` table is updated.
 - Settings apps of other manufacturers (e.g. Samsung's separate accessibility app) may need

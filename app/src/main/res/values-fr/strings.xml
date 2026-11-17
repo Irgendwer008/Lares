@@ -25,7 +25,7 @@
     <string name="setup_intro_start">C’est parti</string>
     <string name="setup_mode_title">Gardien : choisis le mode de blocage</string>
     <string name="setup_mode_body">Comment Lares doit-il détecter quelle appli est ouverte ? Tu peux aussi décider plus tard dans les paramètres.</string>
-    <string name="setup_mode_later">Décider plus tard</string>
+    <string name="setup_protection_hint">Lares affiche ensuite sur l’écran principal ce qui doit encore être autorisé pour cela. Les canaux de notification pour le gardien s’ajoutent dans les paramètres.</string>
     <string name="setup_method_title">Gardien : choisis ton code</string>
     <string name="setup_method_body">Le code est nécessaire chaque fois que des restrictions sont mises en pause ou assouplies. Ne le dis pas à la personne à qui appartient le téléphone.</string>
     <string name="setup_method_password_title">Mot de passe</string>
@@ -42,7 +42,6 @@
     </plurals>
     <string name="setup_password_mismatch">Les mots de passe ne correspondent pas.</string>
     <string name="setup_continue">Continuer</string>
-    <string name="setup_back">Retour</string>
     <string name="setup_totp_title">Scanne avec ton appli d’authentification</string>
     <string name="setup_totp_body">Ouvre ton appli d’authentification, ajoute un nouveau compte et scanne ce code. Saisis ensuite le code à 6 chiffres affiché par l’appli.</string>
     <string name="setup_totp_qr_description">Code QR pour l’appli d’authentification</string>
@@ -95,7 +94,6 @@
     <string name="rule_dialog_hint">Assouplir (supprimer, désactiver, augmenter la limite) nécessite le code du gardien.</string>
     <string name="rule_dialog_save">Enregistrer</string>
     <string name="rule_dialog_remove">Supprimer la règle</string>
-    <string name="limit_always">Toujours bloqué</string>
     <string name="limit_daily">Limite de temps quotidienne</string>
     <string name="limit_minutes_label">Minutes par jour</string>
 
@@ -117,7 +115,6 @@
     <string name="group_empty">Aucune appli ni aucun site dans ce groupe pour l’instant.</string>
     <string name="group_add_member">Ajouter une appli ou un site</string>
     <string name="group_edit">Modifier le groupe</string>
-    <string name="group_edit_title">Modifier le groupe</string>
     <string name="group_name_label">Nom</string>
     <string name="group_name_hint">p. ex. Réseaux sociaux</string>
     <string name="group_explanation">Toutes les applis et tous les sites d’un groupe partagent cette limite – leur temps s’additionne. L’interrupteur les active ou les désactive tous à la fois.</string>
@@ -161,6 +158,11 @@
     <string name="rule_website_unavailable">Non bloqué – le blocage des sites ne fonctionne qu’en mode « Service d’accessibilité »</string>
     <string name="group_websites_off">Sites non bloqués – le blocage des sites est désactivé</string>
     <string name="group_websites_unavailable">Sites non bloqués – le blocage des sites ne fonctionne qu’en mode « Service d’accessibilité »</string>
+    <string name="website_hint_title">Le blocage des sites est désactivé</string>
+    <string name="website_hint_body">Les règles de sites et les navigateurs non pris en charge ne sont pas bloqués. Active-le pour bloquer aussi les sites.</string>
+    <string name="website_hint_body_unavailable">Le blocage des sites ne fonctionne qu’en mode « Service d’accessibilité » – les règles de sites ne s’appliquent pas pour l’instant.</string>
+    <string name="website_hint_turn_on">Activer</string>
+    <string name="website_hint_dismiss">Masquer</string>
     <string name="website_blocking_off_note">Le blocage des sites est désactivé dans les paramètres – les règles de sites ne s’appliquent donc pas encore.</string>
     <string name="website_blocking_unavailable_note">Le blocage des sites ne fonctionne qu’en mode « Service d’accessibilité » – les règles de sites ne s’appliquent donc pas en mode « Accès aux données d’utilisation + superposition ».</string>
     <string name="website_blocking_change_mode">Changer le mode de blocage des applis</string>
@@ -217,7 +219,7 @@
     <string name="about_body">Version %1$s\n\nLares bloque les applis et les sites web que tu choisis. Tu peux toujours ajouter des restrictions – pour les assouplir, il faut un code que seul ton gardien connaît.\n\nLogiciel libre sous licence publique générale GNU, version 3 ou ultérieure.</string>
     <string name="privacy_title">Politique de confidentialité</string>
     <string name="privacy_summary">Tout reste sur ce téléphone</string>
-    <string name="privacy_body">Lares fonctionne entièrement sur ce téléphone.\n\n• Pas de compte, pas d’analyse, pas de publicité, pas de pistage, pas de rapports de plantage.\n• Aucune donnée n’est vendue. Rien n’est partagé avec des tiers – sauf avec les services de notification que tu configures toi-même (voir ci-dessous).\n• Tes règles, tes temps d’utilisation, tes paramètres et un journal des événements de protection (p. ex. « heure modifiée ») sont enregistrés uniquement sur ce téléphone. Ils sont exclus des sauvegardes Android et des transferts entre appareils.\n• Le code du gardien n’est enregistré que sous forme de hachage protégé (mot de passe) ou chiffré avec une clé qui ne quitte jamais ce téléphone (appli d’authentification). Le code de récupération n’est enregistré que sous forme de hachage protégé.\n• Lares désactive le remplissage automatique d’Android, pour que les gestionnaires de mots de passe ne proposent jamais d’enregistrer le code du gardien.\n• Si tu actives le service d’accessibilité ou l’accès aux données d’utilisation, Lares s’en sert uniquement pour détecter quelle appli est ouverte – et, tant que le blocage des sites est activé, l’adresse dans la barre d’adresse des navigateurs pris en charge et, tant que « Protéger les paramètres système » est activé, si une page des paramètres système ou une boîte de dialogue de désinstallation concerne Lares (rien d’autre de l’écran). Ces informations sont traitées sur le téléphone sur le moment, ni enregistrées ni envoyées.\n• Le rôle facultatif d’administrateur de l’appareil sert uniquement à empêcher la désinstallation de Lares.\n• Lares se connecte à Internet uniquement pour envoyer des notifications au gardien – et uniquement aux services configurés dans les paramètres (Telegram, ntfy, e-mail, Matrix ou un webhook). Rien n’est envoyé sans un tel canal. Un message contient uniquement le texte de la notification (p. ex. « la protection a été désactivée »), son heure et le modèle du téléphone ; la politique de confidentialité du service choisi s’applique. Les jetons et mots de passe sont enregistrés chiffrés sur le téléphone.\n• Certains liens s’ouvrent dans ton navigateur, qui les charge : la page neutre de Lares affichée quand un site est bloqué (hébergée sur GitHub Pages ; la politique de confidentialité de GitHub s’applique), les conseils pour les fabricants et les pages des bibliothèques.\n• Les fichiers de règles exportés contiennent uniquement des règles et des groupes – aucun code, jeton ni temps d’utilisation.</string>
+    <string name="privacy_body">Lares fonctionne entièrement sur ce téléphone.\n\n• Pas de compte, pas d’analyse, pas de publicité, pas de pistage, pas de rapports de plantage.\n• Aucune donnée n’est vendue. Rien n’est partagé avec des tiers – sauf avec les services de notification que tu configures toi-même (voir ci-dessous).\n• Tes règles, tes temps d’utilisation, tes paramètres et un journal des événements de protection (p. ex. « heure modifiée ») sont enregistrés uniquement sur ce téléphone. Ils sont exclus des sauvegardes Android et des transferts entre appareils.\n• Le code du gardien n’est enregistré que sous forme de hachage protégé (mot de passe) ou chiffré avec une clé qui ne quitte jamais ce téléphone (appli d’authentification) – un code d’authentification est en plus chiffré avec le code de récupération, pour pouvoir le transférer sur un nouveau téléphone. Le code de récupération n’est enregistré que sous forme de hachage protégé.\n• Lares désactive le remplissage automatique d’Android, pour que les gestionnaires de mots de passe ne proposent jamais d’enregistrer le code du gardien.\n• Si tu actives le service d’accessibilité ou l’accès aux données d’utilisation, Lares s’en sert uniquement pour détecter quelle appli est ouverte – et, tant que le blocage des sites est activé, l’adresse dans la barre d’adresse des navigateurs pris en charge et, tant que « Protéger les paramètres système » est activé, si une page des paramètres système ou une boîte de dialogue de désinstallation concerne Lares (rien d’autre de l’écran). Ces informations sont traitées sur le téléphone sur le moment, ni enregistrées ni envoyées.\n• Le rôle facultatif d’administrateur de l’appareil sert uniquement à empêcher la désinstallation de Lares.\n• Lares se connecte à Internet uniquement pour envoyer des notifications au gardien – et uniquement aux services configurés dans les paramètres (Telegram, ntfy, e-mail, Matrix ou un webhook). Rien n’est envoyé sans un tel canal. Un message contient uniquement le texte de la notification (p. ex. « la protection a été désactivée »), son heure et le modèle du téléphone ; la politique de confidentialité du service choisi s’applique. Les jetons et mots de passe sont enregistrés chiffrés sur le téléphone.\n• Certains liens s’ouvrent dans ton navigateur, qui les charge : la page neutre de Lares affichée quand un site est bloqué (hébergée sur GitHub Pages ; la politique de confidentialité de GitHub s’applique), les conseils pour les fabricants et les pages des bibliothèques.\n• Les fichiers de règles exportés contiennent des règles et des groupes – aucun jeton ni temps d’utilisation. Si l’option est activée, ils contiennent aussi le code d’authentification, chiffré avec le code de récupération (inutilisable sans lui) ; jamais le mot de passe.</string>
     <string name="license_title">Licence</string>
     <string name="license_summary">GNU GPL, version 3 ou ultérieure</string>
     <string name="license_body">Lares est un logiciel libre : tu peux le redistribuer et/ou le modifier selon les termes de la licence publique générale GNU telle que publiée par la Free Software Foundation, soit la version 3 de la licence, soit (à ton choix) toute version ultérieure.\n\nLares est distribué dans l’espoir qu’il sera utile, mais SANS AUCUNE GARANTIE ; sans même la garantie implicite de QUALITÉ MARCHANDE ou d’ADÉQUATION À UN USAGE PARTICULIER. Voir la licence publique générale GNU pour plus de détails.</string>
@@ -354,16 +356,50 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Exporter les règles</string>
-    <string name="backup_export_desc">Enregistre les règles et les groupes dans un fichier (sans codes ni jetons).</string>
+    <string name="backup_export_desc">Enregistre ou partage les règles et les groupes dans un fichier – sans jetons ; le code d’authentification seulement si activé ci-dessous (chiffré).</string>
+    <string name="backup_export_save">Enregistrer comme fichier</string>
+    <string name="backup_export_share">Partager</string>
+    <string name="backup_export_empty">Pas encore de règles à exporter.</string>
+    <string name="backup_share_title">Partager les règles Lares</string>
+    <string name="backup_include_totp">Inclure le code d’authentification</string>
+    <string name="backup_include_totp_desc">La même appli d’authentification fonctionne alors aussi sur un nouveau téléphone – après y avoir saisi le code de récupération. Sans le code de récupération, le fichier est inutilisable pour cela.</string>
+    <string name="backup_include_totp_unavailable">Change une fois le code du gardien pour rendre cela disponible.</string>
+    <string name="backup_totp_choice_title">Quel code du gardien utiliser ?</string>
+    <string name="backup_totp_choice_body">Le fichier contient aussi un code d’authentification d’un autre téléphone. Garder le code du gardien actuel de ce téléphone (%1$s) ou utiliser plutôt le code d’authentification du fichier ? Pour changer, il faut le code de récupération du téléphone d’où vient le fichier.</string>
+    <string name="backup_totp_keep">Garder l’actuel</string>
+    <string name="backup_totp_use_file">Celui du fichier</string>
+    <string name="backup_totp_found_title">Reprendre le code d’authentification ?</string>
+    <string name="backup_totp_found_body">Saisis le code de récupération du téléphone d’où vient le fichier. Cela remplace le code du gardien actuel, et le code de récupération saisi devient celui de ce téléphone.</string>
+    <string name="backup_totp_take_over">Reprendre</string>
+    <string name="backup_totp_wrong">Ce code de récupération n’ouvre pas le code d’authentification du fichier.</string>
+    <string name="backup_totp_not_allowed">Déverrouille d’abord Lares, puis réessaie.</string>
+    <string name="setup_restore_cancelled">Les règles du fichier ont été importées – définis maintenant un code.</string>
+    <string name="backup_totp_restored">Code d’authentification repris.</string>
+    <string name="backup_totp_locked">Le fichier contient aussi un code d’authentification. Le code du gardien actuel reste. Pour utiliser plutôt celui du fichier, déverrouille Lares et importe à nouveau le fichier.</string>
+    <string name="setup_restore">Restaurer depuis un export</string>
+    <string name="setup_restore_body">Saisis le code de récupération de l’ancien téléphone. Lares reprend ses règles, et la même appli d’authentification fonctionne ici.</string>
+    <string name="setup_restore_no_totp">Ce fichier ne contient pas de code d’authentification. Ses règles ont été importées – définis maintenant un code.</string>
+    <string name="setup_restore_failed">Ce fichier n’a pas pu être lu comme des règles Lares.</string>
     <string name="backup_import">Importer des règles</string>
     <string name="backup_import_desc">Ajoute des règles et des groupes depuis un fichier. Les règles existantes restent inchangées.</string>
     <string name="backup_exported">Règles exportées.</string>
     <string name="backup_export_failed">Échec de l’exportation.</string>
     <string name="backup_import_failed">Ce fichier n’a pas pu être lu comme des règles Lares.</string>
-    <plurals name="backup_imported">
-        <item quantity="one">%1$d règle et %2$d groupe(s) ajoutés, %3$d ignorée(s).</item>
-        <item quantity="many">%1$d règles et %2$d groupe(s) ajoutés, %3$d ignorée(s).</item>
-        <item quantity="other">%1$d règles et %2$d groupe(s) ajoutés, %3$d ignorée(s).</item>
+    <string name="backup_imported">%1$s et %2$s ajoutés, %3$s.</string>
+    <plurals name="backup_imported_rules">
+        <item quantity="one">%d règle</item>
+        <item quantity="many">%d règles</item>
+        <item quantity="other">%d règles</item>
+    </plurals>
+    <plurals name="backup_imported_groups">
+        <item quantity="one">%d groupe</item>
+        <item quantity="many">%d groupes</item>
+        <item quantity="other">%d groupes</item>
+    </plurals>
+    <plurals name="backup_imported_skipped">
+        <item quantity="one">%d ignorée</item>
+        <item quantity="many">%d ignorées</item>
+        <item quantity="other">%d ignorées</item>
     </plurals>
 
     <!-- Setup issues on the main screen -->
@@ -395,6 +431,7 @@
     <string name="block_title">%1$s est bloqué</string>
     <string name="block_reason_always">Cette appli est toujours bloquée.</string>
     <string name="block_reason_always_website">Ce site est toujours bloqué.</string>
+    <string name="block_reset_midnight">minuit</string>
     <string name="block_reason_limit">La limite quotidienne est épuisée. De nouveau disponible à %1$s.</string>
     <string name="block_reason_browser">Le blocage des sites est activé et ce navigateur n’est pas pris en charge. Utilise un navigateur pris en charge.</string>
     <string name="block_group">Groupe « %1$s »</string>
@@ -407,10 +444,9 @@
     <string name="device_admin_disable_warning">Ton gardien sera prévenu.</string>
     <string name="block_stay_in_browser">Rester dans le navigateur</string>
     <string name="block_close_browser">Fermer le navigateur</string>
-    <string name="block_close">Fermer</string>
 
     <!-- Limit countdown & warnings -->
-    <string name="timer_overlay_description">Encore %1$s</string>
+    <string name="timer_overlay_app_description">%1$s – encore %2$s</string>
     <string name="notification_channel_limits">Avertissements de limite</string>
     <plurals name="limit_warning_title">
         <item quantity="one">Encore %d minute</item>

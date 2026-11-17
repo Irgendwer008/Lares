@@ -35,7 +35,18 @@ class SettingsRepository(
         if (enabled && !store.current().settings.websiteBlockingAvailable) return // Usage access mode
         val old = store.current().settings.websiteBlocking
         gate.check(ChangePolicy.classifyToggle(old, enabled))
-        store.update { it.copy(settings = it.settings.copy(websiteBlocking = enabled)) }
+        // Switched on: the "website blocking is off" hint may show again if it's switched off later.
+        store.update { it.copy(settings = it.settings.copy(websiteBlocking = enabled, websiteHintDismissed = it.settings.websiteHintDismissed && !enabled)) }
+    }
+
+    /** Whether the rules export includes the encrypted authenticator code (not loosening either way). */
+    suspend fun setExportIncludesTotp(enabled: Boolean) {
+        store.update { it.copy(settings = it.settings.copy(exportIncludesTotp = enabled)) }
+    }
+
+    /** Hides the main-screen hint "website blocking is off" (cosmetic – no code). */
+    suspend fun dismissWebsiteHint() {
+        store.update { it.copy(settings = it.settings.copy(websiteHintDismissed = true)) }
     }
 
     suspend fun setProtection(protection: Protection, enabled: Boolean) {
@@ -66,7 +77,11 @@ class SettingsRepository(
         val settings = store.current().settings
         val now = Instant.ofEpochMilli(clock.wallMillis())
         val schedule = settings.resetSchedule.settle(now, zone())
-        gate.check(ChangePolicy.classifyResetTime(schedule.pending?.resetTime ?: schedule.resetTime, time))
+        // Back to the time that is still in effect = cancelling a pending change: nothing is
+        // loosened (the pending change never applied), so no code is needed.
+        val pending = schedule.pending
+        val cancelsPending = pending != null && now < pending.effectiveFrom && time.withSecond(0).withNano(0) == schedule.resetTime
+        if (!cancelsPending) gate.check(ChangePolicy.classifyResetTime(schedule.pending?.resetTime ?: schedule.resetTime, time))
         val updated = schedule.requestChange(time.withSecond(0).withNano(0), now, zone())
         store.update { it.copy(settings = it.settings.withResetSchedule(updated)) }
     }

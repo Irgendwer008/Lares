@@ -78,8 +78,10 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
     own message language and a test message. See [Notifications](notifications.md).
 
 ## Backup
-27. **Export** rules and groups as a JSON file (no codes, tokens or usage data). **Import adds
-    only** (never removes or loosens), so it needs no code.
+27. **Export** rules and groups as a JSON file – save or share (no tokens or usage data; optionally
+    the authenticator code, encrypted with the recovery code, so the same authenticator app works
+    on a new phone). **Import adds only** (never removes or loosens), so it needs no code; taking
+    over the authenticator code replaces the guardian code (first setup or unlocked).
 
 ## Settings
 28. Settings screen (menu icon on the main screen), split into **App settings** – guardian code,

@@ -1,6 +1,6 @@
 # Privacy Policy – Lares
 
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-17_
 
 Lares works entirely on your phone.
 
@@ -15,8 +15,9 @@ Lares works entirely on your phone.
   stored only on the phone, in the app's private storage.
 - They are excluded from Android cloud backups and device-to-device transfers.
 - The guardian code is stored only as a salted hash (password) or encrypted with an Android
-  Keystore key that never leaves the phone (authenticator app). The recovery code is stored only
-  as a salted hash.
+  Keystore key that never leaves the phone (authenticator app). An authenticator code is
+  additionally stored encrypted with the recovery code, so it can be moved to a new phone with the
+  export. The recovery code is stored only as a salted hash.
 - Lares disables Android autofill, so password managers never offer to save the guardian code.
 
 ## System permissions
@@ -40,4 +41,6 @@ Lares works entirely on your phone.
   without scripts or external resources, hosted on GitHub Pages – GitHub's privacy policy
   applies), manufacturer tips (dontkillmyapp.com) and the pages of the open-source libraries.
 - Channel tokens and email passwords are stored encrypted with an Android Keystore key on the phone.
-- Exported rule files contain rules and groups only – no codes, tokens or usage data.
+- Exported rule files contain rules and groups – no tokens or usage data. If "Include authenticator
+  code" is on, they also contain the authenticator (TOTP) secret, encrypted with the recovery code
+  (useless without it), so the same authenticator app works on a new phone. Never the password.

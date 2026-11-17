@@ -47,9 +47,24 @@ object UrlMatcher {
         val host = normalizeHost(authority) ?: return null
 
         rest = rest.substringBefore('#').substringBefore('?')
-        val path = rest.trimEnd('/').lowercase()
-        return WebAddress(host, path)
+        return WebAddress(host, normalizePath(rest))
     }
+
+    /**
+     * Same path, same spelling: unreserved characters that were percent-encoded are decoded
+     * (`/%73horts` → `/shorts`), repeated slashes collapsed (`//shorts` → `/shorts`), trailing
+     * slash dropped, lower case. Encoded reserved characters (e.g. `%2F`) stay as they are.
+     */
+    private fun normalizePath(raw: String): String {
+        val decoded = PERCENT.replace(raw) { m ->
+            val c = m.groupValues[1].toInt(16).toChar()
+            if (c.isLetterOrDigit() && c.code < 128 || c in "-._~") c.toString() else m.value.uppercase()
+        }
+        return decoded.replace(SLASHES, "/").trimEnd('/').lowercase()
+    }
+
+    private val PERCENT = Regex("%([0-9A-Fa-f]{2})")
+    private val SLASHES = Regex("/{2,}")
 
     /** Normalizes a rule target as entered by the user (same rules as [parse]). */
     fun normalizeRule(target: String): WebAddress? = parse(target)

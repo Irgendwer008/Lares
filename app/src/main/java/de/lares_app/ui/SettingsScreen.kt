@@ -5,9 +5,11 @@
  */
 package de.lares_app.ui
 
+import android.app.Activity
 import android.text.format.DateFormat
 import android.Manifest
 import android.os.Build
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
@@ -76,6 +78,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.Libs
 import de.lares_app.R
+import de.lares_app.core.unlock.RestoreResult
+import de.lares_app.platform.RecoveryExport
 import de.lares_app.ui.theme.wallpaperColorsAvailable
 import de.lares_app.core.data.AppTheme
 import de.lares_app.core.alerts.AlertChannelConfig
@@ -123,6 +127,17 @@ fun SettingsScreen(
     var showTheme by remember { mutableStateOf(false) }
     var highlightScrolled by rememberSaveable { mutableStateOf(false) }
     var showLicense by remember { mutableStateOf(false) }
+    var showExport by rememberSaveable { mutableStateOf(false) }
+    // A shared rules file (cache) is removed when the settings are left (not on rotation).
+    DisposableEffect(Unit) {
+        onDispose { if ((context as? Activity)?.isChangingConfigurations != true) RecoveryExport.deleteSharedFile(context) }
+    }
+    /** The file's authenticator code: first the choice (keep current / use the file's), then the recovery code. */
+    var totpChoice by rememberSaveable { mutableStateOf<String?>(null) }
+    var takeOverTotp by rememberSaveable { mutableStateOf<String?>(null) }
+    var totpLockedNote by rememberSaveable { mutableStateOf(false) }
+    val hasRules by vm.hasRules.collectAsStateWithLifecycle()
+    val shareTitle = stringResource(R.string.backup_share_title)
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
@@ -177,11 +192,21 @@ fun SettingsScreen(
                     if (result == SnackbarResult.ActionPerformed) showUnlock = true
                 }
                 is SettingsEvent.Exported -> snackbar.showSnackbar(if (event.ok) exportedText else exportFailedText)
-                is SettingsEvent.Imported -> snackbar.showSnackbar(
-                    event.result?.let { r ->
-                        res.getQuantityString(R.plurals.backup_imported, r.rulesAdded, r.rulesAdded, r.groupsAdded, r.skipped)
-                    } ?: importFailedText,
-                )
+                is SettingsEvent.Imported -> {
+                    // The file carries an authenticator code: let the guardian choose between the current
+                    // code and the file's one (switching only while unlocked).
+                    event.totpPackage?.let { pkg -> if (vm.canTakeOverTotp()) totpChoice = pkg else totpLockedNote = true }
+                    snackbar.showSnackbar(
+                        event.result?.let { r ->
+                            res.getString(
+                                R.string.backup_imported,
+                                res.getQuantityString(R.plurals.backup_imported_rules, r.rulesAdded, r.rulesAdded),
+                                res.getQuantityString(R.plurals.backup_imported_groups, r.groupsAdded, r.groupsAdded),
+                                res.getQuantityString(R.plurals.backup_imported_skipped, r.skipped, r.skipped),
+                            )
+                        } ?: importFailedText,
+                    )
+                }
             }
         }
     }
@@ -323,8 +348,25 @@ fun SettingsScreen(
             }
 
             SettingsSubheader(stringResource(R.string.settings_group_backup))
-            SettingsItem(stringResource(R.string.backup_export), stringResource(R.string.backup_export_desc), icon = R.drawable.ic_upload) {
-                exportLauncher.launch(backupFileName())
+            // Greyed out without rules; otherwise save as a file or share (messenger, mail, cloud …).
+            SettingsItem(
+                title = stringResource(R.string.backup_export),
+                summary = stringResource(if (hasRules) R.string.backup_export_desc else R.string.backup_export_empty),
+                icon = R.drawable.ic_upload,
+                enabled = hasRules,
+                modifier = Modifier.alpha(if (hasRules) 1f else DISABLED_ALPHA),
+            ) { showExport = true }
+            // Authenticator code in the export (only for TOTP; useless without the recovery code).
+            if (ui.totpTransfer != TotpTransferState.NOT_TOTP) {
+                val available = ui.totpTransfer == TotpTransferState.AVAILABLE
+                SwitchItem(
+                    title = stringResource(R.string.backup_include_totp),
+                    summary = stringResource(if (available) R.string.backup_include_totp_desc else R.string.backup_include_totp_unavailable),
+                    checked = available && ui.exportIncludesTotp,
+                    icon = R.drawable.ic_key,
+                    enabled = available,
+                    onChange = vm::setExportIncludesTotp,
+                )
             }
             SettingsItem(stringResource(R.string.backup_import), stringResource(R.string.backup_import_desc), icon = R.drawable.ic_download) {
                 importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
@@ -379,6 +421,61 @@ fun SettingsScreen(
         )
     }
     if (showLanguage) LanguageDialog(onDismiss = { showLanguage = false })
+    totpChoice?.let { pkg ->
+        val current = stringResource(if (ui.method == UnlockMethod.TOTP) R.string.setup_method_totp_title else R.string.setup_method_password_title)
+        AlertDialog(
+            onDismissRequest = { totpChoice = null },
+            title = { Text(stringResource(R.string.backup_totp_choice_title)) },
+            text = { Text(stringResource(R.string.backup_totp_choice_body, current)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    totpChoice = null
+                    takeOverTotp = pkg
+                }) { Text(stringResource(R.string.backup_totp_use_file)) }
+            },
+            dismissButton = { TextButton(onClick = { totpChoice = null }) { Text(stringResource(R.string.backup_totp_keep)) } },
+        )
+    }
+    takeOverTotp?.let { pkg ->
+        val restoredText = stringResource(R.string.backup_totp_restored)
+        TotpRestoreDialog(
+            title = stringResource(R.string.backup_totp_found_title),
+            body = stringResource(R.string.backup_totp_found_body),
+            confirm = stringResource(R.string.backup_totp_take_over),
+            restore = { code -> vm.restoreTotp(pkg, code) },
+            onDone = {
+                takeOverTotp = null
+                scope.launch { snackbar.showSnackbar(restoredText) }
+            },
+            onDismiss = { takeOverTotp = null },
+        )
+    }
+    if (totpLockedNote) {
+        InfoDialog(
+            title = stringResource(R.string.backup_totp_found_title),
+            text = stringResource(R.string.backup_totp_locked),
+            onDismiss = { totpLockedNote = false },
+        )
+    }
+    if (showExport) {
+        AlertDialog(
+            onDismissRequest = { showExport = false },
+            title = { Text(stringResource(R.string.backup_export)) },
+            text = { Text(stringResource(R.string.backup_export_desc)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExport = false
+                    vm.shareExport { content -> RecoveryExport.shareFile(context, backupFileName(), "application/json", content, shareTitle) }
+                }) { Text(stringResource(R.string.backup_export_share)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showExport = false
+                    exportLauncher.launch(backupFileName())
+                }) { Text(stringResource(R.string.backup_export_save)) }
+            },
+        )
+    }
     if (showTheme) {
         AlertDialog(
             onDismissRequest = { showTheme = false },
@@ -415,10 +512,10 @@ fun SettingsScreen(
     }
 }
 
-private const val MAX_IMPORT_BYTES = 1024 * 1024
+internal const val MAX_IMPORT_BYTES = 1024 * 1024
 
 /** Reads at most [limit] bytes (InputStream.readNBytes needs API 33). */
-private fun InputStream.readNBytesCompat(limit: Int): ByteArray {
+internal fun InputStream.readNBytesCompat(limit: Int): ByteArray {
     val out = ByteArrayOutputStream()
     val buffer = ByteArray(8 * 1024)
     while (out.size() < limit) {

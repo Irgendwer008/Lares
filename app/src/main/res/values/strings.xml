@@ -24,7 +24,7 @@
     <string name="setup_intro_start">Let’s start</string>
     <string name="setup_mode_title">Guardian: choose the blocking mode</string>
     <string name="setup_mode_body">How should Lares detect which app is open? You can also decide later in the settings.</string>
-    <string name="setup_mode_later">Decide later</string>
+    <string name="setup_protection_hint">Lares then shows on the main screen what still has to be allowed for these. Notification channels for the guardian are added in the settings.</string>
     <string name="setup_method_title">Guardian: choose your code</string>
     <string name="setup_method_body">The code is needed whenever restrictions are paused or loosened. Don’t tell it to the phone owner.</string>
     <string name="setup_method_password_title">Password</string>
@@ -40,7 +40,6 @@
     </plurals>
     <string name="setup_password_mismatch">The passwords don’t match.</string>
     <string name="setup_continue">Continue</string>
-    <string name="setup_back">Back</string>
     <string name="setup_totp_title">Scan with your authenticator app</string>
     <string name="setup_totp_body">Open your authenticator app, add a new account and scan this code. Then enter the 6-digit code the app shows.</string>
     <string name="setup_totp_qr_description">QR code for the authenticator app</string>
@@ -95,7 +94,6 @@
     <string name="rule_dialog_hint">Loosening (removing, deactivating, raising the limit) needs the guardian code.</string>
     <string name="rule_dialog_save">Save</string>
     <string name="rule_dialog_remove">Remove rule</string>
-    <string name="limit_always">Always blocked</string>
     <string name="limit_daily">Daily time limit</string>
     <string name="limit_minutes_label">Minutes per day</string>
 
@@ -117,7 +115,6 @@
     <string name="group_empty">No apps or websites in this group yet.</string>
     <string name="group_add_member">Add app or website</string>
     <string name="group_edit">Edit group</string>
-    <string name="group_edit_title">Edit group</string>
     <string name="group_name_label">Name</string>
     <string name="group_name_hint">e.g. Social media</string>
     <string name="group_explanation">All apps and websites in a group share this limit – their time is added up. The switch turns all of them on or off at once.</string>
@@ -163,6 +160,11 @@
     <string name="rule_website_unavailable">Not blocked – website blocking only works in the “Accessibility service” mode</string>
     <string name="group_websites_off">Websites not blocked – website blocking is off</string>
     <string name="group_websites_unavailable">Websites not blocked – website blocking only works in the “Accessibility service” mode</string>
+    <string name="website_hint_title">Website blocking is off</string>
+    <string name="website_hint_body">Website rules and unsupported browsers aren’t blocked. Turn it on to block websites too.</string>
+    <string name="website_hint_body_unavailable">Website blocking only works in the “Accessibility service” mode – website rules don’t take effect at the moment.</string>
+    <string name="website_hint_turn_on">Turn on</string>
+    <string name="website_hint_dismiss">Dismiss</string>
     <string name="website_blocking_off_note">Website blocking is turned off in the settings, so website rules don’t take effect yet.</string>
     <string name="website_blocking_unavailable_note">Website blocking only works in the “Accessibility service” mode, so website rules don’t take effect in the “Usage access + overlay” mode.</string>
     <string name="website_blocking_change_mode">Change app blocking mode</string>
@@ -221,7 +223,7 @@
     <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Adding restrictions is always possible – loosening them needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>
     <string name="privacy_summary">Everything stays on this phone</string>
-    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking, no crash reporting.\n• No data is sold. Nothing is shared with third parties – except the notification services you set up yourself (see below).\n• Your rules, usage times, settings and a log of protection events (e.g. “clock changed”) are stored only on this phone. They are excluded from Android backups and device transfers.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app). The recovery code is stored only as a protected hash.\n• Lares turns off Android autofill, so password managers never offer to save the guardian code.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed on the phone in the moment and neither stored nor sent.\n• The optional device administrator role is only used to prevent uninstalling Lares.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). Nothing is sent unless such a channel is set up. A message contains only the notification text (e.g. “protection was disabled”), its time and the phone model; the chosen service’s own privacy policy applies. Tokens and passwords are stored encrypted on the phone.\n• Some links open in your browser, which loads them: Lares’ neutral page shown when a website is blocked (hosted on GitHub Pages; GitHub’s privacy policy applies), manufacturer tips and library pages.\n• Exported rule files contain rules and groups only – no codes, tokens or usage data.</string>
+    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking, no crash reporting.\n• No data is sold. Nothing is shared with third parties – except the notification services you set up yourself (see below).\n• Your rules, usage times, settings and a log of protection events (e.g. “clock changed”) are stored only on this phone. They are excluded from Android backups and device transfers.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app) – an authenticator code additionally encrypted with the recovery code, for moving it to a new phone. The recovery code is stored only as a protected hash.\n• Lares turns off Android autofill, so password managers never offer to save the guardian code.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed on the phone in the moment and neither stored nor sent.\n• The optional device administrator role is only used to prevent uninstalling Lares.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). Nothing is sent unless such a channel is set up. A message contains only the notification text (e.g. “protection was disabled”), its time and the phone model; the chosen service’s own privacy policy applies. Tokens and passwords are stored encrypted on the phone.\n• Some links open in your browser, which loads them: Lares’ neutral page shown when a website is blocked (hosted on GitHub Pages; GitHub’s privacy policy applies), manufacturer tips and library pages.\n• Exported rule files contain rules and groups – no tokens or usage data. If switched on, they also contain the authenticator code, encrypted with the recovery code (useless without it); never the password.</string>
     <string name="license_title">License</string>
     <string name="license_summary">GNU GPL, version 3 or later</string>
     <string name="license_body">Lares is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nLares is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
@@ -358,16 +360,48 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Export rules</string>
-    <string name="backup_export_desc">Saves rules and groups as a file (no codes or tokens).</string>
+    <string name="backup_export_desc">Saves or shares rules and groups as a file – no tokens; the authenticator code only if switched on below (encrypted).</string>
+    <string name="backup_export_save">Save as file</string>
+    <string name="backup_export_share">Share</string>
+    <string name="backup_export_empty">No rules to export yet.</string>
+    <string name="backup_share_title">Share Lares rules</string>
+    <string name="backup_include_totp">Include authenticator code</string>
+    <string name="backup_include_totp_desc">The same authenticator app then also works on a new phone – after entering the recovery code there. Without the recovery code, the file is useless for this.</string>
+    <string name="backup_include_totp_unavailable">Change the guardian code once to make this available.</string>
+    <string name="backup_totp_choice_title">Which guardian code should be used?</string>
+    <string name="backup_totp_choice_body">The file also contains an authenticator code from another phone. Keep this phone’s current guardian code (%1$s), or use the file’s authenticator code instead? Switching needs the recovery code of the phone the file comes from.</string>
+    <string name="backup_totp_keep">Keep current</string>
+    <string name="backup_totp_use_file">Use the file’s</string>
+    <string name="backup_totp_found_title">Take over the authenticator code?</string>
+    <string name="backup_totp_found_body">Enter the recovery code of the phone the file comes from. This replaces the current guardian code, and the recovery code you enter becomes this phone’s recovery code.</string>
+    <string name="backup_totp_take_over">Take over</string>
+    <string name="backup_totp_wrong">This recovery code doesn’t open the file’s authenticator code.</string>
+    <string name="backup_totp_not_allowed">Unlock Lares first, then try again.</string>
+    <string name="setup_restore_cancelled">The file’s rules were imported – please set up a code now.</string>
+    <string name="backup_totp_restored">Authenticator code taken over.</string>
+    <string name="backup_totp_locked">The file also contains an authenticator code. The current guardian code stays. To use the file’s code instead, unlock Lares and import the file again.</string>
+    <string name="setup_restore">Restore from export</string>
+    <string name="setup_restore_body">Enter the recovery code of the old phone. Lares takes over its rules, and the same authenticator app works here.</string>
+    <string name="setup_restore_no_totp">This file contains no authenticator code. Its rules were imported – please set up a code now.</string>
+    <string name="setup_restore_failed">This file couldn’t be read as Lares rules.</string>
     <string name="backup_import">Import rules</string>
     <string name="backup_import_desc">Adds rules and groups from a file. Existing rules stay unchanged.</string>
     <string name="backup_exported">Rules exported.</string>
     <string name="backup_export_failed">Export failed.</string>
     <string name="backup_import_failed">This file could not be read as Lares rules.</string>
-    <!-- %1$d = rules added, %2$d = groups added, %3$d = rules skipped (already present / invalid) -->
-    <plurals name="backup_imported">
-        <item quantity="one">%1$d rule and %2$d group(s) added, %3$d skipped.</item>
-        <item quantity="other">%1$d rules and %2$d group(s) added, %3$d skipped.</item>
+    <!-- %1$s = "2 rules", %2$s = "1 group", %3$s = "3 skipped" (already present / invalid) -->
+    <string name="backup_imported">%1$s and %2$s added, %3$s.</string>
+    <plurals name="backup_imported_rules">
+        <item quantity="one">%d rule</item>
+        <item quantity="other">%d rules</item>
+    </plurals>
+    <plurals name="backup_imported_groups">
+        <item quantity="one">%d group</item>
+        <item quantity="other">%d groups</item>
+    </plurals>
+    <plurals name="backup_imported_skipped">
+        <item quantity="one">%d skipped</item>
+        <item quantity="other">%d skipped</item>
     </plurals>
 
     <!-- Setup issues on the main screen -->
@@ -402,6 +436,7 @@
     <string name="block_reason_always">This app is always blocked.</string>
     <string name="block_reason_always_website">This website is always blocked.</string>
     <!-- %1$s = time when the daily limits restart, e.g. "00:00" -->
+    <string name="block_reset_midnight">midnight</string>
     <string name="block_reason_limit">The daily limit is used up. Available again at %1$s.</string>
     <string name="block_reason_browser">Website blocking is on, and this browser isn’t supported. Use a supported browser.</string>
     <!-- %1$s = group name -->
@@ -415,11 +450,10 @@
     <string name="device_admin_disable_warning">Your guardian will be notified.</string>
     <string name="block_stay_in_browser">Stay in browser</string>
     <string name="block_close_browser">Close browser</string>
-    <string name="block_close">Close</string>
 
     <!-- Limit countdown & warnings -->
-    <!-- %1$s = remaining time, e.g. "4:59" (screen readers) -->
-    <string name="timer_overlay_description">%1$s left</string>
+    <!-- Countdown pill for screen readers: %1$s = app name, %2$s = remaining time, e.g. "4:59" -->
+    <string name="timer_overlay_app_description">%1$s – %2$s left</string>
     <string name="notification_channel_limits">Limit warnings</string>
     <plurals name="limit_warning_title">
         <item quantity="one">%d minute left</item>

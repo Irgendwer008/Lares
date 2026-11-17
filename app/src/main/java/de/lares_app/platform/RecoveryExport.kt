@@ -40,6 +40,23 @@ object RecoveryExport {
         context.startActivity(Intent.createChooser(send, chooserTitle).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
+    /**
+     * Shares [content] as the file [fileName] through the share sheet (e.g. the exported rules).
+     * Same temporary cache folder as the recovery code file, cleaned up on the next app start.
+     */
+    fun shareFile(context: Context, fileName: String, mimeType: String, content: String, chooserTitle: String) {
+        val dir = File(context.cacheDir, SHARE_DIR).apply { mkdirs() }
+        val file = File(dir, fileName).apply { writeText(content) }
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = mimeType
+            putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newRawUri(fileName, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(send, chooserTitle).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
     /** Removes the temporary share file (after setup, and on every app start as a safety net). */
     fun deleteSharedFile(context: Context) {
         File(context.cacheDir, SHARE_DIR).deleteRecursively()

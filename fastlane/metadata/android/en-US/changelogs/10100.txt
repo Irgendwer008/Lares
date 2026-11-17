@@ -1,0 +1,6 @@
+• Picture-in-picture & split screen: apps are blocked there too, and their time counts
+• Several countdowns at once, with app icons; warnings per app follow the time left
+• Setup: website blocking and protections right away. Main screen: hint when it's off
+• Share exported rules – optionally with the authenticator code for a new phone
+• Fewer changes need the code; website rules also catch "//" and encoded addresses
+• "Available again at midnight"; French translation

@@ -10,14 +10,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * Exported rules and groups. Contains no secrets (no guardian code, no channel tokens) and no
- * usage data. Groups are referenced by name.
+ * Exported rules and groups. Contains no readable secrets (no guardian code, no channel tokens) and
+ * no usage data. Groups are referenced by name. Optionally the TOTP secret, encrypted with the
+ * recovery code ([guardianTotp], see [de.lares_app.core.unlock.TotpTransfer]) – useless without it.
  */
 @Serializable
 data class BackupFile(
     val format: String = FORMAT,
     val groups: List<BackupGroup> = emptyList(),
     val rules: List<BackupRule> = emptyList(),
+    /** Encrypted authenticator secret (older Lares versions ignore it). */
+    val guardianTotp: String? = null,
 ) {
     companion object {
         const val FORMAT = "lares-rules"

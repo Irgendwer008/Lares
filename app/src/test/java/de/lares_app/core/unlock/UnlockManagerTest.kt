@@ -226,4 +226,42 @@ class UnlockManagerTest {
         clock.wall -= 60 * 60_000L - 60_000L
         assertTrue(manager.unlock(saved) !is VerifyResult.Success)
     }
+
+    @Test fun totpMovesToAnotherPhoneWithTheRecoveryCode() = runTest {
+        val setup = manager.beginTotpSetup("Phone")
+        val secret = Base32.decode(setup.secretBase32)
+        val recovery = manager.confirmTotpSetup(setup, Totp.code(secret, Totp.counterAt(clock.wall)))!!
+        manager.completeSetup()
+        val sealed = store.current().unlock.totpTransfer!!
+        assertNull(TotpTransfer.open(sealed, RecoveryCode.normalize(RecoveryCode.generate())!!)) // other code: nothing
+
+        // New phone, first setup.
+        val newStore = FakeStateStore()
+        val newPhone = UnlockManager(newStore, clock, FakeCipher(), FakeTamperLog(), PasswordHasher(iterations = 1_000))
+        assertEquals(RestoreResult.NotARecoveryCode, newPhone.restoreTotp(sealed, "hunter22"))
+        assertEquals(RestoreResult.WrongCode, newPhone.restoreTotp(sealed, RecoveryCode.generate()))
+        assertEquals(RestoreResult.Restored, newPhone.restoreTotp(sealed, recovery.lowercase()))
+        newPhone.completeSetup()
+        newPhone.lock()
+        // The same authenticator app works – and so does the same recovery code.
+        clock.advance(60_000L)
+        assertTrue(newPhone.unlock(Totp.code(secret, Totp.counterAt(clock.wall))) is VerifyResult.Success)
+        newPhone.lock()
+        assertEquals(VerifyResult.Success(true), newPhone.unlock(recovery))
+    }
+
+    @Test fun usingTheRecoveryCodeRemovesTheTransferPackage() = runTest {
+        val setup = manager.beginTotpSetup("Phone")
+        val secret = Base32.decode(setup.secretBase32)
+        val recovery = manager.confirmTotpSetup(setup, Totp.code(secret, Totp.counterAt(clock.wall)))!!
+        manager.completeSetup()
+        manager.lock()
+        assertEquals(VerifyResult.Success(true), manager.unlock(recovery))
+        assertNull(store.current().unlock.totpTransfer) // the code was typed – its package mustn't stay exportable
+    }
+
+    @Test fun passwordsHaveNoTransferPackage() = runTest {
+        setUp()
+        assertNull(store.current().unlock.totpTransfer)
+    }
 }

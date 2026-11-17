@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         // offered for saving on the phone owner's device. Dialogs have their own window and
         // call DisableAutofill() themselves.
         window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-        val theme = initialTheme(store)
+        val theme = initialTheme(this, store)
         setContent {
             LaresTheme(store, theme) {
                 LaresRoot()

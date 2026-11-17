@@ -24,6 +24,9 @@ import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 
+/** Result of [UnlockManager.restoreTotp]. */
+enum class RestoreResult { Restored, NotARecoveryCode, WrongCode }
+
 sealed interface VerifyResult {
     /** Correct code; the app is now unlocked for [UnlockManager.UNLOCKED_DURATION_MILLIS]. */
     data class Success(val viaRecoveryCode: Boolean) : VerifyResult
@@ -92,9 +95,38 @@ class UnlockManager(
         if (!canChangeMethod()) throw CodeRequiredException()
         val counter = Totp.verify(setup.secret, code, clock.wallMillis(), Long.MIN_VALUE) ?: return null
         val encrypted = withContext(cpu) { cipher.encrypt(setup.secret) }
-        return storeNewMethod {
+        return storeNewMethod(transfer = { recovery -> TotpTransfer.seal(setup.secret, recovery, random) }) {
             it.copy(method = UnlockMethod.TOTP, totpSecretEncrypted = encrypted, totpLastCounter = counter, passwordHash = null)
         }
+    }
+
+    /**
+     * Takes over the authenticator code of another phone from a rules export ([TotpTransfer]):
+     * same TOTP secret and the same recovery code (the one entered). Like setting up a new code,
+     * only during the first setup or while unlocked. The caller then calls [completeSetup].
+     */
+    suspend fun restoreTotp(sealed: String, recoveryInput: String): RestoreResult {
+        if (!canChangeMethod()) throw CodeRequiredException()
+        val canonical = RecoveryCode.normalize(recoveryInput) ?: return RestoreResult.NotARecoveryCode
+        val secret = withContext(cpu) { TotpTransfer.open(sealed, canonical) } ?: return RestoreResult.WrongCode
+        if (secret.size != Totp.SECRET_BYTES) return RestoreResult.WrongCode
+        val encrypted = withContext(cpu) { cipher.encrypt(secret) }
+        val recoveryHash = hashRecovery(canonical)
+        store.update { s ->
+            s.copy(
+                unlock = s.unlock.copy(
+                    method = UnlockMethod.TOTP,
+                    totpSecretEncrypted = encrypted,
+                    passwordHash = null,
+                    totpLastCounter = Long.MIN_VALUE,
+                    recoveryHash = recoveryHash,
+                    totpTransfer = sealed, // can be exported again
+                    failedAttempts = 0,
+                    lockout = null,
+                ),
+            )
+        }
+        return RestoreResult.Restored
     }
 
     /**
@@ -102,11 +134,14 @@ class UnlockManager(
      * untouched until [completeSetup], so the screen showing the new recovery code stays open
      * (and setup can be repeated if the app is closed before the code was confirmed).
      */
-    private suspend fun storeNewMethod(apply: (UnlockState) -> UnlockState): String {
+    private suspend fun storeNewMethod(transfer: ((String) -> String)? = null, apply: (UnlockState) -> UnlockState): String {
         val recovery = RecoveryCode.generate(random)
-        val recoveryHash = hashRecovery(RecoveryCode.normalize(recovery)!!)
+        val canonical = RecoveryCode.normalize(recovery)!!
+        val recoveryHash = hashRecovery(canonical)
+        // TOTP: the package for moving it to another phone, while the recovery code is known.
+        val totpTransfer = transfer?.let { withContext(cpu) { it(canonical) } }
         store.update { s ->
-            s.copy(unlock = apply(s.unlock).copy(recoveryHash = recoveryHash, failedAttempts = 0, lockout = null))
+            s.copy(unlock = apply(s.unlock).copy(recoveryHash = recoveryHash, totpTransfer = totpTransfer, failedAttempts = 0, lockout = null))
         }
         return recovery
     }
@@ -182,6 +217,8 @@ class UnlockManager(
                         lockout = null,
                         totpLastCounter = matchedTotpCounter ?: s.unlock.totpLastCounter,
                         reSetupRequired = s.unlock.reSetupRequired || recoveryOk,
+                        // The recovery code is known now (it was typed): its package can't stay exportable.
+                        totpTransfer = if (recoveryOk) null else s.unlock.totpTransfer,
                         unlockedSession = session,
                     ),
                 )
