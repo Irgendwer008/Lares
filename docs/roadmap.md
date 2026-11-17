@@ -6,7 +6,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
 | Version | Theme | Status |
 |---|---|---|
 | [1.0.0](#version-100--first-release-released) | First release: app and website blocking, guardian code, protection | Released on Google Play (2026-11-15) |
-| [1.1](#version-110--blocking-gaps-sharing-french-in-progress) | Blocking gaps, multiple countdowns, sharing, French | In progress |
+| [1.1](#version-11--blocking-gaps-sharing-french-in-progress) | Blocking gaps, multiple countdowns, sharing, French | In progress |
 | [1.2](#version-12--plans--pause-code-planned) | Weekly / daily plans, pause code | Planned |
 | [1.3](#version-13--sync--linux-companion-planned) | Sync between devices, Linux companion | Planned |
 | [Later](#later--ideas) | Ideas | To be decided |
