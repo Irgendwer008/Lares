@@ -25,4 +25,7 @@ Lares works entirely on your phone: no account, no analytics, no tracking, no ad
 • Usage access and "display over other apps": the alternative blocking mode.
 • Device administrator (optional): only to prevent uninstalling Lares.
 
+<b>Browser extension</b>
+For computers there is also Lares Browser Edition, a separate browser extension that blocks websites in desktop browsers: https://github.com/Irgendwer008/Lares-BrowserEdition
+
 Lares is free software under the GNU GPL v3 or later. English, German and French.

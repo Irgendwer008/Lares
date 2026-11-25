@@ -39,7 +39,8 @@ Lares works entirely on your phone.
 - Some links open in your browser, which loads them – Lares itself sends nothing: Lares' neutral
   page shown when a website is blocked (`irgendwer008.github.io/Lares/blocked/`, a static page
   without scripts or external resources, hosted on GitHub Pages – GitHub's privacy policy
-  applies), manufacturer tips (dontkillmyapp.com) and the pages of the open-source libraries.
+  applies), manufacturer tips (dontkillmyapp.com), the browser extension's project page on GitHub
+  and the pages of the open-source libraries.
 - Channel tokens and email passwords are stored encrypted with an Android Keystore key on the phone.
 - Exported rule files contain rules, groups and schedules – no tokens or usage data. If "Include authenticator
   code" is on, they also contain the authenticator (TOTP) secret, encrypted with the recovery code

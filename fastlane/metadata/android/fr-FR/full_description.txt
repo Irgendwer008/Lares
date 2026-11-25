@@ -25,4 +25,7 @@ Lares fonctionne entièrement sur ton téléphone : pas de compte, pas d’anal
 • Accès aux données d’utilisation et « Superposition sur d’autres applis » : le mode alternatif.
 • Administrateur de l’appareil (facultatif) : uniquement pour empêcher la désinstallation de Lares.
 
+<b>Extension de navigateur</b>
+Pour les ordinateurs, il existe aussi Lares Browser Edition, une extension de navigateur distincte qui bloque les sites web dans les navigateurs de bureau : https://github.com/Irgendwer008/Lares-BrowserEdition
+
 Lares est un logiciel libre sous licence GNU GPL v3 ou ultérieure. Français, anglais et allemand.

@@ -82,6 +82,9 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - First setup: welcome screen with the color choice, then a short skippable tour (what Lares blocks,
   always blocked / daily limit / schedule, schedules, the guardian code) before the guardian takes
   over; icon circles at the bottom show where you are in the setup.
+- Browser extension ([Lares Browser Edition](https://github.com/Irgendwer008/Lares-BrowserEdition),
+  separate project): mentioned on the last setup page ("All set"), in Settings → Info, in the
+  README and the store descriptions.
 
 **Carried over from 1.1**
 - **Device tests** on other manufacturers (Samsung, Pixel, Xiaomi): add their settings packages

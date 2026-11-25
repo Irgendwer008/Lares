@@ -52,6 +52,11 @@ class SettingsRepository(
     }
 
     /** Hides the main-screen hint "website blocking is off" (cosmetic – no code). */
+    /** The last setup page ("All set") – purely informational, no code needed. */
+    suspend fun setFinishInfoPending(pending: Boolean) {
+        store.update { it.copy(settings = it.settings.copy(finishInfoPending = pending)) }
+    }
+
     suspend fun dismissWebsiteHint() {
         store.update { it.copy(settings = it.settings.copy(websiteHintDismissed = true)) }
     }

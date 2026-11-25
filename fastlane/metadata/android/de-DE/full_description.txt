@@ -25,4 +25,7 @@ Lares arbeitet vollständig auf deinem Handy: kein Konto, keine Analyse, kein Tr
 • Nutzungszugriff und „Über anderen Apps einblenden“: der alternative Modus.
 • Geräteadministrator (optional): nur, um das Deinstallieren von Lares zu verhindern.
 
+<b>Browser-Erweiterung</b>
+Für Computer gibt es außerdem Lares Browser Edition, eine eigene Browser-Erweiterung, die Websites in Desktop-Browsern sperrt: https://github.com/Irgendwer008/Lares-BrowserEdition
+
 Lares ist freie Software unter der GNU GPL v3 oder neuer. Deutsch, Englisch und Französisch.

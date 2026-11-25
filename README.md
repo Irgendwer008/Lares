@@ -29,6 +29,11 @@ e.g. a friend or family member – knows.
 - **Two blocking modes** – Accessibility service (recommended) or usage access + overlay.
 - English, German and French; Lares colors or your wallpaper colors (Material You).
 
+## Browser extension
+For computers there is also **[Lares Browser Edition](https://github.com/Irgendwer008/Lares-BrowserEdition)**,
+a browser extension that blocks websites in desktop browsers. It is a separate project with its own
+setup and may lag a little behind the newest app version.
+
 ## Privacy
 Lares works entirely on your phone: no account, no analytics, no tracking, no ads. It only asks for
 the permissions your current settings need, and it connects to the internet only to send guardian

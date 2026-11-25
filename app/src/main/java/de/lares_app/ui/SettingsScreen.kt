@@ -113,6 +113,7 @@ fun SettingsScreen(
     onOpenLicense: () -> Unit,
     onOpenLibraries: () -> Unit,
     onOpenSchedules: () -> Unit,
+    onOpenBrowserExtension: () -> Unit,
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -411,6 +412,12 @@ fun SettingsScreen(
             SettingsItem(stringResource(R.string.privacy_title), stringResource(R.string.privacy_summary), icon = R.drawable.ic_privacy_tip, onClick = onOpenPrivacy)
             SettingsItem(stringResource(R.string.license_title), stringResource(R.string.license_summary), icon = R.drawable.ic_description, onClick = { showLicense = true })
             SettingsItem(stringResource(R.string.libraries_title), stringResource(R.string.libraries_summary), icon = R.drawable.ic_code, onClick = onOpenLibraries)
+            SettingsItem(
+                stringResource(R.string.browser_ext_title),
+                stringResource(R.string.browser_ext_summary),
+                icon = R.drawable.ic_public,
+                onClick = onOpenBrowserExtension,
+            )
         }
     }
 
@@ -777,6 +784,16 @@ private fun InfoScaffold(title: String, onBack: () -> Unit, content: @Composable
         },
         content = content,
     )
+}
+
+/** The browser extension (Settings → Info). */
+@Composable
+fun BrowserExtensionScreen(onBack: () -> Unit) {
+    InfoScaffold(stringResource(R.string.browser_ext_title), onBack) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)) {
+            BrowserExtensionCard()
+        }
+    }
 }
 
 /** Privacy policy (also in docs/privacy-policy.md for the stores). */

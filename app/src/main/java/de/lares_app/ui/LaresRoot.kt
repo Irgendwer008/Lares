@@ -47,6 +47,7 @@ private object Routes {
     const val ADD_RULE = "$ADD_RULE_BASE?${AddRuleViewModel.ARG_GROUP_ID}={${AddRuleViewModel.ARG_GROUP_ID}}"
 
     const val SCHEDULES = "schedules"
+    const val BROWSER_EXTENSION = "browser_extension"
     private const val SCHEDULE_BASE = "schedule"
     const val SCHEDULE = "$SCHEDULE_BASE?${ScheduleEditorViewModel.ARG_ID}={${ScheduleEditorViewModel.ARG_ID}}"
 
@@ -113,8 +114,10 @@ fun LaresRoot(main: MainViewModel = hiltViewModel()) {
                         onOpenLicense = { nav.navigate(Routes.LICENSE) },
                         onOpenLibraries = { nav.navigate(Routes.LIBRARIES) },
                         onOpenSchedules = { nav.navigate(Routes.SCHEDULES) },
+                        onOpenBrowserExtension = { nav.navigate(Routes.BROWSER_EXTENSION) },
                     )
                 }
+                composable(Routes.BROWSER_EXTENSION) { BrowserExtensionScreen(onBack = { nav.popBackStack() }) }
                 composable(Routes.CHANGE_CODE) {
                     SetupScreen(
                         mode = SetupMode.CHANGE,

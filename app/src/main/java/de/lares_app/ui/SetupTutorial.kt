@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -210,6 +212,39 @@ private fun PageDots(page: Int, count: Int) {
     }
 }
 
+// ---- End of the setup / browser extension --------------------------------------------------------
+
+/** The browser extension (separate project, desktop browsers). */
+const val BROWSER_EXTENSION_URL = "https://github.com/Irgendwer008/Lares-BrowserEdition"
+
+/** Last page of the first setup: ready, what's next, and the browser extension. */
+@Composable
+internal fun DoneStep(busy: Boolean, onClose: () -> Unit) {
+    TutorialHeader(R.drawable.ic_check, R.string.setup_done_title)
+    Text(stringResource(R.string.setup_done_body))
+    BrowserExtensionCard()
+    Button(onClick = onClose, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.setup_done_start)) }
+}
+
+/** What the browser extension is, with a button to its project page. */
+@Composable
+internal fun BrowserExtensionCard() {
+    val uriHandler = LocalUriHandler.current
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(painterResource(R.drawable.ic_public), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.browser_ext_title), style = MaterialTheme.typography.titleMedium)
+            }
+            Text(stringResource(R.string.browser_ext_body), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.browser_ext_note), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = { runCatching { uriHandler.openUri(BROWSER_EXTENSION_URL) } }) {
+                Text(stringResource(R.string.browser_ext_open))
+            }
+        }
+    }
+}
+
 // ---- Progress through the setup -------------------------------------------------------------------
 
 /** The parts of the setup, shown as icon circles at the bottom. */
@@ -220,6 +255,7 @@ internal enum class SetupStage(val icon: Int, val label: Int) {
     MODE(R.drawable.ic_apps, R.string.setup_stage_mode),
     CODE(R.drawable.ic_key, R.string.setup_stage_code),
     RECOVERY(R.drawable.ic_lock, R.string.setup_stage_recovery),
+    DONE(R.drawable.ic_check, R.string.setup_stage_done),
 }
 
 internal fun stagesFor(mode: SetupMode): List<SetupStage> =
@@ -232,6 +268,7 @@ internal fun stageOf(step: SetupStep): SetupStage = when (step) {
     SetupStep.BlockingMode -> SetupStage.MODE
     SetupStep.ChooseMethod, is SetupStep.Password, is SetupStep.Totp -> SetupStage.CODE
     is SetupStep.Recovery -> SetupStage.RECOVERY
+    SetupStep.Done -> SetupStage.DONE
 }
 
 /** Small circles with icons: done, current (filled) and still to come – connected by short lines. */

@@ -104,7 +104,8 @@ enum class SetupMode {
 class MainViewModel @Inject constructor(store: StateStore) : ViewModel() {
     val gate: StateFlow<AppGate> = store.state.map { s ->
         when {
-            !s.unlock.isSetUp || !s.settings.setupComplete -> AppGate.Setup(SetupMode.FIRST)
+            // Until its last page ("All set") was closed, the first setup stays on screen.
+            !s.unlock.isSetUp || !s.settings.setupComplete || s.settings.finishInfoPending -> AppGate.Setup(SetupMode.FIRST)
             s.unlock.reSetupRequired -> AppGate.Setup(SetupMode.RECOVERY)
             else -> AppGate.Home
         }
@@ -133,6 +134,9 @@ sealed interface SetupStep {
     data class Totp(val setup: TotpSetup, val wrongCode: Boolean = false) : SetupStep
 
     data class Recovery(val code: String) : SetupStep
+
+    /** First setup only, after the recovery code: "All set", with a pointer to the browser extension. */
+    data object Done : SetupStep
 }
 
 enum class PasswordError { TOO_SHORT, MISMATCH }
@@ -147,7 +151,7 @@ class SetupViewModel @Inject constructor(
     private val unlock: UnlockManager,
     private val settings: SettingsRepository,
     private val rules: RuleRepository,
-    store: StateStore,
+    private val stateStore: StateStore,
 ) : ViewModel() {
     /** Message after "Restore from export" (string resource), shown on the code page. */
     private val _restoreMessage = MutableStateFlow<Int?>(null)
@@ -181,7 +185,7 @@ class SetupViewModel @Inject constructor(
     fun finishRestore() = finish()
 
     /** Colors, chosen on the first screen (before handing the phone to the guardian). */
-    private val settingsState = store.state.map { it.settings }
+    private val settingsState = stateStore.state.map { it.settings }
 
     val theme: StateFlow<AppTheme> = settingsState.map { it.theme }.stateIn(viewModelScope, WhileSubscribed, AppTheme.LARES)
 
@@ -208,7 +212,15 @@ class SetupViewModel @Inject constructor(
         if (startedMode == mode && !finished) return
         startedMode = mode
         finished = false
-        _step.value = if (mode == SetupMode.FIRST) SetupStep.Welcome else SetupStep.ChooseMethod
+        if (mode != SetupMode.FIRST) {
+            _step.value = SetupStep.ChooseMethod
+            return
+        }
+        // Reopened on the last page (setup already complete): continue there.
+        viewModelScope.launch {
+            val s = stateStore.current().settings
+            _step.value = if (s.setupComplete && s.finishInfoPending) SetupStep.Done else SetupStep.Welcome
+        }
     }
 
     /** True while hashing / storing runs (shows a progress indicator, blocks double taps). */
@@ -314,9 +326,22 @@ class SetupViewModel @Inject constructor(
     }
 
     fun finish() = work {
-        unlock.completeSetup()
+        if (startedMode == SetupMode.FIRST) {
+            // Flag first: the screen stays on the setup while "All set" is shown.
+            settings.setFinishInfoPending(true)
+            unlock.completeSetup()
+            _step.value = SetupStep.Done
+        } else {
+            unlock.completeSetup()
+            finished = true
+            _done.tryEmit(Unit)
+        }
+    }
+
+    /** "All set" closed: on to the main screen. */
+    fun closeDone() = work {
         finished = true
-        _done.tryEmit(Unit)
+        settings.setFinishInfoPending(false)
     }
 
     private fun work(block: suspend () -> Unit) {

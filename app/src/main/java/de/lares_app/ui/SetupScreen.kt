@@ -128,7 +128,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
     }
     // While storing, back is swallowed (leaving mid-store could lose the new recovery code).
     BackHandler(enabled = busy || goBack != null) { goBack?.invoke() }
-    BackHandler(enabled = step is SetupStep.Recovery) {}
+    BackHandler(enabled = step is SetupStep.Recovery || step == SetupStep.Done) {}
 
     // Every page (and tutorial page) starts at the top, not where the previous one was scrolled to.
     val scrollKey = (step as? SetupStep.Tutorial)?.let { "tutorial${it.page}" } ?: step?.javaClass?.simpleName.orEmpty()
@@ -189,6 +189,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
                 is SetupStep.Password -> PasswordStep(s.error, busy, onSubmit = vm::submitPassword, onBack = vm::back)
                 is SetupStep.Totp -> TotpStep(s, busy, onConfirm = vm::confirmTotp, onBack = vm::back)
                 is SetupStep.Recovery -> RecoveryStep(s.code, busy, onFinish = vm::finish)
+                SetupStep.Done -> DoneStep(busy, onClose = vm::closeDone)
             }
             // "Back" like on the password page (which, like the authenticator page, has its own;
             // changing the code has "Cancel" instead).

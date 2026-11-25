@@ -150,7 +150,7 @@ columns).
   on, returned via `revokeSelfPermissionOnKill` when all are off.
 
 `ui`
-- Setup flow (`SetupMode`: FIRST with welcome + color choice, a skippable 4-page tour (rules, the three modes, schedules, the guardian code), the hand-over to the guardian and the optional blocking-mode choice before the code; icon circles at the bottom show the progress; RECOVERY after the recovery code, CHANGE from the
+- Setup flow (`SetupMode`: FIRST with welcome + color choice, a skippable 4-page tour (rules, the three modes, schedules, the guardian code), the hand-over to the guardian and the optional blocking-mode choice before the code; icon circles at the bottom show the progress; last page "All set" with a pointer to the browser extension (`finishInfoPending` keeps the setup on screen until it is closed); RECOVERY after the recovery code, CHANGE from the
   settings), main screen (setup issues, status / unlocked / pause cards, groups, single rules),
   add screen (templates, group, apps, website), unlock and pause dialogs, settings (app settings /
   info), notification channel editor, privacy policy, license, open-source libraries.
