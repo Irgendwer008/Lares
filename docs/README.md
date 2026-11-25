@@ -4,6 +4,10 @@ Lares is an Android app that helps users reduce social-media usage by blocking
 user-configured apps and websites. Loosening restrictions requires a code that a
 trusted person (friend, family member – the **guardian**) set up.
 
+Disclaimer: This app would not have been possible without the use of AI. While
+everything generated was checked over, there may still be bugs hidden in the code.
+If you find any, feel free to open an issue [here](https://github.com/Irgendwer008/Lares/issues), if there isn't already one for your bug!
+
 ## Pages
 
 | Page | Content |
