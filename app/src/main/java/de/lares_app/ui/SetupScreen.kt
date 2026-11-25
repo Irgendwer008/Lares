@@ -84,6 +84,7 @@ import java.util.Date
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import androidx.compose.foundation.ScrollState
 
 @Composable
 /**
@@ -120,7 +121,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
     val goBack: (() -> Unit)? = when {
         busy -> null
         step is SetupStep.Password || step is SetupStep.Totp || step == SetupStep.BlockingMode -> vm::back
-        step == SetupStep.Intro && wallpaperColorsAvailable -> vm::back
+        step == SetupStep.Intro || step is SetupStep.Tutorial -> vm::back
         step == SetupStep.ChooseMethod && mode == SetupMode.FIRST -> vm::back
         step == SetupStep.ChooseMethod && mode == SetupMode.CHANGE -> onCancel
         else -> null
@@ -129,12 +130,20 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
     BackHandler(enabled = busy || goBack != null) { goBack?.invoke() }
     BackHandler(enabled = step is SetupStep.Recovery) {}
 
-    Scaffold { padding ->
+    // Every page (and tutorial page) starts at the top, not where the previous one was scrolled to.
+    val scrollKey = (step as? SetupStep.Tutorial)?.let { "tutorial${it.page}" } ?: step?.javaClass?.simpleName.orEmpty()
+    val scroll = rememberSaveable(scrollKey, saver = ScrollState.Saver) { ScrollState(0) }
+    Scaffold(
+        bottomBar = {
+            val current = step?.let(::stageOf)
+            if (current != null) SetupProgress(stagesFor(mode), current)
+        },
+    ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -143,11 +152,12 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
                 OutlinedButton(onClick = { showUnlock = true }) { Text(stringResource(R.string.home_unlock)) }
             }
             when (val s = step ?: return@Column) {
-                SetupStep.Theme -> {
+                SetupStep.Welcome -> {
                     val theme by vm.theme.collectAsStateWithLifecycle()
-                    ChooseTheme(theme, onSelect = vm::setTheme, onContinue = vm::themeChosen)
+                    Welcome(theme, onSelect = vm::setTheme, onContinue = vm::welcomeDone)
                 }
-                SetupStep.Intro -> Intro(showWordmark = !wallpaperColorsAvailable, onBack = goBack, onStart = vm::skipIntro)
+                is SetupStep.Tutorial -> TutorialPage(s.page, onBack = vm::back, onSkip = vm::skipTutorial, onNext = vm::tutorialNext)
+                SetupStep.Intro -> Intro(onBack = goBack, onStart = vm::skipIntro)
                 SetupStep.BlockingMode -> {
                     val current by vm.blockingMode.collectAsStateWithLifecycle()
                     val protections by vm.protections.collectAsStateWithLifecycle()
@@ -182,7 +192,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
             }
             // "Back" like on the password page (which, like the authenticator page, has its own;
             // changing the code has "Cancel" instead).
-            val ownBackButton = step is SetupStep.Password || step is SetupStep.Totp || step == SetupStep.Intro ||
+            val ownBackButton = step is SetupStep.Password || step is SetupStep.Totp || step == SetupStep.Intro || step is SetupStep.Tutorial ||
                 step == SetupStep.BlockingMode || (step == SetupStep.ChooseMethod && mode == SetupMode.CHANGE)
             if (goBack != null && !ownBackButton) {
                 TextButton(onClick = goBack) { Text(stringResource(R.string.back)) }
@@ -211,7 +221,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
 }
 
 @Composable
-private fun Title(text: String) = Text(text, style = MaterialTheme.typography.headlineMedium)
+internal fun Title(text: String) = Text(text, style = MaterialTheme.typography.headlineMedium)
 
 @Composable
 private fun Wordmark() {
@@ -225,20 +235,24 @@ private fun Wordmark() {
 }
 
 /**
- * First screen (Android 12+): the user's own choice of colors, before the phone is handed to the
- * guardian. Two previews side by side, like the code method cards; the choice applies right away.
+ * First screen: logo, a short welcome and – on Android 12+ – the user's own choice of colors
+ * (two previews side by side, like the code method cards; the choice applies right away).
  */
 @Composable
-private fun ChooseTheme(selected: AppTheme, onSelect: (AppTheme) -> Unit, onContinue: () -> Unit) {
+private fun Welcome(selected: AppTheme, onSelect: (AppTheme) -> Unit, onContinue: () -> Unit) {
     Wordmark()
-    Title(stringResource(R.string.setup_theme_title))
-    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ThemePreviewCard(AppTheme.LARES, R.string.theme_lares, selected == AppTheme.LARES, Modifier.weight(1f)) { onSelect(AppTheme.LARES) }
-        ThemePreviewCard(AppTheme.WALLPAPER, R.string.theme_wallpaper, selected == AppTheme.WALLPAPER, Modifier.weight(1f)) {
-            onSelect(AppTheme.WALLPAPER)
+    Title(stringResource(R.string.setup_welcome_title))
+    Text(stringResource(R.string.setup_welcome_body))
+    if (wallpaperColorsAvailable) {
+        Text(stringResource(R.string.setup_theme_title), style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ThemePreviewCard(AppTheme.LARES, R.string.theme_lares, selected == AppTheme.LARES, Modifier.weight(1f)) { onSelect(AppTheme.LARES) }
+            ThemePreviewCard(AppTheme.WALLPAPER, R.string.theme_wallpaper, selected == AppTheme.WALLPAPER, Modifier.weight(1f)) {
+                onSelect(AppTheme.WALLPAPER)
+            }
         }
+        Text(stringResource(R.string.setup_theme_hint), style = MaterialTheme.typography.bodySmall)
     }
-    Text(stringResource(R.string.setup_theme_hint), style = MaterialTheme.typography.bodySmall)
     Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.setup_continue)) }
 }
 
@@ -281,9 +295,7 @@ private fun ThemePreviewCard(theme: AppTheme, label: Int, selected: Boolean, mod
 }
 
 @Composable
-private fun Intro(showWordmark: Boolean, onBack: (() -> Unit)?, onStart: () -> Unit) {
-    // Without a theme step (Android < 12), the intro is the first screen and shows the wordmark.
-    if (showWordmark) Wordmark()
+private fun Intro(onBack: (() -> Unit)?, onStart: () -> Unit) {
     Title(stringResource(R.string.setup_intro_title))
     Text(stringResource(R.string.setup_intro_body))
     BackAndNext(onBack) { Button(onClick = onStart) { Text(stringResource(R.string.setup_intro_start)) } }
@@ -291,7 +303,7 @@ private fun Intro(showWordmark: Boolean, onBack: (() -> Unit)?, onStart: () -> U
 
 /** "Back" on the left (if any), the page's main action on the right – like [NavButtons]. */
 @Composable
-private fun BackAndNext(onBack: (() -> Unit)?, next: @Composable () -> Unit) {
+internal fun BackAndNext(onBack: (() -> Unit)?, next: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         if (onBack != null) TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } else Spacer(Modifier)
         next()

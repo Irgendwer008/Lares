@@ -12,6 +12,7 @@ import androidx.core.net.toUri
 import android.os.Bundle
 import android.provider.Browser
 import android.text.format.DateFormat
+import android.text.format.DateUtils
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -67,11 +68,8 @@ class BlockActivity : AppCompatActivity() {
         val website = intent.getBooleanExtra(EXTRA_WEBSITE, false)
         val browser = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
         val resetAt = intent.getLongExtra(EXTRA_RESET_AT, 0L)
-        val resetText = when {
-            resetAt <= 0 -> ""
-            isMidnight(resetAt) -> getString(R.string.block_reset_midnight)
-            else -> DateFormat.getTimeFormat(this).format(Date(resetAt))
-        }
+        val schedule = intent.getBooleanExtra(EXTRA_SCHEDULE, false)
+        val resetText = resetText(resetAt)
         val theme = initialTheme(this, store)
         setContent {
             LaresTheme(store, theme) {
@@ -81,6 +79,7 @@ class BlockActivity : AppCompatActivity() {
                     website = website,
                     group = group,
                     resetText = resetText,
+                    schedule = schedule,
                     onClose = { if (website) openSafePage(browser, thenHome = true) else goHome() },
                     onStay = { openSafePage(browser, thenHome = false) },
                     onOpenLares = {
@@ -114,6 +113,21 @@ class BlockActivity : AppCompatActivity() {
         finish()
     }
 
+    /**
+     * "midnight" / a time today (or the coming midnight); later (a schedule's next free window):
+     * with the weekday, e.g. "Tue 07:00".
+     */
+    private fun resetText(resetAt: Long): String {
+        if (resetAt <= 0) return ""
+        val now = System.currentTimeMillis()
+        val sameDay = DateUtils.isToday(resetAt)
+        return when {
+            isMidnight(resetAt) && resetAt - now <= DateUtils.DAY_IN_MILLIS -> getString(R.string.block_reset_midnight)
+            sameDay -> DateFormat.getTimeFormat(this).format(Date(resetAt))
+            else -> DateUtils.formatDateTime(this, resetAt, DateUtils.FORMAT_SHOW_WEEKDAY or DateUtils.FORMAT_ABBREV_WEEKDAY or DateUtils.FORMAT_SHOW_TIME)
+        }
+    }
+
     /** The limits restart at 00:00 local time ("at midnight" reads better than "at 00:00" / "12:00 AM"). */
     private fun isMidnight(millis: Long): Boolean =
         Calendar.getInstance().apply { timeInMillis = millis }.let { it.get(Calendar.HOUR_OF_DAY) == 0 && it.get(Calendar.MINUTE) == 0 }
@@ -130,6 +144,7 @@ class BlockActivity : AppCompatActivity() {
         private const val EXTRA_GROUP = "group"
         private const val EXTRA_RESET_AT = "resetAt"
         private const val EXTRA_WEBSITE = "website"
+        private const val EXTRA_SCHEDULE = "schedule"
 
         fun intent(context: Context, info: BlockInfo): Intent = Intent(context, BlockActivity::class.java)
             .putExtra(EXTRA_PACKAGE, info.packageName)
@@ -138,6 +153,7 @@ class BlockActivity : AppCompatActivity() {
             .putExtra(EXTRA_GROUP, info.groupName)
             .putExtra(EXTRA_RESET_AT, info.resetAtMillis)
             .putExtra(EXTRA_WEBSITE, info.website)
+            .putExtra(EXTRA_SCHEDULE, info.schedule)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
     }
 }
@@ -149,6 +165,7 @@ private fun BlockScreen(
     website: Boolean,
     group: String?,
     resetText: String,
+    schedule: Boolean,
     onClose: () -> Unit,
     onStay: () -> Unit,
     onOpenLares: () -> Unit,
@@ -173,7 +190,13 @@ private fun BlockScreen(
                 textAlign = TextAlign.Center,
             )
             val text = when (reason) {
-                BlockReason.LIMIT_REACHED -> stringResource(R.string.block_reason_limit, resetText)
+                BlockReason.LIMIT_REACHED -> when {
+                    !schedule -> stringResource(R.string.block_reason_limit, resetText)
+                    resetText.isEmpty() -> stringResource(R.string.block_reason_schedule_limit_open)
+                    else -> stringResource(R.string.block_reason_schedule_limit, resetText)
+                }
+                BlockReason.SCHEDULE ->
+                    if (resetText.isEmpty()) stringResource(R.string.block_reason_schedule_open) else stringResource(R.string.block_reason_schedule, resetText)
                 BlockReason.UNSUPPORTED_BROWSER -> stringResource(R.string.block_reason_browser)
                 BlockReason.PROTECTED_SETTINGS -> stringResource(R.string.block_reason_settings)
                 BlockReason.ALWAYS_ON -> stringResource(if (website) R.string.block_reason_always_website else R.string.block_reason_always)

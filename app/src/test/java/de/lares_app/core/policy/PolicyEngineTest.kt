@@ -36,9 +36,9 @@ class PolicyEngineTest {
     }
 
     @Test fun limitedAppCountsUntilLimitReached() {
-        assertEquals(Decision.Allow(setOf(2L), 30 * 60_000L), eval(youtubeLimited.target))
+        assertEquals(Decision.Allow(setOf(2L), 30 * 60_000L, restrictedOwners = setOf("r2")), eval(youtubeLimited.target))
         val used = base.copy(usedMillis = mapOf(2L to 29 * 60_000L))
-        assertEquals(Decision.Allow(setOf(2L), 60_000L), eval(youtubeLimited.target, s = used))
+        assertEquals(Decision.Allow(setOf(2L), 60_000L, restrictedOwners = setOf("r2")), eval(youtubeLimited.target, s = used))
         val exhausted = base.copy(usedMillis = mapOf(2L to 30 * 60_000L))
         assertEquals(Decision.Block(BlockReason.LIMIT_REACHED, 2), eval(youtubeLimited.target, s = exhausted))
     }
@@ -61,7 +61,7 @@ class PolicyEngineTest {
 
     @Test fun websiteRulesApplyInSupportedBrowsers() {
         assertEquals(Decision.Block(BlockReason.ALWAYS_ON, 3), eval(chrome, "https://old.reddit.com/r/all"))
-        assertEquals(Decision.Allow(setOf(4L), 10 * 60_000L), eval(chrome, "youtube.com/shorts/abc"))
+        assertEquals(Decision.Allow(setOf(4L), 10 * 60_000L, restrictedOwners = setOf("r4")), eval(chrome, "youtube.com/shorts/abc"))
         assertEquals(Decision.Allow(), eval(chrome, "youtube.com/watch?v=1"))
         assertEquals(Decision.Allow(), eval(chrome, null))
     }
@@ -84,6 +84,6 @@ class PolicyEngineTest {
     @Test fun smallestRemainingTimeIsReported() {
         val appRuleForChrome = Rule(8, RuleType.APP, chrome, limitMinutesPerDay = 60)
         val s = base.copy(rules = base.rules + appRuleForChrome, usedMillis = mapOf(4L to 5 * 60_000L))
-        assertEquals(Decision.Allow(setOf(4L, 8L), 5 * 60_000L), eval(chrome, "youtube.com/shorts", s))
+        assertEquals(Decision.Allow(setOf(4L, 8L), 5 * 60_000L, restrictedOwners = setOf("r4", "r8")), eval(chrome, "youtube.com/shorts", s))
     }
 }

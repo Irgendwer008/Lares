@@ -1,2 +1,4 @@
-• Jede Änderung an Regeln und Gruppen erfordert jetzt standardmäßig den Guardian-Code – „Nur Lockern erfordert den Code“ in den Einstellungen stellt das alte Verhalten wieder her
-• Tageswechsel jetzt immer zur eingestellten Zeit – er kam teils Stunden zu spät, wenn das Handy um diese Zeit nicht benutzt wurde
+• Zeitpläne: Zeitfenster pro Wochentag (gesperrt, Timer oder frei) in Kalenderansicht – für Regeln und Gruppen statt eines Tageslimits
+• Neue Ersteinrichtung mit kurzer Tour durch die Sperrarten und Fortschrittskreisen
+• Jede Regeländerung erfordert jetzt standardmäßig den Guardian-Code („Nur Lockern erfordert den Code“ in den Einstellungen stellt das alte Verhalten wieder her)
+• Tageswechsel immer zur eingestellten Zeit (kam teils Stunden zu spät)

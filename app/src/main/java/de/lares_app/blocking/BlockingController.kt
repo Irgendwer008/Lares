@@ -12,6 +12,7 @@ import de.lares_app.core.data.BlockingMode
 import de.lares_app.core.data.Protection
 import de.lares_app.core.data.GroupStore
 import de.lares_app.core.data.RuleStore
+import de.lares_app.core.data.ScheduleStore
 import de.lares_app.core.data.StateStore
 import de.lares_app.core.policy.BlockReason
 import de.lares_app.core.policy.Decision
@@ -20,7 +21,9 @@ import de.lares_app.core.policy.PolicySnapshot
 import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
 import de.lares_app.core.policy.RuleType
+import de.lares_app.core.policy.Schedule
 import de.lares_app.core.policy.SupportedBrowsers
+import de.lares_app.core.policy.effective
 import de.lares_app.core.protection.SettingsGuard
 import de.lares_app.core.protection.tamperReportable
 import de.lares_app.core.time.Clock
@@ -31,6 +34,9 @@ import de.lares_app.platform.InstalledBrowsers
 import de.lares_app.platform.LimitNotifier
 import de.lares_app.platform.ProtectionMonitor
 import de.lares_app.platform.UsageRepository
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +58,8 @@ data class BlockInfo(
     val resetAtMillis: Long,
     /** A website rule (not the browser app) was hit: the block screen offers to open the neutral page. */
     val website: Boolean = false,
+    /** Blocked by a schedule ([resetAtMillis] = when it's free again, 0 if unknown). */
+    val schedule: Boolean = false,
 )
 
 /**
@@ -97,6 +105,7 @@ const val SAFE_PAGE_URL = "https://irgendwer008.github.io/Lares/blocked/"
 class BlockingController(
     private val ruleStore: RuleStore,
     private val groupStore: GroupStore,
+    private val scheduleStore: ScheduleStore,
     private val store: StateStore,
     private val usage: UsageRepository,
     private val exemptApps: ExemptApps,
@@ -125,6 +134,8 @@ class BlockingController(
     @Volatile private var rules: List<Rule> = emptyList()
 
     @Volatile private var groups: Map<Long, RuleGroup> = emptyMap()
+
+    @Volatile private var schedules: Map<Long, Schedule> = emptyMap()
 
     @Volatile private var state: AppState = AppState()
 
@@ -186,9 +197,12 @@ class BlockingController(
         exempt = exemptApps.packages()
         installedBrowsers = browsers.packages()
         s.launch {
-            combine(ruleStore.rules, groupStore.groups, store.state) { r, g, st -> Triple(r, g, st) }.collect { (r, g, st) ->
+            // Schedules in the same combine: nothing is evaluated before they're loaded (a rule
+            // with an unknown schedule would be blocked).
+            combine(ruleStore.rules, groupStore.groups, scheduleStore.schedules, store.state) { r, g, sc, st -> Loaded(r, g, sc, st) }.collect { (r, g, sc, st) ->
                 rules = r
                 groups = g.associateBy { it.id }
+                schedules = sc.associateBy { it.id }
                 val modeChanged = st.settings.blockingMode != state.settings.blockingMode
                 state = st
                 if (modeChanged) {
@@ -430,6 +444,7 @@ class BlockingController(
             return
         }
         val snapshot = usage.usage.value ?: run { usage.refreshPeriod(); usage.usage.value } ?: return
+        val zone = ZoneId.systemDefault()
         val policy = PolicySnapshot(
             rules = rules,
             usedMillis = snapshot.ruleMillis,
@@ -440,6 +455,11 @@ class BlockingController(
             supportedBrowsers = SupportedBrowsers.packages,
             installedBrowsers = installedBrowsers,
             exemptPackages = exempt,
+            schedules = schedules,
+            now = LocalDateTime.ofInstant(Instant.ofEpochMilli(clock.wallMillis()), zone),
+            periodEnd = LocalDateTime.ofInstant(Instant.ofEpochMilli(snapshot.periodEndMillis), zone),
+            windowUsedMillis = snapshot.windowMillis,
+            zone = zone,
         )
         val currentUrl = url?.takeIf { it.first == pkg }?.second
         val decision = PolicyEngine.evaluate(pkg, currentUrl, policy)
@@ -463,7 +483,11 @@ class BlockingController(
             // One add for everything visible, so a group shown twice (e.g. app + PiP) counts once.
             val counted = (otherAllowed.map { it.second } + listOfNotNull(decision as? Decision.Allow))
             usage.add(
-                Decision.Allow(counted.flatMap { it.countedRuleIds }.toSet(), null, counted.flatMap { it.countedGroupIds }.toSet()),
+                Decision.Allow(
+                    countedRuleIds = counted.flatMap { it.countedRuleIds }.toSet(),
+                    countedGroupIds = counted.flatMap { it.countedGroupIds }.toSet(),
+                    countedWindowKeys = counted.flatMap { it.countedWindowKeys }.toSet(),
+                ),
                 countMillis,
             )
         }
@@ -513,6 +537,9 @@ class BlockingController(
         lastBlocked?.let { (p, at) -> if (p == pkg && now - at < BLOCK_DEBOUNCE_MILLIS) return }
         lastBlocked = pkg to now
         val websiteRule = rules.firstOrNull { it.id == decision.ruleId }?.takeIf { it.type == RuleType.WEBSITE }
+        // The rule as enforced (in a group: the group's schedule).
+        val fromSchedule = decision.reason == BlockReason.SCHEDULE ||
+            rules.firstOrNull { it.id == decision.ruleId }?.effective(groups)?.scheduleId != null
         blockedUrl = if (websiteRule != null) url else null
         host.showBlockScreen(
             BlockInfo(
@@ -520,8 +547,11 @@ class BlockingController(
                 label = websiteRule?.target ?: catalog.describeOrFallback(pkg).label,
                 reason = decision.reason,
                 groupName = decision.groupId?.let { groups[it]?.name },
-                resetAtMillis = periodEndMillis,
+                // A schedule says when it's free again; otherwise the daily limits restart.
+                resetAtMillis = decision.until?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                    ?: if (fromSchedule) 0L else periodEndMillis,
                 website = websiteRule != null,
+                schedule = fromSchedule,
             ),
         )
     }
@@ -537,8 +567,9 @@ class BlockingController(
         when (val change = warnings.update(subject, remainingMillis, thresholds)) {
             is LimitWarnings.Change.Show -> {
                 // What the limit is about: the website (not the browser), the group, or the app.
-                val label = rules.firstOrNull { it.id in decision.countedRuleIds && it.type == RuleType.WEBSITE }?.target
-                    ?: decision.countedGroupIds.firstNotNullOfOrNull { groups[it]?.name }
+                val owners = decision.restrictedOwners
+                val label = rules.firstOrNull { "r${it.id}" in owners && it.type == RuleType.WEBSITE }?.target
+                    ?: owners.firstNotNullOfOrNull { o -> o.takeIf { it.startsWith("g") }?.drop(1)?.toLongOrNull()?.let { groups[it]?.name } }
                     ?: catalog.describeOrFallback(pkg).label
                 notifier.warn(subject, label, (change.thresholdMillis / 60_000L).toInt())
             }
@@ -546,6 +577,8 @@ class BlockingController(
             null -> Unit
         }
     }
+
+    private data class Loaded(val rules: List<Rule>, val groups: List<RuleGroup>, val schedules: List<Schedule>, val state: AppState)
 
     private companion object {
         const val TICK_MILLIS = 1_000L

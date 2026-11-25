@@ -5,9 +5,11 @@
  */
 package de.lares_app.ui
 
+import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
@@ -90,6 +92,10 @@ import de.lares_app.R
 import de.lares_app.core.policy.RuleType
 import de.lares_app.core.data.SetupIssue
 import de.lares_app.core.policy.RuleGroup
+import de.lares_app.core.policy.WindowMode
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 /** @param onAddRule opens "add rule"; with a group id the new rules become members of that group. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,7 +103,21 @@ import de.lares_app.core.policy.RuleGroup
 fun HomeScreen(
     onAddRule: (groupId: Long?) -> Unit,
     onOpenSettings: (SettingsHighlight?) -> Unit,
+    onOpenSchedules: () -> Unit,
     vm: HomeViewModel = hiltViewModel(),
+) {
+    val schedules by vm.schedules.collectAsStateWithLifecycle()
+    CompositionLocalProvider(LocalScheduleChoice provides ScheduleChoice(schedules.orEmpty(), onOpenSchedules)) {
+        HomeContentScreen(onAddRule, onOpenSettings, vm)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeContentScreen(
+    onAddRule: (groupId: Long?) -> Unit,
+    onOpenSettings: (SettingsHighlight?) -> Unit,
+    vm: HomeViewModel,
 ) {
     val content by vm.content.collectAsStateWithLifecycle()
     val setupIssues by vm.setupIssues.collectAsStateWithLifecycle()
@@ -122,8 +142,12 @@ fun HomeScreen(
     val snackbar = remember { SnackbarHostState() }
     var showUnlock by rememberSaveable { mutableStateOf(false) }
     var showPause by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<RuleItem?>(null) }
-    var editingGroup by remember { mutableStateOf<RuleGroup?>(null) }
+    // By id, saveable: the dialogs stay open when "Manage schedules" is opened from them and on rotation.
+    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var editingGroupId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val allItems = content.standalone + content.groups.flatMap { it.members }
+    val selected = selectedId?.let { id -> allItems.firstOrNull { it.rule.id == id } }
+    val editingGroup = editingGroupId?.let { id -> content.groups.firstOrNull { it.group.id == id }?.group }
 
     val needsCodeText = stringResource(R.string.home_needs_code)
     val enterCodeText = stringResource(R.string.home_unlock)
@@ -200,6 +224,7 @@ fun HomeScreen(
                         add { m ->
                             StatusCard(
                                 session = session,
+                                everyChangeNeedsCode = content.everyChangeNeedsCode,
                                 onUnlock = { showUnlock = true },
                                 onLock = vm::lock,
                                 onPause = { showPause = true },
@@ -219,9 +244,9 @@ fun HomeScreen(
                     item = item,
                     websiteBlocking = content.websiteBlocking,
                     onToggle = { vm.setGroupEnabled(item.group.id, it) },
-                    onEdit = { editingGroup = item.group },
+                    onEdit = { editingGroupId = item.group.id },
                     onAddMember = { onAddRule(item.group.id) },
-                    onMemberClick = { selected = it },
+                    onMemberClick = { selectedId = it.rule.id },
                 )
             }
             if (content.standalone.isNotEmpty()) item { SectionHeader(stringResource(R.string.home_single_rules)) }
@@ -231,7 +256,7 @@ fun HomeScreen(
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(), border = CardDefaults.outlinedCardBorder()) {
                         content.standalone.forEachIndexed { index, item ->
                             if (index > 0) HorizontalDivider()
-                            RuleRow(item, content.websiteBlocking, onClick = { selected = item }, onToggle = { vm.setEnabled(item.rule.id, it) })
+                            RuleRow(item, content.websiteBlocking, onClick = { selectedId = item.rule.id }, onToggle = { vm.setEnabled(item.rule.id, it) })
                         }
                     }
                 }
@@ -266,15 +291,15 @@ fun HomeScreen(
     editingGroup?.let { group ->
         GroupDialog(
             initial = group,
-            onSave = { name, limit ->
-                vm.updateGroup(group.copy(name = name, limitMinutesPerDay = limit))
-                editingGroup = null
+            onSave = { name, limit, schedule ->
+                vm.updateGroup(group.copy(name = name, limitMinutesPerDay = limit, scheduleId = schedule))
+                editingGroupId = null
             },
             onDelete = {
                 vm.deleteGroup(group.id)
-                editingGroup = null
+                editingGroupId = null
             },
-            onDismiss = { editingGroup = null },
+            onDismiss = { editingGroupId = null },
         )
     }
     selected?.let { item ->
@@ -286,31 +311,32 @@ fun HomeScreen(
                 hint = ruleHint(content.everyChangeNeedsCode),
                 onTakeOut = {
                     vm.setGroup(item.rule.id, null)
-                    selected = null
+                    selectedId = null
                 },
                 onRemove = {
                     vm.remove(item.rule.id)
-                    selected = null
+                    selectedId = null
                 },
-                onDismiss = { selected = null },
+                onDismiss = { selectedId = null },
             )
         } else {
             RuleDialog(
                 item = item,
                 groups = content.groups.map { it.group },
                 hint = ruleHint(content.everyChangeNeedsCode),
-                onDismiss = { selected = null },
-                onSave = { limit, enabled ->
-                    if (limit != item.rule.limitMinutesPerDay || enabled != item.rule.enabled) vm.updateRule(item.rule.id, limit, enabled)
-                    selected = null
+                onDismiss = { selectedId = null },
+                onSave = { limit, enabled, schedule ->
+                    val r = item.rule
+                    if (limit != r.limitMinutesPerDay || enabled != r.enabled || schedule != r.scheduleId) vm.updateRule(r.id, limit, enabled, schedule)
+                    selectedId = null
                 },
                 onMoveToGroup = { groupId ->
                     vm.setGroup(item.rule.id, groupId)
-                    selected = null
+                    selectedId = null
                 },
                 onRemove = {
                     vm.remove(item.rule.id)
-                    selected = null
+                    selectedId = null
                 },
             )
         }
@@ -373,6 +399,7 @@ private fun SetupIssuesCard(
 @Composable
 private fun StatusCard(
     session: SessionInfo,
+    everyChangeNeedsCode: Boolean,
     onUnlock: () -> Unit,
     onLock: () -> Unit,
     onPause: () -> Unit,
@@ -412,7 +439,10 @@ private fun StatusCard(
                         Icon(painterResource(R.drawable.ic_lock), contentDescription = null)
                         Text(stringResource(R.string.home_status_protected_title), style = MaterialTheme.typography.titleMedium)
                     }
-                    Text(stringResource(R.string.home_status_protected_body), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        stringResource(if (everyChangeNeedsCode) R.string.home_status_protected_body_all else R.string.home_status_protected_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     Button(onClick = onUnlock) { Text(stringResource(R.string.home_unlock)) }
                 }
             }
@@ -448,8 +478,10 @@ private fun SessionCard(
 // ---- Groups ----------------------------------------------------------------------------------------
 
 @Composable
-fun groupLimitLabel(limitMinutes: Int?): String =
-    if (limitMinutes == null) {
+fun groupLimitLabel(limitMinutes: Int?, scheduleId: Long? = null): String =
+    if (scheduleId != null) {
+        scheduleName(scheduleId)
+    } else if (limitMinutes == null) {
         stringResource(R.string.rule_always_blocked)
     } else {
         pluralStringResource(R.plurals.group_limit_minutes, limitMinutes, limitMinutes)
@@ -484,10 +516,13 @@ private fun GroupCard(
             Column(Modifier.weight(1f)) {
                 Text(group.name, style = MaterialTheme.typography.titleMedium)
                 if (item.members.any { it.rule.type == RuleType.WEBSITE }) WebsiteWarning(websiteBlocking, inGroup = true)
-                val limit = groupLimitLabel(group.limitMinutesPerDay)
+                val limit = groupLimitLabel(group.limitMinutesPerDay, group.scheduleId)
                 val count = pluralStringResource(R.plurals.group_member_count, item.members.size, item.members.size)
                 val limitMinutes = group.limitMinutesPerDay
-                if (group.enabled && limitMinutes != null) {
+                val scheduleId = group.scheduleId
+                if (group.enabled && scheduleId != null && item.schedule != null) {
+                    ScheduleStatusLine(scheduleId, item.schedule, Modifier.padding(top = 4.dp), trailing = count)
+                } else if (group.enabled && limitMinutes != null) {
                     // Shared limit as a bar ("12 / 30 min"), member count next to it.
                     Row(
                         Modifier.padding(top = 4.dp),
@@ -559,9 +594,9 @@ private fun GroupCardContent(
 
 /** Edit a group (new groups are created in the "Group" tab of the add screen). */
 @Composable
-private fun GroupDialog(initial: RuleGroup, onSave: (String, Int?) -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
+private fun GroupDialog(initial: RuleGroup, onSave: (String, Int?, Long?) -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(initial.name) }
-    val limit = rememberLimitState(initial.limitMinutesPerDay)
+    val limit = rememberLimitState(initial.limitMinutesPerDay, initial.scheduleId)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.group_edit)) },
@@ -581,7 +616,7 @@ private fun GroupDialog(initial: RuleGroup, onSave: (String, Int?) -> Unit, onDe
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(name, limit.limit) }, enabled = name.isNotBlank() && limit.isValid) {
+            TextButton(onClick = { onSave(name, limit.limit, limit.schedule) }, enabled = name.isNotBlank() && limit.isValid) {
                 Text(stringResource(R.string.rule_dialog_save))
             }
         },
@@ -597,7 +632,7 @@ private fun MemberDialog(item: RuleItem, group: RuleGroup, hint: Int, onTakeOut:
         title = { Text(item.displayName()) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.member_info, group.name, groupLimitLabel(group.limitMinutesPerDay)))
+                Text(stringResource(R.string.member_info, group.name, groupLimitLabel(group.limitMinutesPerDay, group.scheduleId)))
                 TextButton(onClick = onTakeOut) { Text(stringResource(R.string.member_take_out)) }
                 TextButton(onClick = onRemove) { Text(stringResource(R.string.rule_dialog_remove), color = MaterialTheme.colorScheme.error) }
                 Text(stringResource(hint), style = MaterialTheme.typography.bodySmall)
@@ -611,7 +646,7 @@ private fun MemberDialog(item: RuleItem, group: RuleGroup, hint: Int, onTakeOut:
 
 @Composable
 private fun RuleRow(item: RuleItem, websiteBlocking: WebsiteBlockingState, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
-    val limit = limitLabel(item.rule.limitMinutesPerDay)
+    val limit = limitLabel(item.rule.limitMinutesPerDay, item.rule.scheduleId)
     val disabled = stringResource(R.string.rule_disabled)
     ListItem(
         colors = clearListItemColors(),
@@ -619,7 +654,10 @@ private fun RuleRow(item: RuleItem, websiteBlocking: WebsiteBlockingState, onCli
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val limitMinutes = item.rule.limitMinutesPerDay
-                if (item.rule.enabled && limitMinutes != null) {
+                val scheduleId = item.rule.scheduleId
+                if (item.rule.enabled && scheduleId != null && item.schedule != null) {
+                    ScheduleStatusLine(scheduleId, item.schedule, Modifier.padding(top = 2.dp))
+                } else if (item.rule.enabled && limitMinutes != null) {
                     UsageBar(item.usedMillis, limitMinutes, Modifier.padding(top = 2.dp))
                 } else {
                     Text(
@@ -676,11 +714,11 @@ private fun RuleDialog(
     groups: List<RuleGroup>,
     hint: Int,
     onDismiss: () -> Unit,
-    onSave: (Int?, Boolean) -> Unit,
+    onSave: (Int?, Boolean, Long?) -> Unit,
     onMoveToGroup: (Long) -> Unit,
     onRemove: () -> Unit,
 ) {
-    val limit = rememberLimitState(item.rule.limitMinutesPerDay)
+    val limit = rememberLimitState(item.rule.limitMinutesPerDay, item.rule.scheduleId)
     var enabled by remember { mutableStateOf(item.rule.enabled) }
     var pickGroup by remember { mutableStateOf(false) }
     AlertDialog(
@@ -708,7 +746,7 @@ private fun RuleDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(limit.limit, enabled) }, enabled = limit.isValid) {
+            TextButton(onClick = { onSave(limit.limit, enabled, limit.schedule) }, enabled = limit.isValid) {
                 Text(stringResource(R.string.rule_dialog_save))
             }
         },
@@ -722,7 +760,7 @@ private fun RuleDialog(
             text = {
                 Column(Modifier.selectableGroup().verticalScroll(rememberScrollState())) {
                     groups.forEach { g ->
-                        RadioRow(stringResource(R.string.rule_group_choice, g.name, groupLimitLabel(g.limitMinutesPerDay)), choice == g.id) { choice = g.id }
+                        RadioRow(stringResource(R.string.rule_group_choice, g.name, groupLimitLabel(g.limitMinutesPerDay, g.scheduleId)), choice == g.id) { choice = g.id }
                     }
                 }
             },
@@ -768,6 +806,39 @@ private fun UsageBar(usedMillis: Long, limitMinutes: Int, modifier: Modifier = M
             color = if (reached) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
+}
+
+/** "Schedule “School” · Blocked until 17:00", with a usage bar while a timer runs. */
+@Composable
+private fun ScheduleStatusLine(scheduleId: Long, status: ScheduleStatus, modifier: Modifier = Modifier, trailing: String? = null) {
+    val until = status.until?.let { untilText(it) }
+    val state = when (status.mode) {
+        WindowMode.BLOCK -> until?.let { stringResource(R.string.schedule_status_blocked_until, it) } ?: stringResource(R.string.schedule_status_blocked)
+        WindowMode.FREE -> until?.let { stringResource(R.string.schedule_status_free_until, it) } ?: stringResource(R.string.schedule_status_free)
+        WindowMode.TIMER -> until?.let { stringResource(R.string.schedule_status_timer_until, it) } ?: stringResource(R.string.schedule_status_timer)
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(scheduleName(scheduleId) + " · " + state, style = MaterialTheme.typography.bodySmall)
+        if (status.mode == WindowMode.TIMER || trailing != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (status.mode == WindowMode.TIMER) UsageBar(status.usedMillis, status.budgetMinutes, Modifier.weight(1f))
+                trailing?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
+        }
+    }
+}
+
+/** A time today ("17:00"), otherwise with the weekday ("Tue 07:00"). */
+@Composable
+private fun untilText(time: LocalDateTime): String {
+    val context = LocalContext.current
+    val millis = time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    val flags = if (time.toLocalDate() == LocalDate.now()) {
+        DateUtils.FORMAT_SHOW_TIME
+    } else {
+        DateUtils.FORMAT_SHOW_TIME or DateUtils.FORMAT_SHOW_WEEKDAY or DateUtils.FORMAT_ABBREV_WEEKDAY
+    }
+    return DateUtils.formatDateTime(context, millis, flags)
 }
 
 /** No rules yet: logo, short explanation and a hint to the "Add" button. */

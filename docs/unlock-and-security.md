@@ -74,13 +74,16 @@ the table applies as written. Creating an empty group stays free.
 | Add rule / group member, lower a limit, switch a rule or group on (*rules*) | No (default: Yes) |
 | Switch a protection or website blocking on | No |
 | Remove / disable a rule, raise a limit, take a member out of a group, delete a group | Yes |
+| Switch a rule or group to *always blocked* (*rules*) | No (default: Yes) |
+| Switch a rule or group to a schedule, to another schedule, or from a schedule to a daily limit | Yes |
+| Create, edit or delete a schedule (used or not; only unused ones can be deleted) | Yes (always) |
 | Choose the blocking mode for the first time / switch it later | No / Yes |
 | Switch website blocking or a protection off | Yes |
 | Change the daily reset time (either direction can grant a fresh quota) / cancel a pending change | Yes / No |
 | Broaden a website rule (e.g. `youtube.com/shorts` → `youtube.com`) without raising its limit (*rules*) | No (default: Yes) |
 | Add a notification channel / edit or delete one | No / Yes |
 | Change the guardian code | Yes |
-| Export rules / import rules (import only adds; *rules*) | No / No (default: Yes) |
+| Export rules / import rules (import only adds; *rules*; schedules in the file always need it) | No / No (default: Yes) |
 | "Only loosening needs the code" on / off | Yes / Yes |
 
 Until the first setup is complete, nothing is protected yet (no code needed for anything), so the

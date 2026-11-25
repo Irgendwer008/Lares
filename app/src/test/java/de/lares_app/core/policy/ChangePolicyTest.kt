@@ -60,4 +60,17 @@ class ChangePolicyTest {
         val limited = shorts.copy(limitMinutesPerDay = 10)
         assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(limited, limited.copy(target = "youtube.com", limitMinutesPerDay = 20)))
     }
+
+    @Test fun scheduleModes() {
+        val limited = Rule(1, RuleType.APP, "com.instagram.android", limitMinutesPerDay = 30)
+        val scheduled = limited.copy(scheduleId = 5)
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(limited, scheduled)) // can't be compared
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(scheduled, limited))
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classify(scheduled, scheduled.copy(scheduleId = 6)))
+        assertEquals(ChangeKind.TIGHTENING, ChangePolicy.classify(scheduled, scheduled.copy(scheduleId = null, limitMinutesPerDay = null)))
+        assertEquals(ChangeKind.NONE, ChangePolicy.classify(scheduled, scheduled.copy(limitMinutesPerDay = 90))) // limit unused
+        val group = RuleGroup(1, "Social", limitMinutesPerDay = 30)
+        assertEquals(ChangeKind.LOOSENING, ChangePolicy.classifyGroup(group, group.copy(scheduleId = 5), hasActiveMembers = true))
+        assertEquals(ChangeKind.TIGHTENING, ChangePolicy.classifyGroup(group.copy(scheduleId = 5), group.copy(limitMinutesPerDay = null), hasActiveMembers = true))
+    }
 }

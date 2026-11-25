@@ -8,6 +8,48 @@
     <string name="home_tagline">Less scrolling, more living.</string>
     <string name="cancel">Cancel</string>
     <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="done">Done</string>
+    <string name="schedules_title">Schedules</string>
+    <string name="schedules_settings_desc">Time tables with windows per weekday, selectable for rules and groups</string>
+    <string name="schedules_empty">No schedules yet. A schedule sets per weekday when apps are blocked, have a timer or are free – rules and groups can then use it instead of a daily limit.</string>
+    <string name="schedules_hint">Rules and groups pick a schedule as their mode. Every change to schedules needs the guardian code.</string>
+    <string name="schedule_new">New schedule</string>
+    <string name="schedule_edit">Edit schedule</string>
+    <string name="schedule_delete">Delete schedule</string>
+    <string name="schedule_delete_body">Delete this schedule? This needs the guardian code.</string>
+    <string name="schedule_in_use_title">Schedule in use</string>
+    <string name="schedule_in_use_body">It’s used by: %1$s. Choose another mode for them first.</string>
+    <string name="schedule_unused">Not used</string>
+    <string name="schedule_list_line">%1$s · %2$s</string>
+    <string name="schedule_summary_no_windows">No windows · outside: %1$s</string>
+    <string name="schedule_name">Name</string>
+    <string name="schedule_name_missing">Please enter a name.</string>
+    <string name="schedule_name_taken">There’s already a schedule with this name.</string>
+    <string name="schedule_outside">Outside the windows</string>
+    <string name="schedule_mode_block">Full block</string>
+    <string name="schedule_mode_free">Free</string>
+    <string name="schedule_mode_timer">Timer</string>
+    <string name="schedule_minutes_short">%1$d min</string>
+    <string name="schedule_grid_hint">Tap an empty spot to add a window, tap a window to edit it. Long-press to move it, drag its top or bottom edge to resize it.</string>
+    <string name="schedule_needs_code">Changing schedules needs the guardian code.</string>
+    <string name="schedule_overlap">Windows can’t overlap.</string>
+    <string name="schedule_discard_title">Discard changes?</string>
+    <string name="schedule_discard_body">Your changes to this schedule won’t be saved.</string>
+    <string name="schedule_discard">Discard</string>
+    <string name="schedule_keep_editing">Keep editing</string>
+    <string name="schedule_now">Now</string>
+    <string name="schedule_window_description">%1$s, %2$s to %3$s: %4$s</string>
+    <string name="schedule_next_day">Ends the next day.</string>
+    <string name="schedule_share_with">Share the timer with</string>
+    <string name="schedule_copy_to">Copy to</string>
+    <string name="schedule_copy_skipped">Some copies were skipped because they would overlap.</string>
+    <string name="schedule_window_delete">Delete window</string>
+    <string name="schedule_window_add">Add window</string>
+    <string name="schedule_window_new">New window</string>
+    <string name="schedule_window_edit">Edit window</string>
+    <string name="schedule_window_day">Day</string>
+    <string name="schedule_full_day">Runs 24 hours (start and end are the same).</string>
     <string name="back">Back</string>
     <plurals name="duration_minutes">
         <item quantity="one">%d minute</item>
@@ -19,7 +61,39 @@
     </plurals>
 
     <!-- Setup (first start; done together with the guardian) -->
-    <string name="setup_intro_title">Welcome</string>
+    <string name="setup_intro_title">Over to your guardian</string>
+    <string name="setup_welcome_title">Welcome to Lares</string>
+    <string name="setup_welcome_body">Lares helps you spend less time on distracting apps and websites. A trusted person – your guardian – holds the code that protects your rules. First a short tour, then your guardian sets everything up.</string>
+    <string name="tutorial_label">Tour · %1$d of %2$d</string>
+    <string name="tutorial_skip">Skip tour</string>
+    <string name="tutorial_next">Next</string>
+    <string name="tutorial_finish">Continue</string>
+    <string name="tutorial_rules_title">What Lares blocks</string>
+    <string name="tutorial_rules_body">You decide which apps and websites Lares restricts. Each one is a rule.</string>
+    <string name="tutorial_rules_add">Add apps from the list or type in a website – also just a part of it, e.g. youtube.com/shorts.</string>
+    <string name="tutorial_rules_templates">Templates add popular apps together with their websites and alternative apps in one go.</string>
+    <string name="tutorial_rules_groups">Groups let several apps and websites share one limit, e.g. all social media together.</string>
+    <string name="tutorial_modes_title">Three ways to block</string>
+    <string name="tutorial_modes_body">Every rule or group gets one of these modes:</string>
+    <string name="tutorial_modes_always">Can’t be opened at all.</string>
+    <string name="tutorial_modes_daily">A number of minutes per day. A countdown shows the last minutes, then it’s blocked until the daily reset.</string>
+    <string name="tutorial_modes_schedule">Different rules for different times and days – see the next page.</string>
+    <string name="tutorial_schedules_title">Schedules</string>
+    <string name="tutorial_schedules_body">A schedule is a weekly time table. On each day you add windows that are blocked, have a timer or are free. For the time outside the windows you choose what applies.</string>
+    <string name="tutorial_schedules_example">Example week: on weekdays blocked during school hours and a short timer in the evening, free on Saturday afternoon, a timer on Sunday.</string>
+    <string name="tutorial_schedules_more">Schedules are created in the settings and can be picked for any rule or group. Windows can be moved and resized like calendar entries.</string>
+    <string name="tutorial_code_title">The guardian code</string>
+    <string name="tutorial_code_body">Your guardian sets up a password or an authenticator app. It stays with them – that’s what makes the rules stick.</string>
+    <string name="tutorial_code_changes">Changing rules needs the code – by default every change, so nothing is added by mistake.</string>
+    <string name="tutorial_code_unlock">With the code, Lares is unlocked for 10 minutes, and the guardian can start a pause.</string>
+    <string name="tutorial_code_protect">Optional protections prevent uninstalling and notify your guardian about tampering.</string>
+    <string name="setup_stage_welcome">Welcome</string>
+    <string name="setup_stage_tutorial">Tour</string>
+    <string name="setup_stage_guardian">Guardian</string>
+    <string name="setup_stage_mode">Blocking mode</string>
+    <string name="setup_stage_code">Guardian code</string>
+    <string name="setup_stage_recovery">Recovery code</string>
+    <string name="setup_progress">Step %1$d of %2$d: %3$s</string>
     <string name="setup_intro_body">Lares blocks the apps and websites you choose. Changing the rules needs a code that only a trusted person knows: your guardian, for example a friend or family member.\n\nFor the next steps, please hand the phone to your guardian.</string>
     <string name="setup_intro_start">Let’s start</string>
     <string name="setup_mode_title">Guardian: choose the blocking mode</string>
@@ -68,6 +142,7 @@
     <string name="home_empty_hint">Tap “Add” at the bottom to block your first app or website – or start with a template.</string>
     <string name="home_status_protected_title">Protection is on</string>
     <string name="home_status_protected_body">Adding rules is always possible. Removing rules or raising limits needs the guardian code.</string>
+    <string name="home_status_protected_body_all">Every change to rules and groups needs the guardian code.</string>
     <string name="home_unlock">Enter guardian code</string>
     <string name="home_status_paused_title">Blocking is paused</string>
     <!-- %1$s = remaining time, e.g. "4:59" -->
@@ -96,6 +171,18 @@
     <string name="rule_dialog_save">Save</string>
     <string name="rule_dialog_remove">Remove rule</string>
     <string name="limit_daily">Daily time limit</string>
+    <string name="limit_schedule">Schedule</string>
+    <string name="limit_schedule_named">Schedule “%1$s”</string>
+    <string name="limit_schedule_none">No schedules yet.</string>
+    <string name="limit_schedule_create">Create a schedule</string>
+    <string name="limit_schedule_choose">Choose a schedule</string>
+    <string name="limit_schedule_manage">Manage schedules</string>
+    <string name="schedule_status_blocked_until">Blocked until %1$s</string>
+    <string name="schedule_status_blocked">Blocked</string>
+    <string name="schedule_status_free_until">Free until %1$s</string>
+    <string name="schedule_status_free">Free</string>
+    <string name="schedule_status_timer_until">Timer until %1$s</string>
+    <string name="schedule_status_timer">Timer</string>
     <string name="limit_minutes_label">Minutes per day</string>
 
     <!-- Groups: several apps/websites sharing one limit -->
@@ -205,7 +292,7 @@
     <string name="settings_locked_hint">Loosening settings (switching off, changing the app blocking mode, the guardian code, reset time or notification channels) needs the guardian code.</string>
     <string name="settings_guardian_code">Guardian code</string>
     <string name="settings_only_loosening_off">Off: every change to rules and groups needs the code.</string>
-    <string name="settings_only_loosening_on">Adding rules and making them stricter is possible without the code.</string>
+    <string name="settings_only_loosening_on">Adding rules and making them stricter is possible without the code (schedules always need it).</string>
     <string name="settings_only_loosening">Only loosening needs the code</string>
     <string name="settings_reset_time">Daily limits reset at</string>
     <!-- %1$s = current time, %2$s = new time -->
@@ -227,7 +314,7 @@
     <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Changing the rules – above all loosening them – needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>
     <string name="privacy_summary">Everything stays on this phone</string>
-    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking, no crash reporting.\n• No data is sold. Nothing is shared with third parties – except the notification services you set up yourself (see below).\n• Your rules, usage times, settings and a log of protection events (e.g. “clock changed”) are stored only on this phone. They are excluded from Android backups and device transfers.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app) – an authenticator code additionally encrypted with the recovery code, for moving it to a new phone. The recovery code is stored only as a protected hash.\n• Lares turns off Android autofill, so password managers never offer to save the guardian code.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed on the phone in the moment and neither stored nor sent.\n• The optional device administrator role is only used to prevent uninstalling Lares.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). Nothing is sent unless such a channel is set up. A message contains only the notification text (e.g. “protection was disabled”), its time and the phone model; the chosen service’s own privacy policy applies. Tokens and passwords are stored encrypted on the phone.\n• Some links open in your browser, which loads them: Lares’ neutral page shown when a website is blocked (hosted on GitHub Pages; GitHub’s privacy policy applies), manufacturer tips and library pages.\n• Exported rule files contain rules and groups – no tokens or usage data. If switched on, they also contain the authenticator code, encrypted with the recovery code (useless without it); never the password.</string>
+    <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking, no crash reporting.\n• No data is sold. Nothing is shared with third parties – except the notification services you set up yourself (see below).\n• Your rules, usage times, settings and a log of protection events (e.g. “clock changed”) are stored only on this phone. They are excluded from Android backups and device transfers.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app) – an authenticator code additionally encrypted with the recovery code, for moving it to a new phone. The recovery code is stored only as a protected hash.\n• Lares turns off Android autofill, so password managers never offer to save the guardian code.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed on the phone in the moment and neither stored nor sent.\n• The optional device administrator role is only used to prevent uninstalling Lares.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). Nothing is sent unless such a channel is set up. A message contains only the notification text (e.g. “protection was disabled”), its time and the phone model; the chosen service’s own privacy policy applies. Tokens and passwords are stored encrypted on the phone.\n• Some links open in your browser, which loads them: Lares’ neutral page shown when a website is blocked (hosted on GitHub Pages; GitHub’s privacy policy applies), manufacturer tips and library pages.\n• Exported rule files contain rules, groups and schedules – no tokens or usage data. If switched on, they also contain the authenticator code, encrypted with the recovery code (useless without it); never the password.</string>
     <string name="license_title">License</string>
     <string name="license_summary">GNU GPL, version 3 or later</string>
     <string name="license_body">Lares is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nLares is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
@@ -364,8 +451,8 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Export rules</string>
-    <string name="backup_export_desc">Saves or shares rules and groups as a file; the authenticator code only if switched on below (encrypted).</string>
-    <string name="backup_export_desc_no_totp">Saves or shares rules and groups as a file.</string>
+    <string name="backup_export_desc">Saves or shares rules, groups and schedules as a file; the authenticator code only if switched on below (encrypted).</string>
+    <string name="backup_export_desc_no_totp">Saves or shares rules, groups and schedules as a file.</string>
     <string name="backup_export_save">Save as file</string>
     <string name="backup_export_share">Share</string>
     <string name="backup_export_empty">No rules to export yet.</string>
@@ -390,7 +477,7 @@
     <string name="setup_restore_no_totp">This file contains no authenticator code. Its rules were imported – please set up a code now.</string>
     <string name="setup_restore_failed">This file couldn’t be read as Lares rules.</string>
     <string name="backup_import">Import rules</string>
-    <string name="backup_import_desc">Adds rules and groups from a file. Existing rules stay unchanged.</string>
+    <string name="backup_import_desc">Adds rules, groups and schedules from a file. Existing rules and schedules stay unchanged.</string>
     <string name="backup_exported">Rules exported.</string>
     <string name="backup_export_failed">Export failed.</string>
     <string name="backup_import_failed">This file could not be read as Lares rules.</string>
@@ -443,6 +530,10 @@
     <!-- %1$s = time when the daily limits restart, e.g. "00:00" -->
     <string name="block_reset_midnight">midnight</string>
     <string name="block_reason_limit">The daily limit is used up. Available again at %1$s.</string>
+    <string name="block_reason_schedule">Blocked by its schedule right now. Available again at %1$s.</string>
+    <string name="block_reason_schedule_open">Blocked by its schedule right now.</string>
+    <string name="block_reason_schedule_limit">The time for this part of the schedule is used up. Available again at %1$s.</string>
+    <string name="block_reason_schedule_limit_open">The time for this part of the schedule is used up.</string>
     <string name="block_reason_browser">Website blocking is on, and this browser isn’t supported. Use a supported browser.</string>
     <!-- %1$s = group name -->
     <string name="block_group">Group “%1$s”</string>
@@ -465,9 +556,9 @@
         <item quantity="other">%d minutes left</item>
     </plurals>
     <!-- %1$s = app name -->
-    <string name="limit_warning_text">The daily limit for %1$s is almost used up.</string>
+    <string name="limit_warning_text">%1$s will be blocked soon.</string>
     <string name="settings_limit_timer">Countdown in the last 5 minutes</string>
-    <string name="settings_limit_timer_desc">Shows a small timer in the corner when a limit is about to run out.</string>
+    <string name="settings_limit_timer_desc">Shows a small timer in the corner shortly before an app gets blocked.</string>
     <string name="settings_warn_five">Notification 5 minutes before</string>
     <string name="settings_warn_one">Notification 1 minute before</string>
     <string name="settings_warn_desc">Needs the notification permission, which is asked for when you turn this on.</string>
@@ -478,5 +569,13 @@
     <plurals name="usage_today">
         <item quantity="one">%1$d of %2$d minute used today</item>
         <item quantity="other">%1$d of %2$d minutes used today</item>
+    </plurals>
+    <plurals name="schedule_summary">
+        <item quantity="one">%1$d window on %2$s · outside: %3$s</item>
+        <item quantity="other">%1$d windows on %2$s · outside: %3$s</item>
+    </plurals>
+    <plurals name="schedule_used_by">
+        <item quantity="one">Used by %1$d rule or group</item>
+        <item quantity="other">Used by %1$d rules or groups</item>
     </plurals>
 </resources>

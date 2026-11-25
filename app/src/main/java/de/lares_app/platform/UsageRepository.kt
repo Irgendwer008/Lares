@@ -16,6 +16,8 @@ import de.lares_app.core.time.Clock
 import de.lares_app.platform.db.GroupDao
 import de.lares_app.platform.db.GroupUsageEntity
 import de.lares_app.platform.db.RuleDao
+import de.lares_app.platform.db.ScheduleDao
+import de.lares_app.platform.db.WindowUsageEntity
 import de.lares_app.platform.db.UsageDao
 import de.lares_app.platform.db.UsageEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -34,6 +37,7 @@ class UsageRepository(
     private val usageDao: UsageDao,
     private val groupDao: GroupDao,
     private val ruleDao: RuleDao,
+    private val scheduleDao: ScheduleDao,
     private val store: StateStore,
     private val clock: Clock,
     private val zone: () -> ZoneId = { ZoneId.systemDefault() },
@@ -88,9 +92,9 @@ class UsageRepository(
                     trackedPeriod = TrackedPeriod(
                         period.start.toEpochMilli(),
                         period.end.toEpochMilli(),
-                        startElapsedMillis = if (keepAnchor) stored!!.startElapsedMillis else elapsedNow,
+                        startElapsedMillis = if (keepAnchor) stored.startElapsedMillis else elapsedNow,
                         startBootId = boot,
-                        anchorWallMillis = if (keepAnchor) stored!!.anchorWallMillis else now.toEpochMilli(),
+                        anchorWallMillis = if (keepAnchor) stored.anchorWallMillis else now.toEpochMilli(),
                     ),
                     settings = it.settings.withResetSchedule(schedule),
                 )
@@ -113,6 +117,8 @@ class UsageRepository(
             periodEndMillis = period.end.toEpochMilli(),
             ruleMillis = usageDao.period(start).associate { it.ruleId to it.foregroundMillis },
             groupMillis = groupDao.usage(start).associate { it.groupId to it.foregroundMillis },
+            // Window budgets aren't tied to the period (see UsageSnapshot.windowMillis).
+            windowMillis = scheduleDao.windowUsage().associate { it.key to it.foregroundMillis },
         )
     }
 
@@ -128,12 +134,27 @@ class UsageRepository(
         snapshot.groupMillis.filterKeys { it in groupIds }.forEach { (id, ms) ->
             groupDao.upsertUsage(GroupUsageEntity(id, snapshot.periodStartMillis, ms))
         }
-        // Old periods aren't needed (no statistics in v1).
+        snapshot.windowMillis.forEach { (key, ms) ->
+            scheduleDao.upsertWindowUsage(WindowUsageEntity(key, ms, windowDate(key)))
+        }
+        // Old periods aren't needed (no statistics yet).
         usageDao.deleteOlderThan(snapshot.periodStartMillis)
         groupDao.deleteUsageOlderThan(snapshot.periodStartMillis)
+        // Windows last at most 24 h: budgets of windows that started over two days ago are done.
+        // The earlier of wall clock and monotonic clock decides, so setting the date forward
+        // doesn't delete today's budgets.
+        val trusted = store.current().trackedPeriod?.trustedNowMillis(clock.elapsedMillis(), clock.bootId())
+        val nowMillis = minOf(clock.wallMillis(), trusted ?: Long.MAX_VALUE)
+        val cutoff = Instant.ofEpochMilli(nowMillis).atZone(zone()).toLocalDate().minusDays(2).toEpochDay()
+        scheduleDao.deleteWindowUsageBefore(cutoff)
+        counter?.dropWindowsBefore(cutoff)
     }
 
     private companion object {
         const val FLUSH_MILLIS = 15_000L
+
+        /** Start date of a window budget key ("r12|w3@2026-11-25"); unknown → today's (kept a while). */
+        fun windowDate(key: String): Long =
+            runCatching { LocalDate.parse(key.substringAfterLast('@')).toEpochDay() }.getOrDefault(LocalDate.now().toEpochDay())
     }
 }

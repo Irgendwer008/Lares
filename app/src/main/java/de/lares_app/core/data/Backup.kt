@@ -6,6 +6,8 @@
 package de.lares_app.core.data
 
 import de.lares_app.core.policy.RuleType
+import de.lares_app.core.policy.ScheduleWindow
+import de.lares_app.core.policy.WindowMode
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -21,6 +23,8 @@ data class BackupFile(
     val rules: List<BackupRule> = emptyList(),
     /** Encrypted authenticator secret (older Lares versions ignore it). */
     val guardianTotp: String? = null,
+    /** Since 1.2 (older versions ignore it; their rules then fall back to "always blocked"). */
+    val schedules: List<BackupSchedule> = emptyList(),
 ) {
     companion object {
         const val FORMAT = "lares-rules"
@@ -32,6 +36,16 @@ data class BackupGroup(
     val name: String,
     val limitMinutesPerDay: Int? = null,
     val enabled: Boolean = true,
+    /** Name of the schedule that applies instead of the limit (since 1.2). */
+    val schedule: String? = null,
+)
+
+@Serializable
+data class BackupSchedule(
+    val name: String,
+    val outside: WindowMode = WindowMode.BLOCK,
+    val outsideMinutes: Int = 0,
+    val windows: List<ScheduleWindow> = emptyList(),
 )
 
 @Serializable
@@ -42,6 +56,8 @@ data class BackupRule(
     val enabled: Boolean = true,
     /** Name of the group, or null for a single rule. */
     val group: String? = null,
+    /** Name of the schedule that applies instead of the limit (since 1.2). */
+    val schedule: String? = null,
 )
 
 /** Result of [RuleRepository.importBackup]. */

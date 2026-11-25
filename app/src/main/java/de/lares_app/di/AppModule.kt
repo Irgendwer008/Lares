@@ -17,6 +17,8 @@ import de.lares_app.blocking.BlockingController
 import de.lares_app.blocking.UsageMonitorStarter
 import de.lares_app.core.alerts.AlertChannelRepository
 import de.lares_app.core.alerts.AlertSender
+import de.lares_app.core.data.ScheduleRepository
+import de.lares_app.core.data.ScheduleStore
 import de.lares_app.core.data.UnlockGate
 import de.lares_app.core.data.GroupStore
 import de.lares_app.core.data.RuleRepository
@@ -45,6 +47,7 @@ import de.lares_app.platform.KeystoreSecretCipher
 import de.lares_app.platform.db.LaresDatabase
 import de.lares_app.platform.db.RoomGroupStore
 import de.lares_app.platform.db.RoomRuleStore
+import de.lares_app.platform.db.RoomScheduleStore
 import de.lares_app.platform.db.RoomTamperLog
 import javax.inject.Singleton
 
@@ -72,13 +75,21 @@ object AppModule {
     fun groupStore(db: LaresDatabase, clock: Clock): GroupStore = RoomGroupStore(db.groupDao(), clock)
 
     @Provides @Singleton
+    fun scheduleStore(db: LaresDatabase, clock: Clock): ScheduleStore = RoomScheduleStore(db.scheduleDao(), clock)
+
+    @Provides @Singleton
+    fun scheduleRepository(store: ScheduleStore, rules: RuleStore, groups: GroupStore, gate: UnlockGate) =
+        ScheduleRepository(store, rules, groups, gate)
+
+    @Provides @Singleton
     fun tamperLog(db: LaresDatabase, clock: Clock): TamperLog = RoomTamperLog(db.tamperEventDao(), clock)
 
     @Provides @Singleton
     fun unlockGate(store: StateStore, clock: Clock) = UnlockGate(store, clock)
 
     @Provides @Singleton
-    fun ruleRepository(store: RuleStore, groups: GroupStore, gate: UnlockGate, usage: UsageRepository) = RuleRepository(store, groups, gate, usage)
+    fun ruleRepository(store: RuleStore, groups: GroupStore, gate: UnlockGate, usage: UsageRepository, schedules: ScheduleStore) =
+        RuleRepository(store, groups, gate, usage, schedules)
 
     @Provides @Singleton
     fun settingsRepository(store: StateStore, gate: UnlockGate, clock: Clock) = SettingsRepository(store, gate, clock)
@@ -117,12 +128,13 @@ object AppModule {
 
     @Provides @Singleton
     fun usageRepository(db: LaresDatabase, store: StateStore, clock: Clock) =
-        UsageRepository(db.usageDao(), db.groupDao(), db.ruleDao(), store, clock)
+        UsageRepository(db.usageDao(), db.groupDao(), db.ruleDao(), db.scheduleDao(), store, clock)
 
     @Provides @Singleton
     fun blockingController(
         rules: RuleStore,
         groups: GroupStore,
+        schedules: ScheduleStore,
         store: StateStore,
         usage: UsageRepository,
         exempt: ExemptApps,
@@ -132,7 +144,7 @@ object AppModule {
         unlockManager: UnlockManager,
         clock: Clock,
         @ApplicationContext context: Context,
-    ) = BlockingController(rules, groups, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, monitor, unlockManager, clock)
+    ) = BlockingController(rules, groups, schedules, store, usage, exempt, InstalledBrowsers(context), catalog, notifier, monitor, unlockManager, clock)
 
     @Provides @Singleton
     fun usageMonitorStarter(@ApplicationContext context: Context, store: StateStore) = UsageMonitorStarter(context, store)

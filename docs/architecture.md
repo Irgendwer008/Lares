@@ -36,10 +36,17 @@ Single `app` module:
 - `ui` – Compose screens and ViewModels.
 
 ## Data model
-- `Rule(id, type = APP|WEBSITE, target, limitMinutesPerDay?, enabled, groupId?)` (stored with
-  `createdAtMillis` for the order)
-- `RuleGroup(id, name, limitMinutesPerDay?, enabled)` – members are enforced with the group's
-  limit and switch (`Rule.effective()`).
+- `Rule(id, type = APP|WEBSITE, target, limitMinutesPerDay?, enabled, groupId?, scheduleId?)`
+  (stored with `createdAtMillis` for the order)
+- `RuleGroup(id, name, limitMinutesPerDay?, enabled, scheduleId?)` – members are enforced with the
+  group's limit, schedule and switch (`Rule.effective()`).
+- `Schedule(id, name, windows, outside, outsideMinutes)` with `ScheduleWindow(id, day, startMinute,
+  lengthMinutes, mode = BLOCK|TIMER|FREE, minutes, shareGroup?)` – stored as `ScheduleEntity`
+  (windows as JSON). A rule / group with `scheduleId` uses it instead of its limit; "always
+  blocked" / "daily limit" are evaluated as schedules without windows (`PolicyEngine.restriction`).
+- `WindowUsageEntity(key, foregroundMillis, dateEpochDay)` – time per window budget, key
+  `"<owner>|<w id | s group>@<start date>"` (owner `r<rule id>` / `g<group id>`); not tied to the
+  usage period (a window across the reset keeps its budget), removed two days after the window.
 - `UsageEntity(ruleId, periodStart, foregroundMillis)`, `GroupUsageEntity(groupId, periodStart,
   foregroundMillis)` – keyed by usage period start (see `ResetSchedule`).
 - `TamperEvent(id, type, timestamp, details, delivered)`
@@ -53,9 +60,10 @@ Single `app` module:
   secretEncrypted, deliveredUpTo)` – field use per type documented in the class.
 
 Lares is released (1.0.0), so stored data must keep working across updates: the app state (JSON)
-only gets new fields with defaults (no removed / renamed fields or enum values). Room is still at
-version 1 without schema export – before its first schema change, turn on `exportSchema`, record
-the 1.0.0 schema as version 1 and add a migration.
+only gets new fields with defaults (no removed / renamed fields or enum values). Room exports its
+schema to `app/schemas/` (version 1 = 1.0 / 1.1, recorded unchanged); every schema change gets a
+new version and a migration – 1 → 2 (1.2, schedules) is an `AutoMigration` (new tables, nullable
+columns).
 
 ## Implemented
 
@@ -85,11 +93,14 @@ the 1.0.0 schema as version 1 and add a migration.
   `Dispatchers.Default`.
 
 `core/data`
-- `UnlockGate` – the single check "may this loosening change happen now?" (open before setup,
-  otherwise only while unlocked).
-- `RuleRepository`, `SettingsRepository` – every change classified via `ChangePolicy`;
-  loosening while locked → `CodeRequiredException` (UI offers code entry). Backup export and
-  add-only import (`Backup.kt`).
+- `UnlockGate` – the single check "may this change happen now?" (open before setup, otherwise
+  only while unlocked): `check()` for loosening, `checkRuleChange()` for rules / groups (every
+  change by default, only loosening with "Only loosening needs the code").
+- `RuleRepository`, `SettingsRepository` – every change classified via `ChangePolicy`; a change
+  that needs the code while locked → `CodeRequiredException` (UI offers code entry). Backup export
+  and add-only import (`Backup.kt`, incl. schedules).
+- `ScheduleRepository` – schedules; every change needs the code (`check(LOOSENING)`), only unused
+  schedules can be deleted (group members don't count – the group's choice applies to them).
 - `SetupRequirements` – which permissions / choices the current settings still need.
 - `TamperLog` – tamper events for the alert dispatcher.
 
@@ -139,7 +150,7 @@ the 1.0.0 schema as version 1 and add a migration.
   on, returned via `revokeSelfPermissionOnKill` when all are off.
 
 `ui`
-- Setup flow (`SetupMode`: FIRST with color choice, intro and the optional blocking-mode choice before the code, RECOVERY after the recovery code, CHANGE from the
+- Setup flow (`SetupMode`: FIRST with welcome + color choice, a skippable 4-page tour (rules, the three modes, schedules, the guardian code), the hand-over to the guardian and the optional blocking-mode choice before the code; icon circles at the bottom show the progress; RECOVERY after the recovery code, CHANGE from the
   settings), main screen (setup issues, status / unlocked / pause cards, groups, single rules),
   add screen (templates, group, apps, website), unlock and pause dialogs, settings (app settings /
   info), notification channel editor, privacy policy, license, open-source libraries.

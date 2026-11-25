@@ -99,11 +99,29 @@ and countdown.
   visible twice gets one), stacked downward, each with the icon of its app; optional
   notifications 5 / 1 minute before the end.
 
+## Schedules
+- A rule or group uses *always blocked*, a *daily limit* or a *schedule* (`scheduleId`). Inside a
+  group the group's choice applies.
+- A schedule has windows per weekday (`BLOCK` / `TIMER` / `FREE`; a window across midnight belongs
+  to its start day) and a mode for the time outside them. `Schedule.segmentAt(now)` says what
+  applies; `PolicyEngine` blocks on `BLOCK` (`BlockReason.SCHEDULE`), counts a window timer in its
+  own budget (shared timers: one budget for the windows of a day with the same `shareGroup`) and
+  the "outside" timer in the period's counter, like a daily limit.
+- The countdown also runs before a schedule switches to "full block" (e.g. a free window ending).
+- `Decision.Block.until` / `PolicyEngine.availableAt()`: when it's free again (next free segment or
+  fresh budget; the used-up "outside" budget comes back with the period). The block screen shows it,
+  with the weekday if it isn't today; the main screen shows the current state per rule / group
+  ("Blocked until 17:00", timer bar, "Free until 21:00").
+- An unknown schedule (or damaged stored data) blocks – never less strict than intended.
+
 ## Block screen
-- Shows what is blocked and why (always blocked / limit reached, group if any), when the limits
-  restart, "Close" (home screen) and "Go to Lares" (opens the app).
+- Shows what is blocked and why (always blocked / limit reached / schedule, group if any), when
+  it's available again, "Close" (home screen) and "Go to Lares" (opens the app).
 
 ## Known limits
+- Schedule windows follow the wall clock: setting the clock into another window gives that window's
+  state (recorded as a tamper event, like any clock change); the daily "outside" budget is protected
+  like the daily limits.
 - Picture-in-picture and split screen are only covered in Accessibility mode (Usage access mode
   only sees the app of the last opened screen).
 - A supported browser whose address bar can't be read (e.g. its view id changed in an update)

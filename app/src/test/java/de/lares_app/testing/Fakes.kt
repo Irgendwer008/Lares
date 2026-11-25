@@ -8,6 +8,7 @@ package de.lares_app.testing
 import de.lares_app.core.data.AppState
 import de.lares_app.core.data.GroupStore
 import de.lares_app.core.data.RuleStore
+import de.lares_app.core.data.ScheduleStore
 import de.lares_app.core.data.SecretCipher
 import de.lares_app.core.data.StateStore
 import de.lares_app.core.data.TamperEvent
@@ -15,6 +16,7 @@ import de.lares_app.core.data.TamperEventType
 import de.lares_app.core.data.TamperLog
 import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
+import de.lares_app.core.policy.Schedule
 import de.lares_app.core.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -119,6 +121,30 @@ class FakeGroupStore(private val rules: FakeRuleStore) : GroupStore {
 
     override suspend fun deleteWithMembers(id: Long) {
         rules.all().filter { it.groupId == id }.forEach { rules.delete(it.id) }
+        flow.update { list -> list.filterNot { it.id == id } }
+    }
+}
+
+class FakeScheduleStore : ScheduleStore {
+    private val flow = MutableStateFlow<List<Schedule>>(emptyList())
+    private var nextId = 1L
+    override val schedules: Flow<List<Schedule>> = flow
+
+    override suspend fun all() = flow.value
+
+    override suspend fun get(id: Long) = flow.value.firstOrNull { it.id == id }
+
+    override suspend fun insert(schedule: Schedule): Long {
+        val id = nextId++
+        flow.update { it + schedule.copy(id = id) }
+        return id
+    }
+
+    override suspend fun update(schedule: Schedule) {
+        flow.update { list -> list.map { if (it.id == schedule.id) schedule else it } }
+    }
+
+    override suspend fun delete(id: Long) {
         flow.update { list -> list.filterNot { it.id == id } }
     }
 }

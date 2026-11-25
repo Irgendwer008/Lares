@@ -7,6 +7,10 @@ updated in place.
 | Decision | Reason |
 |---|---|
 | Tightening is free, loosening needs the guardian code | Encourages stricter rules; the guardian only needs to be involved for loosening |
+| Schedules (1.2) are separate, named objects picked by rules / groups; "always blocked" and "daily limit" are schedules without windows internally, but stay in their own fields in the export | Several rules can share one time table; older versions still read the export (with a schedule they fall back to "always blocked") |
+| Every change to schedules needs the code, also with "only loosening" | A schedule is shared, and whether moving / changing windows frees time can't be judged reliably |
+| Window budgets belong to the window (keyed by its start date), not to the usage period; the "outside" timer uses the period like a daily limit | A window across the daily reset must not get a second budget |
+| An unknown schedule / damaged schedule data blocks | Never less strict than intended |
 | Since 1.2: every rule / group change needs the code by default; "Only loosening needs the code" is a setting (changing it needs the code) | A rule added or tightened by mistake could otherwise only be undone with the guardian; who wants free tightening can switch it on |
 | Rule types in v1: always blocked or daily time limit | Schedules and open-count limits are not part of v1 |
 | Daily reset time configurable (default 00:00); any change needs the code and applies after the next reset | Night owls; moving the reset in either direction can grant a fresh quota |
@@ -14,7 +18,7 @@ updated in place.
 | A target can be a single rule and a group member at the same time; both limits apply | Adding a group never changes existing rules; the stricter limit always wins |
 | Taking a member out of a group is loosening (unless its own limit is stricter); deleting a group deletes its members | Leaving ends the time sharing; keeps the model simple |
 | Templates for popular social apps incl. alternative clients (NewPipe, ReVanced, LibreTube …), optionally as a group | One-tap setup; alternative clients would otherwise be an easy bypass |
-| Backup: export rules and groups (no secrets, no usage data); import only adds | Device change without re-entering everything; add-only import never loosens, so it needs no code |
+| Backup: export rules, groups and schedules (no secrets, no usage data); import only adds | Device change without re-entering everything; add-only import never loosens, so it needs no code with "Only loosening needs the code" (by default every rule change needs it; new schedules always do) |
 | TOTP can move to a new phone in the export, encrypted with the recovery code; passwords don't move | Same authenticator app on the new phone without a readable secret in the file (100-bit key only the guardian has); a password is simply typed again |
 
 ## Guardian code & unlocking

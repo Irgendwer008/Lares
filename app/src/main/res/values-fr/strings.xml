@@ -7,6 +7,48 @@
     <string name="home_tagline">Moins de défilement, plus de vie.</string>
     <string name="cancel">Annuler</string>
     <string name="close">Fermer</string>
+    <string name="save">Enregistrer</string>
+    <string name="done">OK</string>
+    <string name="schedules_title">Plannings</string>
+    <string name="schedules_settings_desc">Plages horaires par jour de la semaine, à choisir pour les règles et les groupes</string>
+    <string name="schedules_empty">Aucun planning pour l’instant. Un planning définit pour chaque jour quand les applis sont bloquées, ont une minuterie ou sont libres – les règles et les groupes peuvent alors l’utiliser à la place d’une limite quotidienne.</string>
+    <string name="schedules_hint">Les règles et les groupes choisissent un planning comme mode. Toute modification des plannings exige le code du gardien.</string>
+    <string name="schedule_new">Nouveau planning</string>
+    <string name="schedule_edit">Modifier le planning</string>
+    <string name="schedule_delete">Supprimer le planning</string>
+    <string name="schedule_delete_body">Supprimer ce planning ? Cela exige le code du gardien.</string>
+    <string name="schedule_in_use_title">Planning utilisé</string>
+    <string name="schedule_in_use_body">Utilisé par : %1$s. Choisis d’abord un autre mode pour eux.</string>
+    <string name="schedule_unused">Non utilisé</string>
+    <string name="schedule_list_line">%1$s · %2$s</string>
+    <string name="schedule_summary_no_windows">Aucune plage · en dehors : %1$s</string>
+    <string name="schedule_name">Nom</string>
+    <string name="schedule_name_missing">Saisis un nom.</string>
+    <string name="schedule_name_taken">Il existe déjà un planning portant ce nom.</string>
+    <string name="schedule_outside">En dehors des plages</string>
+    <string name="schedule_mode_block">Bloqué</string>
+    <string name="schedule_mode_free">Libre</string>
+    <string name="schedule_mode_timer">Minuterie</string>
+    <string name="schedule_minutes_short">%1$d min</string>
+    <string name="schedule_grid_hint">Touche un emplacement libre pour ajouter une plage, une plage pour la modifier. Appui long pour la déplacer, fais glisser son bord supérieur ou inférieur pour la redimensionner.</string>
+    <string name="schedule_needs_code">Modifier les plannings exige le code du gardien.</string>
+    <string name="schedule_overlap">Les plages ne peuvent pas se chevaucher.</string>
+    <string name="schedule_discard_title">Abandonner les modifications ?</string>
+    <string name="schedule_discard_body">Tes modifications de ce planning ne seront pas enregistrées.</string>
+    <string name="schedule_discard">Abandonner</string>
+    <string name="schedule_keep_editing">Continuer</string>
+    <string name="schedule_now">Maintenant</string>
+    <string name="schedule_window_description">%1$s, de %2$s à %3$s : %4$s</string>
+    <string name="schedule_next_day">Se termine le lendemain.</string>
+    <string name="schedule_share_with">Partager la minuterie avec</string>
+    <string name="schedule_copy_to">Copier vers</string>
+    <string name="schedule_copy_skipped">Certaines copies ont été ignorées, car elles se chevaucheraient.</string>
+    <string name="schedule_window_delete">Supprimer la plage</string>
+    <string name="schedule_window_add">Ajouter une plage</string>
+    <string name="schedule_window_new">Nouvelle plage</string>
+    <string name="schedule_window_edit">Modifier la plage</string>
+    <string name="schedule_window_day">Jour</string>
+    <string name="schedule_full_day">Dure 24 heures (le début et la fin sont identiques).</string>
     <string name="back">Retour</string>
     <plurals name="duration_minutes">
         <item quantity="one">%d minute</item>
@@ -20,7 +62,39 @@
     </plurals>
 
     <!-- Setup -->
-    <string name="setup_intro_title">Bienvenue</string>
+    <string name="setup_intro_title">Au tour de ton gardien</string>
+    <string name="setup_welcome_title">Bienvenue dans Lares</string>
+    <string name="setup_welcome_body">Lares t’aide à passer moins de temps sur les applis et les sites web qui te distraient. Une personne de confiance – ton gardien – détient le code qui protège tes règles. D’abord une courte visite, puis ton gardien configure tout.</string>
+    <string name="tutorial_label">Visite · %1$d sur %2$d</string>
+    <string name="tutorial_skip">Passer la visite</string>
+    <string name="tutorial_next">Suivant</string>
+    <string name="tutorial_finish">Continuer</string>
+    <string name="tutorial_rules_title">Ce que Lares bloque</string>
+    <string name="tutorial_rules_body">Tu décides quelles applis et quels sites web Lares limite. Chacun est une règle.</string>
+    <string name="tutorial_rules_add">Ajoute des applis depuis la liste ou saisis un site web – même seulement une partie, p. ex. youtube.com/shorts.</string>
+    <string name="tutorial_rules_templates">Les modèles ajoutent d’un coup des applis populaires avec leurs sites web et leurs applis alternatives.</string>
+    <string name="tutorial_rules_groups">Dans un groupe, plusieurs applis et sites web partagent une limite, p. ex. tous les réseaux sociaux ensemble.</string>
+    <string name="tutorial_modes_title">Trois façons de bloquer</string>
+    <string name="tutorial_modes_body">Chaque règle ou groupe reçoit l’un de ces modes :</string>
+    <string name="tutorial_modes_always">Impossible à ouvrir.</string>
+    <string name="tutorial_modes_daily">Un nombre de minutes par jour. Un compte à rebours affiche les dernières minutes, puis c’est bloqué jusqu’à la remise à zéro quotidienne.</string>
+    <string name="tutorial_modes_schedule">Des règles différentes selon l’heure et le jour – voir la page suivante.</string>
+    <string name="tutorial_schedules_title">Plannings</string>
+    <string name="tutorial_schedules_body">Un planning est un emploi du temps hebdomadaire. Chaque jour, tu ajoutes des plages bloquées, avec minuterie ou libres. Pour le temps en dehors des plages, tu choisis ce qui s’applique.</string>
+    <string name="tutorial_schedules_example">Exemple de semaine : en semaine, bloqué pendant les heures de cours et une courte minuterie le soir, libre le samedi après-midi, une minuterie le dimanche.</string>
+    <string name="tutorial_schedules_more">Les plannings se créent dans les paramètres et peuvent être choisis pour n’importe quelle règle ou groupe. Les plages se déplacent et se redimensionnent comme des entrées d’agenda.</string>
+    <string name="tutorial_code_title">Le code du gardien</string>
+    <string name="tutorial_code_body">Ton gardien configure un mot de passe ou une appli d’authentification. Le code reste chez lui – c’est ce qui rend les règles efficaces.</string>
+    <string name="tutorial_code_changes">Modifier les règles exige le code – par défaut toute modification, pour que rien ne soit ajouté par erreur.</string>
+    <string name="tutorial_code_unlock">Avec le code, Lares est déverrouillé pendant 10 minutes, et le gardien peut lancer une pause.</string>
+    <string name="tutorial_code_protect">Des protections facultatives empêchent la désinstallation et avertissent ton gardien en cas de manipulation.</string>
+    <string name="setup_stage_welcome">Bienvenue</string>
+    <string name="setup_stage_tutorial">Visite</string>
+    <string name="setup_stage_guardian">Gardien</string>
+    <string name="setup_stage_mode">Mode de blocage</string>
+    <string name="setup_stage_code">Code du gardien</string>
+    <string name="setup_stage_recovery">Code de récupération</string>
+    <string name="setup_progress">Étape %1$d sur %2$d : %3$s</string>
     <string name="setup_intro_body">Lares bloque les applis et les sites web que tu choisis. Pour modifier les règles, il faut un code que seule une personne de confiance connaît : ton gardien, par exemple un ami ou un membre de ta famille.\n\nPour les étapes suivantes, donne le téléphone à ton gardien.</string>
     <string name="setup_intro_start">C’est parti</string>
     <string name="setup_mode_title">Gardien : choisis le mode de blocage</string>
@@ -69,6 +143,7 @@
     <string name="home_empty_hint">Touche « Ajouter » en bas pour bloquer ta première appli ou ton premier site – ou commence avec un modèle.</string>
     <string name="home_status_protected_title">La protection est active</string>
     <string name="home_status_protected_body">Tu peux toujours ajouter des règles. Supprimer des règles ou augmenter des limites nécessite le code du gardien.</string>
+    <string name="home_status_protected_body_all">Toute modification des règles et des groupes nécessite le code du gardien.</string>
     <string name="home_unlock">Saisir le code du gardien</string>
     <string name="home_status_paused_title">Le blocage est en pause</string>
     <string name="home_time_left">Encore %1$s</string>
@@ -96,6 +171,18 @@
     <string name="rule_dialog_save">Enregistrer</string>
     <string name="rule_dialog_remove">Supprimer la règle</string>
     <string name="limit_daily">Limite de temps quotidienne</string>
+    <string name="limit_schedule">Planning</string>
+    <string name="limit_schedule_named">Planning « %1$s »</string>
+    <string name="limit_schedule_none">Aucun planning pour l’instant.</string>
+    <string name="limit_schedule_create">Créer un planning</string>
+    <string name="limit_schedule_choose">Choisir un planning</string>
+    <string name="limit_schedule_manage">Gérer les plannings</string>
+    <string name="schedule_status_blocked_until">Bloqué jusqu’à %1$s</string>
+    <string name="schedule_status_blocked">Bloqué</string>
+    <string name="schedule_status_free_until">Libre jusqu’à %1$s</string>
+    <string name="schedule_status_free">Libre</string>
+    <string name="schedule_status_timer_until">Minuterie jusqu’à %1$s</string>
+    <string name="schedule_status_timer">Minuterie</string>
     <string name="limit_minutes_label">Minutes par jour</string>
 
     <!-- Groups -->
@@ -203,7 +290,7 @@
     <string name="settings_locked_hint">Assouplir des paramètres (désactiver, changer le mode de blocage des applis, le code du gardien, l’heure de réinitialisation ou les canaux de notification) nécessite le code du gardien.</string>
     <string name="settings_guardian_code">Code du gardien</string>
     <string name="settings_only_loosening_off">Désactivé : toute modification des règles et des groupes exige le code.</string>
-    <string name="settings_only_loosening_on">Ajouter des règles et les durcir est possible sans le code.</string>
+    <string name="settings_only_loosening_on">Ajouter des règles et les durcir est possible sans le code (sauf pour les plannings).</string>
     <string name="settings_only_loosening">Seul l’assouplissement exige le code</string>
     <string name="settings_reset_time">Les limites quotidiennes repartent à</string>
     <string name="settings_reset_time_pending">%1$s – passe à %2$s après la prochaine réinitialisation</string>
@@ -223,7 +310,7 @@
     <string name="about_body">Version %1$s\n\nLares bloque les applis et les sites web que tu choisis. Pour modifier les règles – surtout pour les assouplir –, il faut un code que seul ton gardien connaît.\n\nLogiciel libre sous licence publique générale GNU, version 3 ou ultérieure.</string>
     <string name="privacy_title">Politique de confidentialité</string>
     <string name="privacy_summary">Tout reste sur ce téléphone</string>
-    <string name="privacy_body">Lares fonctionne entièrement sur ce téléphone.\n\n• Pas de compte, pas d’analyse, pas de publicité, pas de pistage, pas de rapports de plantage.\n• Aucune donnée n’est vendue. Rien n’est partagé avec des tiers – sauf avec les services de notification que tu configures toi-même (voir ci-dessous).\n• Tes règles, tes temps d’utilisation, tes paramètres et un journal des événements de protection (p. ex. « heure modifiée ») sont enregistrés uniquement sur ce téléphone. Ils sont exclus des sauvegardes Android et des transferts entre appareils.\n• Le code du gardien n’est enregistré que sous forme de hachage protégé (mot de passe) ou chiffré avec une clé qui ne quitte jamais ce téléphone (appli d’authentification) – un code d’authentification est en plus chiffré avec le code de récupération, pour pouvoir le transférer sur un nouveau téléphone. Le code de récupération n’est enregistré que sous forme de hachage protégé.\n• Lares désactive le remplissage automatique d’Android, pour que les gestionnaires de mots de passe ne proposent jamais d’enregistrer le code du gardien.\n• Si tu actives le service d’accessibilité ou l’accès aux données d’utilisation, Lares s’en sert uniquement pour détecter quelle appli est ouverte – et, tant que le blocage des sites est activé, l’adresse dans la barre d’adresse des navigateurs pris en charge et, tant que « Protéger les paramètres système » est activé, si une page des paramètres système ou une boîte de dialogue de désinstallation concerne Lares (rien d’autre de l’écran). Ces informations sont traitées sur le téléphone sur le moment, ni enregistrées ni envoyées.\n• Le rôle facultatif d’administrateur de l’appareil sert uniquement à empêcher la désinstallation de Lares.\n• Lares se connecte à Internet uniquement pour envoyer des notifications au gardien – et uniquement aux services configurés dans les paramètres (Telegram, ntfy, e-mail, Matrix ou un webhook). Rien n’est envoyé sans un tel canal. Un message contient uniquement le texte de la notification (p. ex. « la protection a été désactivée »), son heure et le modèle du téléphone ; la politique de confidentialité du service choisi s’applique. Les jetons et mots de passe sont enregistrés chiffrés sur le téléphone.\n• Certains liens s’ouvrent dans ton navigateur, qui les charge : la page neutre de Lares affichée quand un site est bloqué (hébergée sur GitHub Pages ; la politique de confidentialité de GitHub s’applique), les conseils pour les fabricants et les pages des bibliothèques.\n• Les fichiers de règles exportés contiennent des règles et des groupes – aucun jeton ni temps d’utilisation. Si l’option est activée, ils contiennent aussi le code d’authentification, chiffré avec le code de récupération (inutilisable sans lui) ; jamais le mot de passe.</string>
+    <string name="privacy_body">Lares fonctionne entièrement sur ce téléphone.\n\n• Pas de compte, pas d’analyse, pas de publicité, pas de pistage, pas de rapports de plantage.\n• Aucune donnée n’est vendue. Rien n’est partagé avec des tiers – sauf avec les services de notification que tu configures toi-même (voir ci-dessous).\n• Tes règles, tes temps d’utilisation, tes paramètres et un journal des événements de protection (p. ex. « heure modifiée ») sont enregistrés uniquement sur ce téléphone. Ils sont exclus des sauvegardes Android et des transferts entre appareils.\n• Le code du gardien n’est enregistré que sous forme de hachage protégé (mot de passe) ou chiffré avec une clé qui ne quitte jamais ce téléphone (appli d’authentification) – un code d’authentification est en plus chiffré avec le code de récupération, pour pouvoir le transférer sur un nouveau téléphone. Le code de récupération n’est enregistré que sous forme de hachage protégé.\n• Lares désactive le remplissage automatique d’Android, pour que les gestionnaires de mots de passe ne proposent jamais d’enregistrer le code du gardien.\n• Si tu actives le service d’accessibilité ou l’accès aux données d’utilisation, Lares s’en sert uniquement pour détecter quelle appli est ouverte – et, tant que le blocage des sites est activé, l’adresse dans la barre d’adresse des navigateurs pris en charge et, tant que « Protéger les paramètres système » est activé, si une page des paramètres système ou une boîte de dialogue de désinstallation concerne Lares (rien d’autre de l’écran). Ces informations sont traitées sur le téléphone sur le moment, ni enregistrées ni envoyées.\n• Le rôle facultatif d’administrateur de l’appareil sert uniquement à empêcher la désinstallation de Lares.\n• Lares se connecte à Internet uniquement pour envoyer des notifications au gardien – et uniquement aux services configurés dans les paramètres (Telegram, ntfy, e-mail, Matrix ou un webhook). Rien n’est envoyé sans un tel canal. Un message contient uniquement le texte de la notification (p. ex. « la protection a été désactivée »), son heure et le modèle du téléphone ; la politique de confidentialité du service choisi s’applique. Les jetons et mots de passe sont enregistrés chiffrés sur le téléphone.\n• Certains liens s’ouvrent dans ton navigateur, qui les charge : la page neutre de Lares affichée quand un site est bloqué (hébergée sur GitHub Pages ; la politique de confidentialité de GitHub s’applique), les conseils pour les fabricants et les pages des bibliothèques.\n• Les fichiers de règles exportés contiennent des règles, des groupes et des plannings – aucun jeton ni temps d’utilisation. Si l’option est activée, ils contiennent aussi le code d’authentification, chiffré avec le code de récupération (inutilisable sans lui) ; jamais le mot de passe.</string>
     <string name="license_title">Licence</string>
     <string name="license_summary">GNU GPL, version 3 ou ultérieure</string>
     <string name="license_body">Lares est un logiciel libre : tu peux le redistribuer et/ou le modifier selon les termes de la licence publique générale GNU telle que publiée par la Free Software Foundation, soit la version 3 de la licence, soit (à ton choix) toute version ultérieure.\n\nLares est distribué dans l’espoir qu’il sera utile, mais SANS AUCUNE GARANTIE ; sans même la garantie implicite de QUALITÉ MARCHANDE ou d’ADÉQUATION À UN USAGE PARTICULIER. Voir la licence publique générale GNU pour plus de détails.</string>
@@ -360,8 +447,8 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Exporter les règles</string>
-    <string name="backup_export_desc">Enregistre ou partage les règles et les groupes dans un fichier ; le code d’authentification seulement si activé ci-dessous (chiffré).</string>
-    <string name="backup_export_desc_no_totp">Enregistre ou partage les règles et les groupes dans un fichier.</string>
+    <string name="backup_export_desc">Enregistre ou partage les règles, les groupes et les plannings dans un fichier ; le code d’authentification seulement si activé ci-dessous (chiffré).</string>
+    <string name="backup_export_desc_no_totp">Enregistre ou partage les règles, les groupes et les plannings dans un fichier.</string>
     <string name="backup_export_save">Enregistrer comme fichier</string>
     <string name="backup_export_share">Partager</string>
     <string name="backup_export_empty">Pas encore de règles à exporter.</string>
@@ -386,7 +473,7 @@
     <string name="setup_restore_no_totp">Ce fichier ne contient pas de code d’authentification. Ses règles ont été importées – définis maintenant un code.</string>
     <string name="setup_restore_failed">Ce fichier n’a pas pu être lu comme des règles Lares.</string>
     <string name="backup_import">Importer des règles</string>
-    <string name="backup_import_desc">Ajoute des règles et des groupes depuis un fichier. Les règles existantes restent inchangées.</string>
+    <string name="backup_import_desc">Ajoute des règles, des groupes et des plannings depuis un fichier. Les règles et les plannings existants restent inchangés.</string>
     <string name="backup_exported">Règles exportées.</string>
     <string name="backup_export_failed">Échec de l’exportation.</string>
     <string name="backup_import_failed">Ce fichier n’a pas pu être lu comme des règles Lares.</string>
@@ -438,6 +525,10 @@
     <string name="block_reason_always_website">Ce site est toujours bloqué.</string>
     <string name="block_reset_midnight">minuit</string>
     <string name="block_reason_limit">La limite quotidienne est épuisée. De nouveau disponible à %1$s.</string>
+    <string name="block_reason_schedule">Bloqué en ce moment selon son planning. De nouveau disponible : %1$s.</string>
+    <string name="block_reason_schedule_open">Bloqué en ce moment selon son planning.</string>
+    <string name="block_reason_schedule_limit">Le temps pour cette partie du planning est écoulé. De nouveau disponible : %1$s.</string>
+    <string name="block_reason_schedule_limit_open">Le temps pour cette partie du planning est écoulé.</string>
     <string name="block_reason_browser">Le blocage des sites est activé et ce navigateur n’est pas pris en charge. Utilise un navigateur pris en charge.</string>
     <string name="block_group">Groupe « %1$s »</string>
     <string name="block_open_lares">Aller dans Lares</string>
@@ -458,9 +549,9 @@
         <item quantity="many">Encore %d minutes</item>
         <item quantity="other">Encore %d minutes</item>
     </plurals>
-    <string name="limit_warning_text">La limite quotidienne pour %1$s est presque épuisée.</string>
+    <string name="limit_warning_text">%1$s sera bientôt bloqué.</string>
     <string name="settings_limit_timer">Compte à rebours les 5 dernières minutes</string>
-    <string name="settings_limit_timer_desc">Affiche un petit minuteur dans un coin quand une limite est sur le point d’expirer.</string>
+    <string name="settings_limit_timer_desc">Affiche un petit minuteur dans un coin peu avant qu’une appli soit bloquée.</string>
     <string name="settings_warn_five">Notification 5 minutes avant</string>
     <string name="settings_warn_one">Notification 1 minute avant</string>
     <string name="settings_warn_desc">Nécessite l’autorisation des notifications, demandée quand tu actives cette option.</string>
@@ -471,5 +562,15 @@
         <item quantity="one">%1$d sur %2$d minute utilisée aujourd’hui</item>
         <item quantity="many">%1$d sur %2$d minutes utilisées aujourd’hui</item>
         <item quantity="other">%1$d sur %2$d minutes utilisées aujourd’hui</item>
+    </plurals>
+    <plurals name="schedule_summary">
+        <item quantity="one">%1$d plage (%2$s) · en dehors : %3$s</item>
+        <item quantity="many">%1$d plages (%2$s) · en dehors : %3$s</item>
+        <item quantity="other">%1$d plages (%2$s) · en dehors : %3$s</item>
+    </plurals>
+    <plurals name="schedule_used_by">
+        <item quantity="one">Utilisé par %1$d règle ou groupe</item>
+        <item quantity="many">Utilisé par %1$d règles ou groupes</item>
+        <item quantity="other">Utilisé par %1$d règles ou groupes</item>
     </plurals>
 </resources>

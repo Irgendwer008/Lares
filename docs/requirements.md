@@ -5,8 +5,12 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 ## Rules
 1. The user configures **apps** and **websites** (domains, optionally paths, e.g.
    `youtube.com/shorts`) to block.
-2. A rule is **always blocked** or has a **daily time limit** (e.g. 30 min/day). Time schedules
-   and open-count limits are not part of v1.
+2. A rule is **always blocked**, has a **daily time limit** (e.g. 30 min/day) or uses a
+   **schedule** (since 1.2): a named weekly time table with windows per weekday (full block, a
+   timer, or free – a window may cross midnight), a mode for the time outside the windows, and
+   timers that can be shared between windows of the same day. Schedules are edited in a week view
+   (calendar style) and can be picked by any number of rules and groups. Open-count limits are not
+   part of it.
 3. Daily limits restart at a **configurable time** (default 00:00). A change takes effect after
    the next reset.
 4. **Templates** (YouTube, Instagram, TikTok, Snapchat, Facebook, X, Reddit, LinkedIn, Threads,
@@ -81,16 +85,18 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
     own message language and a test message. See [Notifications](notifications.md).
 
 ## Backup
-27. **Export** rules and groups as a JSON file – save or share (no tokens or usage data; optionally
-    the authenticator code, encrypted with the recovery code, so the same authenticator app works
-    on a new phone). **Import adds only** (never removes or loosens), so it needs no code; taking
-    over the authenticator code replaces the guardian code (first setup or unlocked).
+27. **Export** rules, groups and schedules as a JSON file – save or share (no tokens or usage data;
+    optionally the authenticator code, encrypted with the recovery code, so the same authenticator
+    app works on a new phone). **Import adds only** (never removes or loosens): it needs the code
+    by default (a rule change), not with "Only loosening needs the code" – but always if the file
+    contains new schedules. Taking over the authenticator code replaces the guardian code (first
+    setup or unlocked).
 
 ## Settings
 28. Settings screen (menu icon on the main screen), split into **App settings** – guardian code,
     blocking mode, website blocking, reset time, limit countdown and warnings, protections,
     notification channels, backup,
-    colors (Lares colors or wallpaper colors, Android 12+; also asked on the first setup screen),
+    colors (Lares colors or wallpaper colors, Android 12+; also asked on the welcome screen of the first setup, followed by a short skippable tour),
     language – and **Info** – about, privacy policy, license, open-source libraries.
 
 ## Platform

@@ -13,7 +13,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.lares_app.R
-import de.lares_app.ui.theme.wallpaperColorsAvailable
+import de.lares_app.core.blocking.UsageSnapshot
+import de.lares_app.core.data.ScheduleRepository
+import de.lares_app.core.policy.PolicyEngine
+import de.lares_app.core.policy.Schedule
+import de.lares_app.core.policy.WindowMode
 import de.lares_app.blocking.BlockingController
 import de.lares_app.core.alerts.AlertChannelConfig
 import de.lares_app.core.alerts.AlertChannelRepository
@@ -53,6 +57,9 @@ import de.lares_app.platform.InstalledApp
 import de.lares_app.platform.LimitNotifier
 import de.lares_app.platform.PermissionStatus
 import de.lares_app.platform.UsageRepository
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,7 +77,7 @@ import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
-private val WhileSubscribed = SharingStarted.WhileSubscribed(5_000)
+internal val WhileSubscribed = SharingStarted.WhileSubscribed(5_000)
 
 // ---- App gate: setup or home ---------------------------------------------------------------------
 
@@ -107,9 +114,13 @@ class MainViewModel @Inject constructor(store: StateStore) : ViewModel() {
 // ---- Setup ---------------------------------------------------------------------------------------
 
 sealed interface SetupStep {
-    /** First setup only, Android 12+: Lares colors or wallpaper colors. */
-    data object Theme : SetupStep
+    /** First setup only: welcome (and on Android 12+ the choice of colors). */
+    data object Welcome : SetupStep
 
+    /** First setup only: short, skippable tutorial ([page] 0 until [TUTORIAL_PAGES]). */
+    data class Tutorial(val page: Int) : SetupStep
+
+    /** First setup only: hand the phone to the guardian. */
     data object Intro : SetupStep
 
     /** First setup only: the guardian may already choose the blocking mode (or decide later). */
@@ -125,6 +136,9 @@ sealed interface SetupStep {
 }
 
 enum class PasswordError { TOO_SHORT, MISMATCH }
+
+/** Number of tutorial pages in the first setup. */
+const val TUTORIAL_PAGES = 4
 
 data class SetupProtections(val websiteBlocking: Boolean = false, val protections: Set<Protection> = emptySet())
 
@@ -194,11 +208,7 @@ class SetupViewModel @Inject constructor(
         if (startedMode == mode && !finished) return
         startedMode = mode
         finished = false
-        _step.value = when {
-            mode != SetupMode.FIRST -> SetupStep.ChooseMethod
-            wallpaperColorsAvailable -> SetupStep.Theme
-            else -> SetupStep.Intro
-        }
+        _step.value = if (mode == SetupMode.FIRST) SetupStep.Welcome else SetupStep.ChooseMethod
     }
 
     /** True while hashing / storing runs (shows a progress indicator, blocks double taps). */
@@ -241,8 +251,18 @@ class SetupViewModel @Inject constructor(
         if (_step.value == SetupStep.BlockingMode) _step.value = SetupStep.ChooseMethod
     }
 
-    fun themeChosen() {
-        if (_step.value == SetupStep.Theme) _step.value = SetupStep.Intro
+    fun welcomeDone() {
+        if (_step.value == SetupStep.Welcome) _step.value = SetupStep.Tutorial(0)
+    }
+
+    /** Next tutorial page, after the last one on to the guardian. */
+    fun tutorialNext() {
+        val step = _step.value as? SetupStep.Tutorial ?: return
+        _step.value = if (step.page + 1 < TUTORIAL_PAGES) SetupStep.Tutorial(step.page + 1) else SetupStep.Intro
+    }
+
+    fun skipTutorial() {
+        if (_step.value is SetupStep.Tutorial) _step.value = SetupStep.Intro
     }
 
     fun skipIntro() {
@@ -255,8 +275,12 @@ class SetupViewModel @Inject constructor(
             is SetupStep.Password, is SetupStep.Totp -> SetupStep.ChooseMethod
             SetupStep.ChooseMethod -> if (startedMode == SetupMode.FIRST) SetupStep.BlockingMode else SetupStep.ChooseMethod
             SetupStep.BlockingMode -> SetupStep.Intro
-            SetupStep.Intro -> if (wallpaperColorsAvailable) SetupStep.Theme else SetupStep.Intro
-            else -> SetupStep.Intro
+            SetupStep.Intro -> SetupStep.Tutorial(TUTORIAL_PAGES - 1)
+            is SetupStep.Tutorial -> {
+                val page = (_step.value as SetupStep.Tutorial).page
+                if (page > 0) SetupStep.Tutorial(page - 1) else SetupStep.Welcome
+            }
+            else -> SetupStep.Welcome
         }
     }
 
@@ -320,9 +344,43 @@ data class RuleItem(
     val brandColor: Long? = null,
     /** Foreground time today (current usage period). */
     val usedMillis: Long = 0,
+    /** What its schedule means right now (standalone rules with a schedule). */
+    val schedule: ScheduleStatus? = null,
 )
 
-data class GroupItem(val group: RuleGroup, val members: List<RuleItem>, val usedMillis: Long = 0)
+data class GroupItem(val group: RuleGroup, val members: List<RuleItem>, val usedMillis: Long = 0, val schedule: ScheduleStatus? = null)
+
+/**
+ * What a schedule means for a rule / group right now: blocked / free until …, or a timer with
+ * [usedMillis] of [budgetMinutes] until ….
+ */
+data class ScheduleStatus(val mode: WindowMode, val until: LocalDateTime?, val usedMillis: Long = 0, val budgetMinutes: Int = 0)
+
+/** @param owner [PolicyEngine.ownerKey]; @param periodUsed the owner's "outside" time this period. */
+private fun scheduleStatus(
+    scheduleId: Long?,
+    owner: String,
+    periodUsed: Long,
+    schedules: Map<Long, Schedule>,
+    used: UsageSnapshot?,
+    now: LocalDateTime,
+): ScheduleStatus? {
+    val id = scheduleId ?: return null
+    val schedule = schedules[id] ?: return ScheduleStatus(WindowMode.BLOCK, null)
+    val periodEnd = used?.let { LocalDateTime.ofInstant(Instant.ofEpochMilli(it.periodEndMillis), ZoneId.systemDefault()) }
+    val seg = schedule.segmentAt(now)
+    return when (seg.mode) {
+        WindowMode.BLOCK -> ScheduleStatus(WindowMode.BLOCK, PolicyEngine.availableAt(schedule, seg.end, outsideExhausted = false, periodEnd))
+        WindowMode.FREE -> ScheduleStatus(WindowMode.FREE, seg.end)
+        WindowMode.TIMER -> {
+            val key = seg.budgetKey
+            val usedMs = if (key != null) used?.windowMillis?.get(PolicyEngine.windowUsageKey(owner, key)) ?: 0L else periodUsed
+            // The "outside" budget restarts with the period.
+            val until = listOfNotNull(seg.end, periodEnd.takeIf { key == null }).minOrNull()
+            ScheduleStatus(WindowMode.TIMER, until, usedMs, seg.minutes)
+        }
+    }
+}
 
 /** Apps first (by name), then websites by base domain, so `youtube.com` and `m.youtube.com` sit together. */
 private val RuleOrder: Comparator<RuleItem> = compareBy<RuleItem>(
@@ -369,8 +427,12 @@ class HomeViewModel @Inject constructor(
     private val usage: UsageRepository,
     private val blocking: BlockingController,
     private val settings: SettingsRepository,
+    scheduleRepository: ScheduleRepository,
 ) : ViewModel() {
     private val permissionRefresh = MutableStateFlow(0)
+
+    /** For the "Schedule" mode and the schedule status of rules / groups (null while loading). */
+    val schedules: StateFlow<List<Schedule>?> = scheduleRepository.schedules.stateIn(viewModelScope, WhileSubscribed, null)
 
     /** What still keeps blocking from working; re-checked when returning from the system settings. */
     val setupIssues: StateFlow<List<SetupIssue>> = combine(store.state, permissionRefresh) { s, _ ->
@@ -409,7 +471,23 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { usage.refreshPeriod() } // load today's usage even before blocking runs
     }
 
-    val content: StateFlow<HomeContent> = combine(rules.rules, rules.groups, usage.usage, store.state) { list, groups, used, state ->
+    /** Schedules change their state over time: re-evaluated twice a minute. */
+    private val minuteTicker = flow {
+        while (true) {
+            emit(LocalDateTime.now())
+            delay(30_000)
+        }
+    }
+
+    val content: StateFlow<HomeContent> = combine(
+        combine(rules.rules, rules.groups, ::Pair),
+        usage.usage,
+        store.state,
+        schedules,
+        minuteTicker,
+    ) { (list, groups), used, state, scheduleList, now ->
+        // While loading, no status (an unknown schedule would read "Blocked").
+        val scheduleMap = scheduleList?.associateBy { it.id }
         val items = list.map { rule ->
             when (rule.type) {
                 RuleType.APP -> catalog.describeOrFallback(rule.target).let { RuleItem(rule, it.label, it.icon) }
@@ -417,12 +495,25 @@ class HomeViewModel @Inject constructor(
             }.copy(
                 brandColor = RuleTemplates.colorFor(rule.type, rule.target),
                 usedMillis = used?.ruleMillis?.get(rule.id) ?: 0,
+                schedule = if (scheduleMap != null && (rule.groupId == null || groups.none { it.id == rule.groupId })) {
+                    scheduleStatus(rule.scheduleId, PolicyEngine.ownerKey(rule.id, null), used?.ruleMillis?.get(rule.id) ?: 0, scheduleMap, used, now)
+                } else {
+                    null
+                },
             )
         }
         val groupIds = groups.map { it.id }.toSet()
         HomeContent(
             groups = groups.sortedBy { it.name.lowercase() }
-                .map { g -> GroupItem(g, items.filter { it.rule.groupId == g.id }.sortedWith(RuleOrder), used?.groupMillis?.get(g.id) ?: 0) },
+                .map { g ->
+                    val groupUsed = used?.groupMillis?.get(g.id) ?: 0
+                    GroupItem(
+                        g,
+                        items.filter { it.rule.groupId == g.id }.sortedWith(RuleOrder),
+                        groupUsed,
+                        scheduleMap?.let { scheduleStatus(g.scheduleId, PolicyEngine.ownerKey(0, g.id), groupUsed, it, used, now) },
+                    )
+                },
             standalone = items.filter { it.rule.groupId == null || it.rule.groupId !in groupIds }.sortedWith(RuleOrder),
             websiteBlocking = WebsiteBlockingState.of(state.settings),
             websiteHint = state.settings.setupComplete && !state.settings.websiteHintDismissed &&
@@ -450,7 +541,7 @@ class HomeViewModel @Inject constructor(
     val events: SharedFlow<HomeEvent> = _events
 
     /** Limit and on/off in one change, so neither overwrites the other (and one policy check covers both). */
-    fun updateRule(id: Long, limitMinutes: Int?, enabled: Boolean) = guarded { rules.updateRule(id, limitMinutes, enabled) }
+    fun updateRule(id: Long, limitMinutes: Int?, enabled: Boolean, scheduleId: Long?) = guarded { rules.updateRule(id, limitMinutes, enabled, scheduleId) }
 
     fun setEnabled(id: Long, enabled: Boolean) = guarded { rules.setEnabled(id, enabled) }
 
@@ -555,7 +646,11 @@ class AddRuleViewModel @Inject constructor(
     catalog: AppCatalog,
     savedState: SavedStateHandle,
     private val exemptApps: ExemptApps,
+    scheduleRepository: ScheduleRepository,
 ) : ViewModel() {
+    /** Offered in the "Schedule" mode. */
+    val schedules: StateFlow<List<Schedule>> = scheduleRepository.schedules.stateIn(viewModelScope, WhileSubscribed, emptyList())
+
     /** Website rules only take effect while website blocking is on – the screen shows a note otherwise. */
     val websiteBlocking: StateFlow<WebsiteBlockingState> = settings.settings.map { WebsiteBlockingState.of(it) }.stateIn(viewModelScope, WhileSubscribed, WebsiteBlockingState.ON)
 
@@ -580,8 +675,8 @@ class AddRuleViewModel @Inject constructor(
     private val _events = MutableSharedFlow<AddRuleEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<AddRuleEvent> = _events
 
-    fun add(type: RuleType, target: String, limitMinutes: Int?) = launchAdding {
-        when (rules.add(type, target, limitMinutes, groupId)) {
+    fun add(type: RuleType, target: String, limitMinutes: Int?, scheduleId: Long? = null) = launchAdding {
+        when (rules.add(type, target, limitMinutes, groupId, scheduleId)) {
             is AddRuleResult.Added -> AddRuleEvent.Added
             is AddRuleResult.Duplicate -> AddRuleEvent.Duplicate
             AddRuleResult.InvalidTarget -> AddRuleEvent.Invalid
@@ -600,20 +695,20 @@ class AddRuleViewModel @Inject constructor(
         }
     }
 
-    fun createGroup(name: String, limitMinutes: Int?) {
-        viewModelScope.launch { _events.tryEmit(AddRuleEvent.GroupCreated(rules.createGroup(name, limitMinutes))) }
+    fun createGroup(name: String, limitMinutes: Int?, scheduleId: Long?) {
+        viewModelScope.launch { _events.tryEmit(AddRuleEvent.GroupCreated(rules.createGroup(name, limitMinutes, scheduleId))) }
     }
 
     /** @param asGroup create a new group named like the template, so all members share the limit. */
-    fun addTemplate(template: RuleTemplate, limitMinutes: Int?, asGroup: Boolean) = launchAdding {
+    fun addTemplate(template: RuleTemplate, limitMinutes: Int?, asGroup: Boolean, scheduleId: Long? = null) = launchAdding {
         run {
             val added = when {
                 groupId != null -> rules.addAll(template.targets, limitMinutes, groupId)
                 asGroup -> {
-                    rules.createGroupWith(template.name, limitMinutes, template.targets)
+                    rules.createGroupWith(template.name, limitMinutes, template.targets, scheduleId)
                     1 // a new group is always "added", even if some members already existed elsewhere
                 }
-                else -> rules.addAll(template.targets, limitMinutes)
+                else -> rules.addAll(template.targets, limitMinutes, scheduleId = scheduleId)
             }
             if (added > 0) AddRuleEvent.Added else AddRuleEvent.Duplicate
         }
@@ -678,6 +773,7 @@ class SettingsViewModel @Inject constructor(
     private val notifier: LimitNotifier,
     clock: Clock,
     savedState: SavedStateHandle,
+    private val scheduleRepository: ScheduleRepository,
 ) : ViewModel() {
     /** Setting to scroll to and highlight (navigation argument), fixed for the lifetime of this screen. */
     val highlight: SettingsHighlight? = savedState.get<String>(ARG_HIGHLIGHT)
@@ -764,8 +860,10 @@ class SettingsViewModel @Inject constructor(
         if (!fiveMinutes && !oneMinute) notifier.returnPermission()
     }
 
-    /** Something to export: at least one rule or group (otherwise the export is greyed out). */
-    val hasRules: StateFlow<Boolean> = combine(rules.rules, rules.groups) { r, g -> r.isNotEmpty() || g.isNotEmpty() }
+    /** Something to export: at least one rule, group or schedule (otherwise the export is greyed out). */
+    val hasRules: StateFlow<Boolean> = combine(rules.rules, rules.groups, scheduleRepository.schedules) { r, g, sc ->
+        r.isNotEmpty() || g.isNotEmpty() || sc.isNotEmpty()
+    }
         .stateIn(viewModelScope, WhileSubscribed, true) // not greyed out for a moment while loading
 
     /** Hands the rules file content (JSON, no readable secrets) to [share] (the share sheet). */
