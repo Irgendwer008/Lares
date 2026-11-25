@@ -78,7 +78,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.Libs
 import de.lares_app.R
-import de.lares_app.core.unlock.RestoreResult
 import de.lares_app.platform.RecoveryExport
 import de.lares_app.ui.theme.wallpaperColorsAvailable
 import de.lares_app.core.data.AppTheme
@@ -113,6 +112,7 @@ fun SettingsScreen(
     onOpenPrivacy: () -> Unit,
     onOpenLicense: () -> Unit,
     onOpenLibraries: () -> Unit,
+    onOpenSchedules: () -> Unit,
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -287,6 +287,12 @@ fun SettingsScreen(
                 icon = R.drawable.ic_public,
                 enabled = websiteAvailable,
                 onChange = vm::setWebsiteBlocking,
+            )
+            SettingsItem(
+                title = stringResource(R.string.schedules_title),
+                summary = stringResource(R.string.schedules_settings_desc),
+                icon = R.drawable.ic_calendar,
+                onClick = onOpenSchedules,
             )
             SettingsItem(
                 title = stringResource(R.string.settings_reset_time),
@@ -725,7 +731,7 @@ private fun LanguageDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun InfoDialog(
+internal fun InfoDialog(
     title: String,
     text: String,
     onDismiss: () -> Unit,

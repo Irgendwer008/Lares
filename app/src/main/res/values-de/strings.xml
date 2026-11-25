@@ -4,6 +4,48 @@
     <string name="home_tagline">Weniger scrollen, mehr leben.</string>
     <string name="cancel">Abbrechen</string>
     <string name="close">Schließen</string>
+    <string name="save">Speichern</string>
+    <string name="done">Fertig</string>
+    <string name="schedules_title">Zeitpläne</string>
+    <string name="schedules_settings_desc">Zeitfenster pro Wochentag, wählbar für Regeln und Gruppen</string>
+    <string name="schedules_empty">Noch keine Zeitpläne. Ein Zeitplan legt pro Wochentag fest, wann Apps gesperrt sind, einen Timer haben oder frei sind – Regeln und Gruppen können ihn dann statt eines Tageslimits nutzen.</string>
+    <string name="schedules_hint">Regeln und Gruppen wählen einen Zeitplan als Modus. Jede Änderung an Zeitplänen erfordert den Guardian-Code.</string>
+    <string name="schedule_new">Neuer Zeitplan</string>
+    <string name="schedule_edit">Zeitplan bearbeiten</string>
+    <string name="schedule_delete">Zeitplan löschen</string>
+    <string name="schedule_delete_body">Diesen Zeitplan löschen? Das erfordert den Guardian-Code.</string>
+    <string name="schedule_in_use_title">Zeitplan wird verwendet</string>
+    <string name="schedule_in_use_body">Verwendet von: %1$s. Wähle für sie zuerst einen anderen Modus.</string>
+    <string name="schedule_unused">Nicht verwendet</string>
+    <string name="schedule_list_line">%1$s · %2$s</string>
+    <string name="schedule_summary_no_windows">Keine Zeitfenster · außerhalb: %1$s</string>
+    <string name="schedule_name">Name</string>
+    <string name="schedule_name_missing">Bitte gib einen Namen ein.</string>
+    <string name="schedule_name_taken">Es gibt schon einen Zeitplan mit diesem Namen.</string>
+    <string name="schedule_outside">Außerhalb der Zeitfenster</string>
+    <string name="schedule_mode_block">Gesperrt</string>
+    <string name="schedule_mode_free">Frei</string>
+    <string name="schedule_mode_timer">Timer</string>
+    <string name="schedule_minutes_short">%1$d Min.</string>
+    <string name="schedule_grid_hint">Tippe auf eine freie Stelle für ein neues Zeitfenster, auf ein Zeitfenster zum Bearbeiten. Lange drücken zum Verschieben, oberen oder unteren Rand ziehen für die Länge.</string>
+    <string name="schedule_needs_code">Änderungen an Zeitplänen erfordern den Guardian-Code.</string>
+    <string name="schedule_overlap">Zeitfenster dürfen sich nicht überschneiden.</string>
+    <string name="schedule_discard_title">Änderungen verwerfen?</string>
+    <string name="schedule_discard_body">Deine Änderungen an diesem Zeitplan werden nicht gespeichert.</string>
+    <string name="schedule_discard">Verwerfen</string>
+    <string name="schedule_keep_editing">Weiter bearbeiten</string>
+    <string name="schedule_now">Jetzt</string>
+    <string name="schedule_window_description">%1$s, %2$s bis %3$s: %4$s</string>
+    <string name="schedule_next_day">Endet am nächsten Tag.</string>
+    <string name="schedule_share_with">Timer teilen mit</string>
+    <string name="schedule_copy_to">Kopieren nach</string>
+    <string name="schedule_copy_skipped">Einige Kopien wurden ausgelassen, weil sie sich überschneiden würden.</string>
+    <string name="schedule_window_delete">Zeitfenster löschen</string>
+    <string name="schedule_window_add">Zeitfenster hinzufügen</string>
+    <string name="schedule_window_new">Neues Zeitfenster</string>
+    <string name="schedule_window_edit">Zeitfenster bearbeiten</string>
+    <string name="schedule_window_day">Tag</string>
+    <string name="schedule_full_day">Dauert 24 Stunden (Beginn und Ende sind gleich).</string>
     <string name="back">Zurück</string>
     <plurals name="duration_minutes">
         <item quantity="one">%d Minute</item>
@@ -15,7 +57,39 @@
     </plurals>
 
     <!-- Setup -->
-    <string name="setup_intro_title">Willkommen</string>
+    <string name="setup_intro_title">Jetzt ist dein Guardian dran</string>
+    <string name="setup_welcome_title">Willkommen bei Lares</string>
+    <string name="setup_welcome_body">Lares hilft dir, weniger Zeit mit ablenkenden Apps und Websites zu verbringen. Eine Vertrauensperson – dein Guardian – hat den Code, der deine Regeln schützt. Zuerst eine kurze Tour, dann richtet dein Guardian alles ein.</string>
+    <string name="tutorial_label">Tour · %1$d von %2$d</string>
+    <string name="tutorial_skip">Tour überspringen</string>
+    <string name="tutorial_next">Weiter</string>
+    <string name="tutorial_finish">Weiter</string>
+    <string name="tutorial_rules_title">Was Lares sperrt</string>
+    <string name="tutorial_rules_body">Du entscheidest, welche Apps und Websites Lares einschränkt. Jede davon ist eine Regel.</string>
+    <string name="tutorial_rules_add">Füge Apps aus der Liste hinzu oder tippe eine Website ein – auch nur einen Teil davon, z. B. youtube.com/shorts.</string>
+    <string name="tutorial_rules_templates">Vorlagen fügen beliebte Apps zusammen mit ihren Websites und alternativen Apps auf einmal hinzu.</string>
+    <string name="tutorial_rules_groups">In Gruppen teilen sich mehrere Apps und Websites ein Limit, z. B. alle sozialen Netzwerke zusammen.</string>
+    <string name="tutorial_modes_title">Drei Arten zu sperren</string>
+    <string name="tutorial_modes_body">Jede Regel und jede Gruppe bekommt einen dieser Modi:</string>
+    <string name="tutorial_modes_always">Lässt sich gar nicht öffnen.</string>
+    <string name="tutorial_modes_daily">Eine Anzahl Minuten pro Tag. Ein Countdown zeigt die letzten Minuten, danach ist bis zum Tageswechsel gesperrt.</string>
+    <string name="tutorial_modes_schedule">Verschiedene Regeln für verschiedene Zeiten und Tage – siehe nächste Seite.</string>
+    <string name="tutorial_schedules_title">Zeitpläne</string>
+    <string name="tutorial_schedules_body">Ein Zeitplan ist ein Wochenplan. An jedem Tag legst du Zeitfenster an, die gesperrt sind, einen Timer haben oder frei sind. Für die Zeit außerhalb der Zeitfenster wählst du, was gilt.</string>
+    <string name="tutorial_schedules_example">Beispielwoche: an Werktagen während der Schulzeit gesperrt und abends ein kurzer Timer, Samstagnachmittag frei, sonntags ein Timer.</string>
+    <string name="tutorial_schedules_more">Zeitpläne legst du in den Einstellungen an und wählst sie für beliebige Regeln oder Gruppen. Zeitfenster lassen sich wie Kalendereinträge verschieben und in der Länge ändern.</string>
+    <string name="tutorial_code_title">Der Guardian-Code</string>
+    <string name="tutorial_code_body">Dein Guardian richtet ein Passwort oder eine Authenticator-App ein. Der Code bleibt bei ihm – genau das macht die Regeln verbindlich.</string>
+    <string name="tutorial_code_changes">Regeln ändern erfordert den Code – standardmäßig jede Änderung, damit nichts aus Versehen dazukommt.</string>
+    <string name="tutorial_code_unlock">Mit dem Code ist Lares für 10 Minuten entsperrt, und der Guardian kann eine Pause starten.</string>
+    <string name="tutorial_code_protect">Optionale Schutzfunktionen verhindern das Deinstallieren und benachrichtigen deinen Guardian bei Manipulationen.</string>
+    <string name="setup_stage_welcome">Willkommen</string>
+    <string name="setup_stage_tutorial">Tour</string>
+    <string name="setup_stage_guardian">Guardian</string>
+    <string name="setup_stage_mode">Sperrmodus</string>
+    <string name="setup_stage_code">Guardian-Code</string>
+    <string name="setup_stage_recovery">Wiederherstellungscode</string>
+    <string name="setup_progress">Schritt %1$d von %2$d: %3$s</string>
     <string name="setup_intro_body">Lares sperrt die Apps und Websites, die du auswählst. Die Regeln zu ändern erfordert einen Code, den nur eine Vertrauensperson kennt: dein Guardian, zum Beispiel ein Freund oder ein Familienmitglied.\n\nFür die nächsten Schritte gib das Handy bitte deinem Guardian.</string>
     <string name="setup_intro_start">Los geht’s</string>
     <string name="setup_mode_title">Guardian: Modus für App-Sperren wählen</string>
@@ -63,6 +137,7 @@
     <string name="home_empty_hint">Tippe unten auf „Hinzufügen“, um deine erste App oder Website zu sperren – oder starte mit einer Vorlage.</string>
     <string name="home_status_protected_title">Schutz ist aktiv</string>
     <string name="home_status_protected_body">Regeln hinzufügen geht immer. Regeln entfernen oder Limits erhöhen erfordert den Guardian-Code.</string>
+    <string name="home_status_protected_body_all">Jede Änderung an Regeln und Gruppen erfordert den Guardian-Code.</string>
     <string name="home_unlock">Guardian-Code eingeben</string>
     <string name="home_status_paused_title">Sperren pausiert</string>
     <string name="home_time_left">noch %1$s</string>
@@ -89,6 +164,18 @@
     <string name="rule_dialog_save">Speichern</string>
     <string name="rule_dialog_remove">Regel entfernen</string>
     <string name="limit_daily">Tägliches Zeitlimit</string>
+    <string name="limit_schedule">Zeitplan</string>
+    <string name="limit_schedule_named">Zeitplan „%1$s“</string>
+    <string name="limit_schedule_none">Noch keine Zeitpläne.</string>
+    <string name="limit_schedule_create">Zeitplan erstellen</string>
+    <string name="limit_schedule_choose">Zeitplan wählen</string>
+    <string name="limit_schedule_manage">Zeitpläne verwalten</string>
+    <string name="schedule_status_blocked_until">Gesperrt bis %1$s</string>
+    <string name="schedule_status_blocked">Gesperrt</string>
+    <string name="schedule_status_free_until">Frei bis %1$s</string>
+    <string name="schedule_status_free">Frei</string>
+    <string name="schedule_status_timer_until">Timer bis %1$s</string>
+    <string name="schedule_status_timer">Timer</string>
     <string name="limit_minutes_label">Minuten pro Tag</string>
 
     <!-- Groups -->
@@ -190,7 +277,7 @@
     <string name="settings_locked_hint">Einstellungen zu lockern (ausschalten, den Modus für App-Sperren, den Guardian-Code, die Rücksetzzeit oder Benachrichtigungskanäle ändern) erfordert den Guardian-Code.</string>
     <string name="settings_guardian_code">Guardian-Code</string>
     <string name="settings_only_loosening_off">Aus: Jede Änderung an Regeln und Gruppen erfordert den Code.</string>
-    <string name="settings_only_loosening_on">Regeln hinzufügen und verschärfen geht ohne den Code.</string>
+    <string name="settings_only_loosening_on">Regeln hinzufügen und verschärfen geht ohne den Code (Zeitpläne immer mit).</string>
     <string name="settings_only_loosening">Nur Lockern erfordert den Code</string>
     <string name="settings_reset_time">Tageslimits beginnen neu um</string>
     <string name="settings_reset_time_pending">%1$s – ändert sich nach dem nächsten Neubeginn auf %2$s</string>
@@ -210,7 +297,7 @@
     <string name="about_body">Version %1$s\n\nLares sperrt die Apps und Websites, die du auswählst. Die Regeln zu ändern – vor allem sie zu lockern – erfordert einen Code, den nur dein Guardian kennt.\n\nFreie Software unter der GNU General Public License, Version 3 oder neuer.</string>
     <string name="privacy_title">Datenschutzerklärung</string>
     <string name="privacy_summary">Alles bleibt auf diesem Handy</string>
-    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking, keine Absturzberichte.\n• Es werden keine Daten verkauft. Nichts wird an Dritte weitergegeben – außer an die Benachrichtigungsdienste, die du selbst einrichtest (siehe unten).\n• Deine Regeln, Nutzungszeiten, Einstellungen und ein Protokoll der Schutz-Ereignisse (z. B. „Uhrzeit verstellt“) werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App) – ein Authenticator-Code zusätzlich verschlüsselt mit dem Wiederherstellungscode, um ihn auf ein neues Handy mitzunehmen. Der Wiederherstellungscode wird nur als geschützter Hash gespeichert.\n• Lares schaltet das Android-Autofill aus, damit Passwort-Manager nie anbieten, den Guardian-Code zu speichern.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, ob eine Systemeinstellungsseite oder ein Deinstallationsdialog Lares betrifft (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Die optionale Rolle als Geräteadministrator wird nur genutzt, um das Deinstallieren von Lares zu verhindern.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Ohne eingerichteten Kanal wird nichts gesendet. Eine Nachricht enthält nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; es gilt die Datenschutzerklärung des gewählten Dienstes. Tokens und Passwörter werden verschlüsselt auf dem Handy gespeichert.\n• Manche Links öffnen sich in deinem Browser, der sie lädt: die neutrale Lares-Seite, wenn eine Website gesperrt ist (bei GitHub Pages; es gilt die Datenschutzerklärung von GitHub), Herstellertipps und Seiten der Bibliotheken.\n• Exportierte Regeldateien enthalten Regeln und Gruppen – keine Tokens oder Nutzungsdaten. Wenn eingeschaltet, enthalten sie auch den Authenticator-Code, verschlüsselt mit dem Wiederherstellungscode (ohne ihn nutzlos); nie das Passwort.</string>
+    <string name="privacy_body">Lares arbeitet vollständig auf diesem Handy.\n\n• Kein Konto, keine Analyse, keine Werbung, kein Tracking, keine Absturzberichte.\n• Es werden keine Daten verkauft. Nichts wird an Dritte weitergegeben – außer an die Benachrichtigungsdienste, die du selbst einrichtest (siehe unten).\n• Deine Regeln, Nutzungszeiten, Einstellungen und ein Protokoll der Schutz-Ereignisse (z. B. „Uhrzeit verstellt“) werden nur auf diesem Handy gespeichert. Sie sind von Android-Backups und Geräteübertragungen ausgeschlossen.\n• Der Guardian-Code wird nur als geschützter Hash (Passwort) bzw. verschlüsselt mit einem Schlüssel gespeichert, der dieses Handy nie verlässt (Authenticator-App) – ein Authenticator-Code zusätzlich verschlüsselt mit dem Wiederherstellungscode, um ihn auf ein neues Handy mitzunehmen. Der Wiederherstellungscode wird nur als geschützter Hash gespeichert.\n• Lares schaltet das Android-Autofill aus, damit Passwort-Manager nie anbieten, den Guardian-Code zu speichern.\n• Wenn du die Bedienungshilfe oder den Nutzungszugriff einschaltest, nutzt Lares sie nur, um zu erkennen, welche App geöffnet ist – und, solange das Sperren von Websites eingeschaltet ist, die Adresse in der Adressleiste unterstützter Browser und, solange „Systemeinstellungen schützen“ eingeschaltet ist, ob eine Systemeinstellungsseite oder ein Deinstallationsdialog Lares betrifft (sonst nichts vom Bildschirm). Das wird auf dem Handy im Moment verarbeitet und weder gespeichert noch gesendet.\n• Die optionale Rolle als Geräteadministrator wird nur genutzt, um das Deinstallieren von Lares zu verhindern.\n• Lares verbindet sich nur mit dem Internet, um Guardian-Benachrichtigungen zu senden – und nur an die in den Einstellungen eingerichteten Dienste (Telegram, ntfy, E-Mail, Matrix oder ein Webhook). Ohne eingerichteten Kanal wird nichts gesendet. Eine Nachricht enthält nur den Benachrichtigungstext (z. B. „Schutz wurde deaktiviert“), dessen Zeitpunkt und das Handymodell; es gilt die Datenschutzerklärung des gewählten Dienstes. Tokens und Passwörter werden verschlüsselt auf dem Handy gespeichert.\n• Manche Links öffnen sich in deinem Browser, der sie lädt: die neutrale Lares-Seite, wenn eine Website gesperrt ist (bei GitHub Pages; es gilt die Datenschutzerklärung von GitHub), Herstellertipps und Seiten der Bibliotheken.\n• Exportierte Regeldateien enthalten Regeln, Gruppen und Zeitpläne – keine Tokens oder Nutzungsdaten. Wenn eingeschaltet, enthalten sie auch den Authenticator-Code, verschlüsselt mit dem Wiederherstellungscode (ohne ihn nutzlos); nie das Passwort.</string>
     <string name="license_title">Lizenz</string>
     <string name="license_summary">GNU GPL, Version 3 oder neuer</string>
     <string name="license_body">Lares ist freie Software: Du kannst sie unter den Bedingungen der GNU General Public License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder verändern, entweder gemäß Version 3 der Lizenz oder (nach deiner Wahl) jeder neueren Version.\n\nLares wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG – sogar ohne die implizite Gewährleistung der MARKTREIFE oder der EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Details stehen in der GNU General Public License.\n\nRechtsverbindlich ist der englische Originaltext der Lizenz.</string>
@@ -341,8 +428,8 @@
 
     <!-- Settings: backup -->
     <string name="backup_export">Regeln exportieren</string>
-    <string name="backup_export_desc">Speichert oder teilt Regeln und Gruppen als Datei; den Authenticator-Code nur, wenn unten eingeschaltet (verschlüsselt).</string>
-    <string name="backup_export_desc_no_totp">Speichert oder teilt Regeln und Gruppen als Datei.</string>
+    <string name="backup_export_desc">Speichert oder teilt Regeln, Gruppen und Zeitpläne als Datei; den Authenticator-Code nur, wenn unten eingeschaltet (verschlüsselt).</string>
+    <string name="backup_export_desc_no_totp">Speichert oder teilt Regeln, Gruppen und Zeitpläne als Datei.</string>
     <string name="backup_export_save">Als Datei speichern</string>
     <string name="backup_export_share">Teilen</string>
     <string name="backup_export_empty">Noch keine Regeln zum Exportieren.</string>
@@ -367,7 +454,7 @@
     <string name="setup_restore_no_totp">Diese Datei enthält keinen Authenticator-Code. Ihre Regeln wurden importiert – richte jetzt bitte einen Code ein.</string>
     <string name="setup_restore_failed">Diese Datei konnte nicht als Lares-Regeln gelesen werden.</string>
     <string name="backup_import">Regeln importieren</string>
-    <string name="backup_import_desc">Fügt Regeln und Gruppen aus einer Datei hinzu. Bestehende Regeln bleiben unverändert.</string>
+    <string name="backup_import_desc">Fügt Regeln, Gruppen und Zeitpläne aus einer Datei hinzu. Bestehende Regeln und Zeitpläne bleiben unverändert.</string>
     <string name="backup_exported">Regeln exportiert.</string>
     <string name="backup_export_failed">Export fehlgeschlagen.</string>
     <string name="backup_import_failed">Diese Datei konnte nicht als Lares-Regeln gelesen werden.</string>
@@ -416,6 +503,10 @@
     <string name="block_reason_always_website">Diese Website ist immer gesperrt.</string>
     <string name="block_reset_midnight">Mitternacht</string>
     <string name="block_reason_limit">Das Tageslimit ist aufgebraucht. Wieder verfügbar ab %1$s.</string>
+    <string name="block_reason_schedule">Laut Zeitplan gerade gesperrt. Wieder verfügbar ab %1$s.</string>
+    <string name="block_reason_schedule_open">Laut Zeitplan gerade gesperrt.</string>
+    <string name="block_reason_schedule_limit">Die Zeit für diesen Abschnitt des Zeitplans ist aufgebraucht. Wieder verfügbar ab %1$s.</string>
+    <string name="block_reason_schedule_limit_open">Die Zeit für diesen Abschnitt des Zeitplans ist aufgebraucht.</string>
     <string name="block_reason_browser">Das Sperren von Websites ist eingeschaltet, und dieser Browser wird nicht unterstützt. Verwende einen unterstützten Browser.</string>
     <string name="block_group">Gruppe „%1$s“</string>
     <string name="block_open_lares">Zu Lares</string>
@@ -435,9 +526,9 @@
         <item quantity="one">Noch %d Minute</item>
         <item quantity="other">Noch %d Minuten</item>
     </plurals>
-    <string name="limit_warning_text">Das Tageslimit für %1$s ist fast aufgebraucht.</string>
+    <string name="limit_warning_text">%1$s wird bald gesperrt.</string>
     <string name="settings_limit_timer">Countdown in den letzten 5 Minuten</string>
-    <string name="settings_limit_timer_desc">Zeigt einen kleinen Timer in der Ecke, wenn ein Limit bald abläuft.</string>
+    <string name="settings_limit_timer_desc">Zeigt einen kleinen Timer in der Ecke, kurz bevor eine App gesperrt wird.</string>
     <string name="settings_warn_five">Benachrichtigung 5 Minuten vorher</string>
     <string name="settings_warn_one">Benachrichtigung 1 Minute vorher</string>
     <string name="settings_warn_desc">Benötigt die Benachrichtigungsberechtigung, die beim Einschalten angefragt wird.</string>
@@ -447,5 +538,13 @@
     <plurals name="usage_today">
         <item quantity="one">heute %1$d von %2$d Minute genutzt</item>
         <item quantity="other">heute %1$d von %2$d Minuten genutzt</item>
+    </plurals>
+    <plurals name="schedule_summary">
+        <item quantity="one">%1$d Zeitfenster (%2$s) · außerhalb: %3$s</item>
+        <item quantity="other">%1$d Zeitfenster (%2$s) · außerhalb: %3$s</item>
+    </plurals>
+    <plurals name="schedule_used_by">
+        <item quantity="one">Von %1$d Regel oder Gruppe verwendet</item>
+        <item quantity="other">Von %1$d Regeln oder Gruppen verwendet</item>
     </plurals>
 </resources>

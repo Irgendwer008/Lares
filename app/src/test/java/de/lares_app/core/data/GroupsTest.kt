@@ -42,7 +42,7 @@ class GroupsTest {
     )
 
     @Test fun membersShareTheGroupLimit() {
-        assertEquals(Decision.Allow(remainingMillis = 30 * 60_000L, countedGroupIds = setOf(10L)), PolicyEngine.evaluate(ytApp.target, null, snapshot))
+        assertEquals(Decision.Allow(remainingMillis = 30 * 60_000L, countedGroupIds = setOf(10L), restrictedOwners = setOf("g10")), PolicyEngine.evaluate(ytApp.target, null, snapshot))
 
         val used = snapshot.copy(groupUsedMillis = mapOf(10L to 30 * 60_000L))
         assertEquals(Decision.Block(BlockReason.LIMIT_REACHED, 1, 10), PolicyEngine.evaluate(ytApp.target, null, used))
@@ -132,7 +132,7 @@ class GroupsTest {
         val single = ruleStore.all().first { it.groupId == null }
         // Both are counted …
         assertEquals(
-            Decision.Allow(setOf(single.id), 30 * 60_000L, setOf(id)),
+            Decision.Allow(setOf(single.id), 30 * 60_000L, setOf(id), restrictedOwners = setOf("r${single.id}", "g$id")),
             PolicyEngine.evaluate("com.google.android.youtube", null, snapshot),
         )
         // … and the group's 30 shared minutes block even though the single rule allows 60.

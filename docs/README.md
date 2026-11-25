@@ -32,7 +32,10 @@ must keep working across updates (see [Architecture](architecture.md), data mode
 
 - **User** – the person whose usage is restricted (phone owner).
 - **Guardian** – trusted person who holds the unlock code.
-- **Rule** – a blocked app or website, always blocked or with a daily time limit.
+- **Rule** – a blocked app or website, always blocked, with a daily time limit or by a schedule.
+- **Schedule** – named weekly time table with windows per weekday (full block / timer / free) and a
+  mode outside the windows, picked by rules and groups; every change needs the code.
+- **Window** – one time range of a schedule on a weekday (may cross midnight).
 - **Group** – several rules sharing one limit and one on/off switch.
 - **Template** – ready-made app + website combination (e.g. YouTube incl. alternative clients).
 - **Loosening** – any change that reduces restrictions (needs the code).

@@ -41,6 +41,6 @@ Lares works entirely on your phone.
   without scripts or external resources, hosted on GitHub Pages – GitHub's privacy policy
   applies), manufacturer tips (dontkillmyapp.com) and the pages of the open-source libraries.
 - Channel tokens and email passwords are stored encrypted with an Android Keystore key on the phone.
-- Exported rule files contain rules and groups – no tokens or usage data. If "Include authenticator
+- Exported rule files contain rules, groups and schedules – no tokens or usage data. If "Include authenticator
   code" is on, they also contain the authenticator (TOTP) secret, encrypted with the recovery code
   (useless without it), so the same authenticator app works on a new phone. Never the password.

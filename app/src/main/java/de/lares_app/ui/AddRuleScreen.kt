@@ -6,6 +6,7 @@
 package de.lares_app.ui
 
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.annotation.StringRes
@@ -63,10 +64,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.lares_app.R
 import de.lares_app.core.policy.RuleGroup
-import de.lares_app.core.policy.RuleTemplate
 import de.lares_app.core.policy.RuleTemplates
 import de.lares_app.core.policy.RuleType
-import de.lares_app.platform.InstalledApp
 
 /** Tabs of the add screen, in display order. */
 private enum class AddTab(@StringRes val label: Int) {
@@ -83,7 +82,22 @@ fun AddRuleScreen(
     onDone: () -> Unit,
     onGroupCreated: (Long) -> Unit,
     onOpenBlockingMode: () -> Unit,
+    onOpenSchedules: () -> Unit,
     vm: AddRuleViewModel = hiltViewModel(),
+) {
+    val schedules by vm.schedules.collectAsStateWithLifecycle()
+    CompositionLocalProvider(LocalScheduleChoice provides ScheduleChoice(schedules, onOpenSchedules)) {
+        AddRuleContent(onDone, onGroupCreated, onOpenBlockingMode, vm)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddRuleContent(
+    onDone: () -> Unit,
+    onGroupCreated: (Long) -> Unit,
+    onOpenBlockingMode: () -> Unit,
+    vm: AddRuleViewModel,
 ) {
     val group by vm.group.collectAsStateWithLifecycle()
     val inGroup = vm.groupId != null
@@ -130,7 +144,7 @@ fun AddRuleScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             group?.let {
                 Text(
-                    stringResource(R.string.add_rule_group_hint, groupLimitLabel(it.limitMinutesPerDay)),
+                    stringResource(R.string.add_rule_group_hint, groupLimitLabel(it.limitMinutesPerDay, it.scheduleId)),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
@@ -144,7 +158,7 @@ fun AddRuleScreen(
                 AddTab.TEMPLATES -> TemplatesTab(vm, group, onOpenBlockingMode)
                 AddTab.GROUP -> NewGroupTab(onCreate = vm::createGroup)
                 AddTab.APPS -> AppsTab(vm, inGroup)
-                AddTab.WEBSITE -> WebsiteTab(inGroup, vm, onOpenBlockingMode, onAdd = { target, limit -> vm.add(RuleType.WEBSITE, target, limit) })
+                AddTab.WEBSITE -> WebsiteTab(inGroup, vm, onOpenBlockingMode, onAdd = { target, limit, schedule -> vm.add(RuleType.WEBSITE, target, limit, schedule) })
             }
         }
     }
@@ -154,7 +168,9 @@ fun AddRuleScreen(
 private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlockingMode: () -> Unit) {
     val apps by vm.apps.collectAsStateWithLifecycle()
     val installed = remember(apps) { apps.orEmpty().associateBy { it.packageName } }
-    var pending by remember { mutableStateOf<RuleTemplate?>(null) }
+    // By id, saveable: the dialog stays open when "Manage schedules" is opened from it.
+    var pendingId by rememberSaveable { mutableStateOf<String?>(null) }
+    val pending = pendingId?.let { id -> vm.templates.firstOrNull { it.id == id } }
     val websiteBlocking by vm.websiteBlocking.collectAsStateWithLifecycle()
 
     LazyColumn(Modifier.fillMaxSize()) {
@@ -191,7 +207,7 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
                         LetterIcon(template.name, brandColor = template.color)
                     }
                 },
-                modifier = Modifier.clickable { pending = template },
+                modifier = Modifier.clickable { pendingId = template.id },
             )
         }
     }
@@ -200,7 +216,7 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
         val limit = rememberLimitState(if (group == null) 30 else null)
         var asGroup by remember { mutableStateOf(true) }
         AlertDialog(
-            onDismissRequest = { pending = null },
+            onDismissRequest = { pendingId = null },
             title = { Text(stringResource(R.string.add_rule_limit_title, template.name)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -233,13 +249,13 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.addTemplate(template, limit.limit, asGroup)
-                        pending = null
+                        vm.addTemplate(template, limit.limit, asGroup, limit.schedule)
+                        pendingId = null
                     },
                     enabled = group != null || limit.isValid,
                 ) { Text(stringResource(R.string.add_rule_add)) }
             },
-            dismissButton = { TextButton(onClick = { pending = null }) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = { pendingId = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -248,7 +264,8 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
 private fun AppsTab(vm: AddRuleViewModel, inGroup: Boolean) {
     val apps by vm.apps.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
-    var pending by remember { mutableStateOf<InstalledApp?>(null) }
+    var pendingPackage by rememberSaveable { mutableStateOf<String?>(null) }
+    val pending = pendingPackage?.let { pkg -> apps?.firstOrNull { it.packageName == pkg } }
 
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -272,7 +289,7 @@ private fun AppsTab(vm: AddRuleViewModel, inGroup: Boolean) {
                         supportingContent = { Text(app.packageName) },
                         leadingContent = { app.icon?.let { Image(it, contentDescription = null, modifier = Modifier.size(40.dp)) } },
                         // In a group, the group's limit applies – no need to ask.
-                        modifier = Modifier.clickable { if (inGroup) vm.add(RuleType.APP, app.packageName, null) else pending = app },
+                        modifier = Modifier.clickable { if (inGroup) vm.add(RuleType.APP, app.packageName, null) else pendingPackage = app.packageName },
                     )
                 }
             }
@@ -282,25 +299,25 @@ private fun AppsTab(vm: AddRuleViewModel, inGroup: Boolean) {
     pending?.let { app ->
         val limit = rememberLimitState(null)
         AlertDialog(
-            onDismissRequest = { pending = null },
+            onDismissRequest = { pendingPackage = null },
             title = { Text(stringResource(R.string.add_rule_limit_title, app.label)) },
             text = { LimitSelector(limit) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.add(RuleType.APP, app.packageName, limit.limit)
-                        pending = null
+                        vm.add(RuleType.APP, app.packageName, limit.limit, limit.schedule)
+                        pendingPackage = null
                     },
                     enabled = limit.isValid,
                 ) { Text(stringResource(R.string.add_rule_add)) }
             },
-            dismissButton = { TextButton(onClick = { pending = null }) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = { pendingPackage = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
 
 @Composable
-private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onOpenBlockingMode: () -> Unit, onAdd: (String, Int?) -> Unit) {
+private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onOpenBlockingMode: () -> Unit, onAdd: (String, Int?, Long?) -> Unit) {
     var site by rememberSaveable { mutableStateOf("") }
     val limit = rememberLimitState(null)
     val websiteBlocking by vm.websiteBlocking.collectAsStateWithLifecycle()
@@ -320,7 +337,7 @@ private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onOpenBlockingMod
         )
         if (!inGroup) LimitSelector(limit)
         Button(
-            onClick = { onAdd(site, if (inGroup) null else limit.limit) },
+            onClick = { onAdd(site, if (inGroup) null else limit.limit, if (inGroup) null else limit.schedule) },
             enabled = site.isNotBlank() && (inGroup || limit.isValid),
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.add_rule_add)) }
@@ -328,7 +345,7 @@ private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onOpenBlockingMod
 }
 
 @Composable
-private fun NewGroupTab(onCreate: (String, Int?) -> Unit) {
+private fun NewGroupTab(onCreate: (String, Int?, Long?) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     val limit = rememberLimitState(60)
     Column(
@@ -346,7 +363,7 @@ private fun NewGroupTab(onCreate: (String, Int?) -> Unit) {
         )
         LimitSelector(limit)
         Button(
-            onClick = { onCreate(name, limit.limit) },
+            onClick = { onCreate(name, limit.limit, limit.schedule) },
             enabled = name.isNotBlank() && limit.isValid,
             modifier = Modifier.fillMaxWidth(),
         ) { Text(stringResource(R.string.add_rule_group_create)) }

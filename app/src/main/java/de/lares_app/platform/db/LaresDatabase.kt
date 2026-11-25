@@ -5,6 +5,7 @@
  */
 package de.lares_app.platform.db
 
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -30,6 +31,8 @@ data class RuleEntity(
     val createdAtMillis: Long,
     /** [RuleGroupEntity.id], null for standalone rules. Members are deleted together with the group. */
     val groupId: Long? = null,
+    /** [ScheduleEntity.id] that applies instead of the limit (since schema 2). */
+    val scheduleId: Long? = null,
 )
 
 @Entity(tableName = "rule_groups")
@@ -39,6 +42,30 @@ data class RuleGroupEntity(
     val limitMinutesPerDay: Int?,
     val enabled: Boolean,
     val createdAtMillis: Long,
+    /** [ScheduleEntity.id] that applies instead of the limit (since schema 2). */
+    val scheduleId: Long? = null,
+)
+
+/** A schedule (since schema 2); only deleted while no rule or group uses it. */
+@Entity(tableName = "schedules")
+data class ScheduleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    /** [de.lares_app.core.policy.WindowMode] name for the time outside the windows. */
+    val outside: String,
+    val outsideMinutes: Int,
+    /** JSON list of [de.lares_app.core.policy.ScheduleWindow]. */
+    val windowsJson: String,
+    val createdAtMillis: Long,
+)
+
+/** Time used per schedule window budget (since schema 2), kept for a few days after the window. */
+@Entity(tableName = "window_usage", indices = [Index("dateEpochDay")])
+data class WindowUsageEntity(
+    @PrimaryKey val key: String,
+    val foregroundMillis: Long,
+    /** Start date of the window instance (for cleaning up). */
+    val dateEpochDay: Long,
 )
 
 /** Summed foreground time of all group members per usage period. */
@@ -150,6 +177,36 @@ interface GroupDao {
 }
 
 @Dao
+interface ScheduleDao {
+    @Query("SELECT * FROM schedules ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<ScheduleEntity>>
+
+    @Query("SELECT * FROM schedules ORDER BY name COLLATE NOCASE")
+    suspend fun all(): List<ScheduleEntity>
+
+    @Query("SELECT * FROM schedules WHERE id = :id")
+    suspend fun get(id: Long): ScheduleEntity?
+
+    @Insert
+    suspend fun insert(schedule: ScheduleEntity): Long
+
+    @Update
+    suspend fun update(schedule: ScheduleEntity)
+
+    @Query("DELETE FROM schedules WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("SELECT * FROM window_usage")
+    suspend fun windowUsage(): List<WindowUsageEntity>
+
+    @Upsert
+    suspend fun upsertWindowUsage(usage: WindowUsageEntity)
+
+    @Query("DELETE FROM window_usage WHERE dateEpochDay < :beforeEpochDay")
+    suspend fun deleteWindowUsageBefore(beforeEpochDay: Long)
+}
+
+@Dao
 interface TamperEventDao {
     @Query("SELECT * FROM tamper_events ORDER BY timestampMillis DESC")
     fun observeAll(): Flow<List<TamperEventEntity>>
@@ -165,11 +222,15 @@ interface TamperEventDao {
 }
 
 @Database(
-    entities = [RuleEntity::class, UsageEntity::class, TamperEventEntity::class, RuleGroupEntity::class, GroupUsageEntity::class],
-    // Pre-release: the schema is changed in place (no migrations). After a schema change,
-    // uninstall the app or clear its data. Enable exportSchema + migrations before the first release.
-    version = 1,
-    exportSchema = false,
+    entities = [
+        RuleEntity::class, UsageEntity::class, TamperEventEntity::class, RuleGroupEntity::class, GroupUsageEntity::class,
+        ScheduleEntity::class, WindowUsageEntity::class,
+    ],
+    // Released: every schema change gets a new version and a migration (schemas in app/schemas/).
+    // 1 → 2 (1.2): schedules, window usage, scheduleId on rules / groups.
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 abstract class LaresDatabase : RoomDatabase() {
     abstract fun ruleDao(): RuleDao
@@ -179,6 +240,8 @@ abstract class LaresDatabase : RoomDatabase() {
     abstract fun tamperEventDao(): TamperEventDao
 
     abstract fun groupDao(): GroupDao
+
+    abstract fun scheduleDao(): ScheduleDao
 
     companion object {
         const val NAME = "lares.db"

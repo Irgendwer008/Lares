@@ -21,8 +21,26 @@ enum class ChangeKind {
  */
 object ChangePolicy {
 
-    /** Strictness of an enabled rule: always-on is as strict as a 0 minute limit. */
-    private fun allowedMinutes(rule: Rule): Int = rule.limitMinutesPerDay ?: 0
+    /**
+     * Compares two modes (always blocked / daily limit / schedule). Always blocked is as strict as
+     * a 0 minute limit; switching to always blocked is tightening. A schedule can't be compared
+     * with a limit or another schedule, so any other switch involving one is loosening (keeping
+     * the same schedule changes nothing – its contents are protected separately).
+     */
+    private fun compareModes(oldLimit: Int?, oldSchedule: Long?, newLimit: Int?, newSchedule: Long?): ChangeKind = when {
+        oldSchedule != null && oldSchedule == newSchedule -> ChangeKind.NONE
+        oldSchedule != null && newSchedule == null && newLimit == null -> ChangeKind.TIGHTENING
+        oldSchedule != null || newSchedule != null -> ChangeKind.LOOSENING
+        else -> {
+            val before = oldLimit ?: 0
+            val after = newLimit ?: 0
+            when {
+                after < before -> ChangeKind.TIGHTENING
+                after > before -> ChangeKind.LOOSENING
+                else -> ChangeKind.NONE
+            }
+        }
+    }
 
     /** [broader] blocks at least everything [narrower] blocks (website rules only). */
     private fun covers(broader: Rule, narrower: Rule): Boolean {
@@ -43,15 +61,7 @@ object ChangePolicy {
             // Retargeting removes the old restriction – unless the new website rule still covers
             // everything the old one blocked (e.g. youtube.com/shorts → youtube.com).
             oldActive.key != newActive.key && !covers(newActive, oldActive) -> ChangeKind.LOOSENING
-            else -> {
-                val before = allowedMinutes(oldActive)
-                val after = allowedMinutes(newActive)
-                when {
-                    after < before -> ChangeKind.TIGHTENING
-                    after > before -> ChangeKind.LOOSENING
-                    else -> ChangeKind.NONE
-                }
-            }
+            else -> compareModes(oldActive.limitMinutesPerDay, oldActive.scheduleId, newActive.limitMinutesPerDay, newActive.scheduleId)
         }
     }
 
@@ -79,15 +89,7 @@ object ChangePolicy {
             before == null && after == null -> ChangeKind.NONE
             before == null -> ChangeKind.TIGHTENING
             after == null -> ChangeKind.LOOSENING
-            else -> {
-                val b = before.limitMinutesPerDay ?: 0
-                val a = after.limitMinutesPerDay ?: 0
-                when {
-                    a < b -> ChangeKind.TIGHTENING
-                    a > b -> ChangeKind.LOOSENING
-                    else -> ChangeKind.NONE
-                }
-            }
+            else -> compareModes(before.limitMinutesPerDay, before.scheduleId, after.limitMinutesPerDay, after.scheduleId)
         }
     }
 

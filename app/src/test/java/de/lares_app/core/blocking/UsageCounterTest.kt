@@ -67,4 +67,12 @@ class UsageCounterTest {
         assertEquals(emptySet<String>(), warnings.removeAllExcept(setOf("a")))
         assertEquals(LimitWarnings.Change.Show(FIVE_MINUTES), warnings.update("b", 4 * 60_000L, both)) // fires again
     }
+
+    @Test fun movingARuleCarriesItsWindowBudgetsAlong() {
+        val counter = UsageCounter(UsageSnapshot(0, 1, windowMillis = mapOf("r1|7/w1@2026-11-23" to 30 * 60_000L)))
+        // Into a group with the same schedule: the group's window budget is not fresh.
+        assertTrue(counter.carryOver(1L, fromGroup = null, toGroup = 5L))
+        assertEquals(30 * 60_000L, counter.snapshot.windowMillis["g5|7/w1@2026-11-23"])
+        assertFalse(counter.carryOver(1L, fromGroup = null, toGroup = 5L)) // nothing new
+    }
 }

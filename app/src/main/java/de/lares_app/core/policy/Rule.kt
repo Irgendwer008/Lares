@@ -12,8 +12,9 @@ enum class RuleType { APP, WEBSITE }
  * path prefix, e.g. `youtube.com/shorts`).
  *
  * @property limitMinutesPerDay `null` = always blocked, otherwise allowed minutes per usage day.
- *   Ignored while the rule belongs to a group (the group's limit applies).
+ *   Ignored while the rule belongs to a group (the group's limit applies) or uses a schedule.
  * @property groupId group this rule belongs to, or null for a standalone rule.
+ * @property scheduleId the [Schedule] that applies instead of [limitMinutesPerDay], or null.
  */
 data class Rule(
     val id: Long,
@@ -22,12 +23,14 @@ data class Rule(
     val limitMinutesPerDay: Int? = null,
     val enabled: Boolean = true,
     val groupId: Long? = null,
+    val scheduleId: Long? = null,
 ) {
     init {
         require(limitMinutesPerDay == null || limitMinutesPerDay >= 0) { "limit must be >= 0" }
     }
 
-    val isAlwaysOn: Boolean get() = limitMinutesPerDay == null
+    /** Always blocked: no daily limit and no schedule. */
+    val isAlwaysOn: Boolean get() = limitMinutesPerDay == null && scheduleId == null
 
     /** Identity of the blocked target independent of the database id (duplicate detection, import). */
     val key: RuleKey
@@ -47,12 +50,14 @@ data class RuleKey(val type: RuleType, val normalizedTarget: String)
  * switch turns all members on or off at once.
  *
  * @property limitMinutesPerDay `null` = always blocked, otherwise combined minutes per usage day.
+ * @property scheduleId the [Schedule] that applies instead of [limitMinutesPerDay], or null.
  */
 data class RuleGroup(
     val id: Long,
     val name: String,
     val limitMinutesPerDay: Int? = null,
     val enabled: Boolean = true,
+    val scheduleId: Long? = null,
 ) {
     init {
         require(limitMinutesPerDay == null || limitMinutesPerDay >= 0) { "limit must be >= 0" }
@@ -60,12 +65,12 @@ data class RuleGroup(
 }
 
 /**
- * The rule as it is actually enforced: inside a group, the group's switch and limit apply.
+ * The rule as it is actually enforced: inside a group, the group's switch, limit and schedule apply.
  * Returns null if the rule is not active at all.
  */
 fun Rule.effective(groups: Map<Long, RuleGroup>): Rule? {
     if (!enabled) return null
     val group = groupId?.let { groups[it] } ?: return this
     if (!group.enabled) return null
-    return copy(limitMinutesPerDay = group.limitMinutesPerDay)
+    return copy(limitMinutesPerDay = group.limitMinutesPerDay, scheduleId = group.scheduleId)
 }

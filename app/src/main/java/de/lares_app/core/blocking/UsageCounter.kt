@@ -6,6 +6,7 @@
 package de.lares_app.core.blocking
 
 import de.lares_app.core.policy.Decision
+import de.lares_app.core.policy.PolicyEngine
 
 /** Foreground time used in one usage period (keyed by the period's start, see ResetSchedule). */
 data class UsageSnapshot(
@@ -13,6 +14,12 @@ data class UsageSnapshot(
     val periodEndMillis: Long,
     val ruleMillis: Map<Long, Long> = emptyMap(),
     val groupMillis: Map<Long, Long> = emptyMap(),
+    /**
+     * Schedule window budgets ([de.lares_app.core.policy.PolicyEngine.windowUsageKey]). Not tied to
+     * the usage period: a window's budget belongs to the window (keyed by its start date), also
+     * when it runs across the daily reset.
+     */
+    val windowMillis: Map<String, Long> = emptyMap(),
 )
 
 /**
@@ -25,10 +32,13 @@ class UsageCounter(initial: UsageSnapshot) {
 
     /** Adds [millis] to everything [decision] counts. @return true if anything changed. */
     fun add(decision: Decision.Allow, millis: Long): Boolean {
-        if (millis <= 0 || (decision.countedRuleIds.isEmpty() && decision.countedGroupIds.isEmpty())) return false
+        if (millis <= 0 || (decision.countedRuleIds.isEmpty() && decision.countedGroupIds.isEmpty() && decision.countedWindowKeys.isEmpty())) {
+            return false
+        }
         snapshot = snapshot.copy(
             ruleMillis = snapshot.ruleMillis.plusEach(decision.countedRuleIds, millis),
             groupMillis = snapshot.groupMillis.plusEach(decision.countedGroupIds, millis),
+            windowMillis = snapshot.windowMillis.plusEach(decision.countedWindowKeys, millis),
         )
         return true
     }
@@ -39,10 +49,12 @@ class UsageCounter(initial: UsageSnapshot) {
      * @return true if anything changed.
      */
     fun carryOver(ruleId: Long, fromGroup: Long?, toGroup: Long?): Boolean {
+        if (fromGroup == toGroup) return false
+        val windowsChanged = carryOverWindows(PolicyEngine.ownerKey(ruleId, fromGroup), PolicyEngine.ownerKey(ruleId, toGroup))
         val used = (if (fromGroup == null) snapshot.ruleMillis[ruleId] else snapshot.groupMillis[fromGroup]) ?: 0L
-        if (used <= 0L || fromGroup == toGroup) return false
+        if (used <= 0L) return windowsChanged
         val target = if (toGroup == null) snapshot.ruleMillis[ruleId] ?: 0L else snapshot.groupMillis[toGroup] ?: 0L
-        if (target >= used) return false
+        if (target >= used) return windowsChanged
         snapshot = if (toGroup == null) {
             snapshot.copy(ruleMillis = snapshot.ruleMillis + (ruleId to used))
         } else {
@@ -51,7 +63,25 @@ class UsageCounter(initial: UsageSnapshot) {
         return true
     }
 
-    private fun Map<Long, Long>.plusEach(ids: Set<Long>, millis: Long): Map<Long, Long> =
+    /** The same for schedule window budgets: the new owner's budgets are at least the old owner's. */
+    private fun carryOverWindows(fromOwner: String, toOwner: String): Boolean {
+        val moved = snapshot.windowMillis.filterKeys { it.startsWith("$fromOwner|") }
+            .mapKeys { (key, _) -> "$toOwner|" + key.substringAfter('|') }
+            .filter { (key, used) -> used > (snapshot.windowMillis[key] ?: 0L) }
+        if (moved.isEmpty()) return false
+        snapshot = snapshot.copy(windowMillis = snapshot.windowMillis + moved)
+        return true
+    }
+
+    /** Forgets window budgets of windows that started before [epochDay] (already removed from storage). */
+    fun dropWindowsBefore(epochDay: Long) {
+        val kept = snapshot.windowMillis.filterKeys { key ->
+            runCatching { java.time.LocalDate.parse(key.substringAfterLast('@')).toEpochDay() >= epochDay }.getOrDefault(true)
+        }
+        if (kept.size != snapshot.windowMillis.size) snapshot = snapshot.copy(windowMillis = kept)
+    }
+
+    private fun <K> Map<K, Long>.plusEach(ids: Set<K>, millis: Long): Map<K, Long> =
         if (ids.isEmpty()) this else toMutableMap().apply { ids.forEach { merge(it, millis, Long::plus) } }
 }
 
@@ -104,7 +134,8 @@ class LimitWarnings {
         /** The countdown overlay is shown during the last 5 minutes. */
         const val TIMER_THRESHOLD = FIVE_MINUTES
 
+        /** The rules / groups behind the countdown, plus the window budgets (a new window = a new warning). */
         fun subjectOf(decision: Decision.Allow): String =
-            "r" + decision.countedRuleIds.sorted().joinToString(",") + "g" + decision.countedGroupIds.sorted().joinToString(",")
+            "o" + decision.restrictedOwners.sorted().joinToString(",") + "w" + decision.countedWindowKeys.sorted().joinToString(",")
     }
 }

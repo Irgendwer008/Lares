@@ -9,9 +9,16 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.view.View
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
@@ -74,6 +81,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import de.lares_app.R
+import de.lares_app.core.policy.Schedule
 import de.lares_app.core.unlock.RestoreResult
 import de.lares_app.core.data.AppTheme
 import de.lares_app.core.policy.RuleType
@@ -132,40 +140,87 @@ fun durationLabel(minutes: Long): String =
     }
 
 @Composable
-fun limitLabel(limitMinutes: Int?): String =
-    if (limitMinutes == null) {
+fun limitLabel(limitMinutes: Int?, scheduleId: Long? = null): String =
+    if (scheduleId != null) {
+        scheduleName(scheduleId)
+    } else if (limitMinutes == null) {
         stringResource(R.string.rule_always_blocked)
     } else {
         pluralStringResource(R.plurals.rule_limit_minutes, limitMinutes, limitMinutes)
     }
 
-/** Editable "always blocked / daily limit" choice. */
+enum class LimitMode { ALWAYS, DAILY, SCHEDULE }
+
+/** "Schedule “School”" for a schedule from [LocalScheduleChoice] (or just "Schedule" if unknown). */
+@Composable
+fun scheduleName(scheduleId: Long): String =
+    LocalScheduleChoice.current?.schedules?.firstOrNull { it.id == scheduleId }?.let { stringResource(R.string.limit_schedule_named, it.name) }
+        ?: stringResource(R.string.limit_schedule)
+
+/** Editable "always blocked / daily limit / schedule" choice. */
 @Stable
-class LimitState(initial: Int?) {
-    var alwaysOn by mutableStateOf(initial == null)
+class LimitState(initial: Int?, initialSchedule: Long? = null) {
+    var mode by mutableStateOf(
+        when {
+            initialSchedule != null -> LimitMode.SCHEDULE
+            initial == null -> LimitMode.ALWAYS
+            else -> LimitMode.DAILY
+        },
+    )
     var minutesText by mutableStateOf(initial?.toString() ?: "30")
+    var scheduleId by mutableStateOf(initialSchedule)
 
-    val isValid: Boolean get() = alwaysOn || minutesText.toIntOrNull()?.let { it >= 0 } == true
+    val isValid: Boolean
+        get() = when (mode) {
+            LimitMode.ALWAYS -> true
+            LimitMode.DAILY -> minutesText.toIntOrNull()?.let { it >= 0 } == true
+            LimitMode.SCHEDULE -> scheduleId != null
+        }
 
-    /** null = always blocked. Only meaningful if [isValid]. */
-    val limit: Int? get() = if (alwaysOn) null else minutesText.toIntOrNull()
+    /** null = always blocked (or a schedule). Only meaningful if [isValid]. */
+    val limit: Int? get() = if (mode == LimitMode.DAILY) minutesText.toIntOrNull() else null
+
+    /** The chosen schedule in schedule mode, else null. */
+    val schedule: Long? get() = if (mode == LimitMode.SCHEDULE) scheduleId else null
 }
 
 /** Survives rotation (otherwise a group could be created with a limit the user didn't choose). */
 @Composable
-fun rememberLimitState(initial: Int?) = rememberSaveable(saver = LimitStateSaver) { LimitState(initial) }
+fun rememberLimitState(initial: Int?, initialSchedule: Long? = null) =
+    rememberSaveable(saver = LimitStateSaver) { LimitState(initial, initialSchedule) }
 
 private val LimitStateSaver = listSaver<LimitState, Any>(
-    save = { listOf(it.alwaysOn, it.minutesText) },
-    restore = { saved -> LimitState(null).apply { alwaysOn = saved[0] as Boolean; minutesText = saved[1] as String } },
+    save = { listOf(it.mode.name, it.minutesText, it.scheduleId ?: -1L) },
+    restore = { saved ->
+        LimitState(null).apply {
+            mode = LimitMode.valueOf(saved[0] as String)
+            minutesText = saved[1] as String
+            scheduleId = (saved[2] as Long).takeIf { it > 0 }
+        }
+    },
 )
 
+/** What the "Schedule" mode offers: the schedules and a way to open the schedule list. */
+data class ScheduleChoice(val schedules: List<Schedule>, val onManage: () -> Unit)
+
+/** Provided by screens that offer schedules; without it, [LimitSelector] has no "Schedule" mode. */
+val LocalScheduleChoice = compositionLocalOf<ScheduleChoice?> { null }
+
+/**
+ * @param schedules offered in the "Schedule" mode; [onManageSchedules] opens the schedule list
+ *   (null: the "Schedule" mode isn't offered here). Both default to [LocalScheduleChoice].
+ */
 @Composable
-fun LimitSelector(state: LimitState, modifier: Modifier = Modifier) {
+fun LimitSelector(
+    state: LimitState,
+    modifier: Modifier = Modifier,
+    schedules: List<Schedule> = LocalScheduleChoice.current?.schedules.orEmpty(),
+    onManageSchedules: (() -> Unit)? = LocalScheduleChoice.current?.onManage,
+) {
     Column(modifier.selectableGroup()) {
-        RadioRow(stringResource(R.string.rule_always_blocked), state.alwaysOn) { state.alwaysOn = true }
-        RadioRow(stringResource(R.string.limit_daily), !state.alwaysOn) { state.alwaysOn = false }
-        if (!state.alwaysOn) {
+        RadioRow(stringResource(R.string.rule_always_blocked), state.mode == LimitMode.ALWAYS) { state.mode = LimitMode.ALWAYS }
+        RadioRow(stringResource(R.string.limit_daily), state.mode == LimitMode.DAILY) { state.mode = LimitMode.DAILY }
+        if (state.mode == LimitMode.DAILY) {
             OutlinedTextField(
                 value = state.minutesText,
                 onValueChange = { v -> state.minutesText = v.filter { it.isDigit() }.take(4) },
@@ -174,6 +229,59 @@ fun LimitSelector(state: LimitState, modifier: Modifier = Modifier) {
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth().padding(start = 48.dp),
+            )
+        }
+        if (onManageSchedules != null) {
+            RadioRow(stringResource(R.string.limit_schedule), state.mode == LimitMode.SCHEDULE) { state.mode = LimitMode.SCHEDULE }
+            if (state.mode == LimitMode.SCHEDULE) SchedulePicker(state, schedules, onManageSchedules, Modifier.padding(start = 48.dp))
+        }
+    }
+}
+
+/** Dropdown with the schedules' names and summaries, plus "Manage schedules". */
+@Composable
+private fun SchedulePicker(state: LimitState, schedules: List<Schedule>, onManageSchedules: () -> Unit, modifier: Modifier = Modifier) {
+    if (schedules.isEmpty()) {
+        Column(modifier) {
+            Text(stringResource(R.string.limit_schedule_none), style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = onManageSchedules) { Text(stringResource(R.string.limit_schedule_create)) }
+        }
+        return
+    }
+    var open by remember { mutableStateOf(false) }
+    val selected = schedules.firstOrNull { it.id == state.scheduleId }
+    Box(modifier) {
+        OutlinedCard(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(selected?.name ?: stringResource(R.string.limit_schedule_choose), style = MaterialTheme.typography.bodyLarge)
+                    selected?.let { Text(scheduleSummary(it), style = MaterialTheme.typography.bodySmall) }
+                }
+                Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null)
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            for (s in schedules) {
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(s.name)
+                            Text(scheduleSummary(s), style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
+                    onClick = {
+                        state.scheduleId = s.id
+                        open = false
+                    },
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.limit_schedule_manage)) },
+                onClick = {
+                    open = false
+                    onManageSchedules()
+                },
             )
         }
     }

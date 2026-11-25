@@ -10,6 +10,7 @@ import de.lares_app.core.policy.ChangePolicy
 import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
 import de.lares_app.core.policy.RuleType
+import de.lares_app.core.policy.Schedule
 import de.lares_app.core.policy.UrlMatcher
 import kotlinx.coroutines.flow.Flow
 
@@ -65,14 +66,25 @@ class RuleRepository(
     private val groupStore: GroupStore,
     private val gate: UnlockGate,
     private val usage: UsageTransfer = UsageTransfer.None,
+    /** For the export / import of schedules (null: schedules are left out). */
+    private val schedules: ScheduleStore? = null,
 ) {
     val rules: Flow<List<Rule>> = store.rules
     val groups: Flow<List<RuleGroup>> = groupStore.groups
 
     // ---- Rules ---------------------------------------------------------------------------------
 
-    /** @param groupId add the rule as a member of this group (its limit then applies). */
-    suspend fun add(type: RuleType, target: String, limitMinutesPerDay: Int? = null, groupId: Long? = null): AddRuleResult {
+    /**
+     * @param groupId add the rule as a member of this group (its limit / schedule then applies).
+     * @param scheduleId use this schedule instead of [limitMinutesPerDay].
+     */
+    suspend fun add(
+        type: RuleType,
+        target: String,
+        limitMinutesPerDay: Int? = null,
+        groupId: Long? = null,
+        scheduleId: Long? = null,
+    ): AddRuleResult {
         if (limitMinutesPerDay != null && limitMinutesPerDay < 0) return AddRuleResult.InvalidTarget
         val normalized = normalizeTarget(type, target) ?: return AddRuleResult.InvalidTarget
         val group = groupId?.let { groupStore.get(it) ?: return AddRuleResult.InvalidTarget }
@@ -80,9 +92,10 @@ class RuleRepository(
             id = 0,
             type = type,
             target = normalized,
-            // Keep the group's limit as the rule's own limit, in case it's taken out of the group later.
-            limitMinutesPerDay = group?.limitMinutesPerDay ?: limitMinutesPerDay,
+            // Keep the group's limit / schedule as the rule's own, in case it's taken out of the group later.
+            limitMinutesPerDay = if (group != null) group.limitMinutesPerDay else limitMinutesPerDay,
             groupId = groupId,
+            scheduleId = if (group != null) group.scheduleId else scheduleId,
         )
         // Duplicates only count within the same scope: a target may be a single rule *and* a group
         // member at the same time – then both limits apply (whichever is reached first blocks).
@@ -96,8 +109,8 @@ class RuleRepository(
      * (single rules, or the same group) are skipped.
      * @return how many rules were added.
      */
-    suspend fun addAll(targets: List<Pair<RuleType, String>>, limitMinutesPerDay: Int?, groupId: Long? = null): Int =
-        targets.count { (type, target) -> add(type, target, limitMinutesPerDay, groupId) is AddRuleResult.Added }
+    suspend fun addAll(targets: List<Pair<RuleType, String>>, limitMinutesPerDay: Int?, groupId: Long? = null, scheduleId: Long? = null): Int =
+        targets.count { (type, target) -> add(type, target, limitMinutesPerDay, groupId, scheduleId) is AddRuleResult.Added }
 
     /** Changes limit / enabled state / target / group of an existing rule. */
     suspend fun update(rule: Rule) {
@@ -115,10 +128,10 @@ class RuleRepository(
         update(old.copy(enabled = enabled))
     }
 
-    /** Limit and on/off in one atomic change (one policy check for both). */
-    suspend fun updateRule(id: Long, limitMinutesPerDay: Int?, enabled: Boolean) {
+    /** Mode (limit / schedule) and on/off in one atomic change (one policy check for both). */
+    suspend fun updateRule(id: Long, limitMinutesPerDay: Int?, enabled: Boolean, scheduleId: Long? = null) {
         val old = store.get(id) ?: return
-        update(old.copy(limitMinutesPerDay = limitMinutesPerDay, enabled = enabled))
+        update(old.copy(limitMinutesPerDay = limitMinutesPerDay, enabled = enabled, scheduleId = scheduleId))
     }
 
     /**
@@ -140,16 +153,16 @@ class RuleRepository(
     // ---- Groups --------------------------------------------------------------------------------
 
     /** Creating a group is free (it restricts nothing until members are added). */
-    suspend fun createGroup(name: String, limitMinutesPerDay: Int?): Long {
+    suspend fun createGroup(name: String, limitMinutesPerDay: Int?, scheduleId: Long? = null): Long {
         require(name.isNotBlank()) { "name must not be blank" }
-        return groupStore.insert(RuleGroup(id = 0, name = name.trim(), limitMinutesPerDay = limitMinutesPerDay))
+        return groupStore.insert(RuleGroup(id = 0, name = name.trim(), limitMinutesPerDay = limitMinutesPerDay, scheduleId = scheduleId))
     }
 
     /** Creates a group and adds [targets] as members. @return the group id. */
-    suspend fun createGroupWith(name: String, limitMinutesPerDay: Int?, targets: List<Pair<RuleType, String>>): Long {
+    suspend fun createGroupWith(name: String, limitMinutesPerDay: Int?, targets: List<Pair<RuleType, String>>, scheduleId: Long? = null): Long {
         // Checked first, so no empty group is left behind if the code is needed for the members.
         if (targets.isNotEmpty()) gate.checkRuleChange(ChangeKind.TIGHTENING)
-        val id = createGroup(name, limitMinutesPerDay)
+        val id = createGroup(name, limitMinutesPerDay, scheduleId)
         addAll(targets, limitMinutesPerDay, id)
         return id
     }
@@ -178,9 +191,26 @@ class RuleRepository(
     suspend fun exportBackup(): BackupFile {
         val groups = groupStore.all()
         val names = groups.associate { it.id to it.name }
+        val scheduleList = schedules?.all().orEmpty()
+        val scheduleNames = scheduleList.associate { it.id to it.name }
+        // With a schedule the limit is written as null (= always blocked): older versions that
+        // don't know schedules fall back to the strictest mode.
+        fun limitFor(limit: Int?, scheduleId: Long?) = if (scheduleId != null) null else limit
         return BackupFile(
-            groups = groups.map { BackupGroup(it.name, it.limitMinutesPerDay, it.enabled) },
-            rules = store.all().map { BackupRule(it.type, it.target, it.limitMinutesPerDay, it.enabled, it.groupId?.let(names::get)) },
+            groups = groups.map {
+                BackupGroup(it.name, limitFor(it.limitMinutesPerDay, it.scheduleId), it.enabled, it.scheduleId?.let(scheduleNames::get))
+            },
+            rules = store.all().map {
+                BackupRule(
+                    it.type,
+                    it.target,
+                    limitFor(it.limitMinutesPerDay, it.scheduleId),
+                    it.enabled,
+                    it.groupId?.let(names::get),
+                    it.scheduleId?.let(scheduleNames::get),
+                )
+            },
+            schedules = scheduleList.map { BackupSchedule(it.name, it.outside, it.outsideMinutes, it.windows) },
         )
     }
 
@@ -188,16 +218,22 @@ class RuleRepository(
      * Imports by **adding only**: groups that don't exist yet (matched by name) are created, rules
      * that don't exist yet in their scope are added. Nothing existing is removed or loosened, so it
      * only needs the code if every rule change does. Existing groups keep their own limit.
+     * Schedules that don't exist yet (by name) are added too – that always needs the code; a
+     * reference to a schedule that isn't there (or invalid) becomes "always blocked".
      */
     suspend fun importBackup(backup: BackupFile): ImportResult {
         // Adding rules is a rule change (needs the code unless "only loosening needs the code").
         if (backup.rules.isNotEmpty()) gate.checkRuleChange(ChangeKind.TIGHTENING)
+        val scheduleIds = importSchedules(backup.schedules)
+        fun scheduleOf(name: String?) = name?.trim()?.let { scheduleIds[it.lowercase()] }
         val existing = groupStore.all().associate { it.name.trim() to it.id }.toMutableMap()
         var groupsAdded = 0
         for (g in backup.groups) {
             val name = g.name.trim()
             if (name.isEmpty() || name in existing) continue
-            existing[name] = groupStore.insert(RuleGroup(0, name, g.limitMinutesPerDay?.coerceAtLeast(0), g.enabled))
+            val scheduleId = scheduleOf(g.schedule)
+            val limit = if (g.schedule != null) null else g.limitMinutesPerDay?.coerceAtLeast(0)
+            existing[name] = groupStore.insert(RuleGroup(0, name, limit, g.enabled, scheduleId))
             groupsAdded++
         }
         var added = 0
@@ -211,10 +247,24 @@ class RuleRepository(
                 continue
             }
             // Inserting directly keeps a disabled rule disabled (adding a disabled rule restricts nothing).
-            store.insert(Rule(0, r.type, target, r.limitMinutesPerDay, r.enabled, groupId))
+            val limit = if (r.schedule != null) null else r.limitMinutesPerDay
+            store.insert(Rule(0, r.type, target, limit, r.enabled, groupId, scheduleOf(r.schedule)))
             added++
         }
         return ImportResult(groupsAdded, added, skipped)
+    }
+
+    /** @return lower-case name → id for all schedules (existing ones are kept as they are). */
+    private suspend fun importSchedules(imported: List<BackupSchedule>): Map<String, Long> {
+        val store = schedules ?: return emptyMap()
+        val ids = store.all().associate { it.name.trim().lowercase() to it.id }.toMutableMap()
+        val new = imported
+            .map { Schedule(0, it.name.trim(), it.windows, it.outside, it.outsideMinutes) }
+            .filter { it.name.isNotEmpty() && it.name.lowercase() !in ids && it.isValid() }
+            .distinctBy { it.name.lowercase() }
+        if (new.isNotEmpty()) gate.check(ChangeKind.LOOSENING) // every schedule change needs the code
+        for (s in new) ids[s.name.lowercase()] = store.insert(s)
+        return ids
     }
 
     private suspend fun groupMap(): Map<Long, RuleGroup> = groupStore.all().associateBy { it.id }

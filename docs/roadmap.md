@@ -73,9 +73,15 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - Daily reset always at the set time: the clock-forward check uses a clock anchor per boot (before,
   the reset could come hours late if a period was first noticed late, e.g. phone unused around
   midnight).
-
 - Code for every rule change by default, with the setting "Only loosening needs the code" (see
   below).
+- Schedules (see below): model, evaluation, window budgets, Room 1 → 2 (auto migration, schema
+  export), export / import, change policy, schedule list and week-view editor (drag to move /
+  resize, "now" line, shared timers, copy to days, cancel with confirmation), mode selection with
+  the schedule dropdown, state on the main and block screens. Still to do: on-device testing.
+- First setup: welcome screen with the color choice, then a short skippable tour (what Lares blocks,
+  always blocked / daily limit / schedule, schedules, the guardian code) before the guardian takes
+  over; icon circles at the bottom show where you are in the setup.
 
 **Carried over from 1.1**
 - **Device tests** on other manufacturers (Samsung, Pixel, Xiaomi): add their settings packages
@@ -85,8 +91,11 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - **Android 13+ "active apps" panel** (quick settings) can stop Usage access mode: detect it
   faster than the gap check, and point users to Accessibility mode.
 - **Device-admin policy** check (Google Play).
-- **At release:** store descriptions (EN / DE / FR) still say "adding restrictions is always
-  possible" – update them together with the release.
+- **At release:** store descriptions (EN / DE / FR) and the root `README.md` still say "adding
+  restrictions is always possible" and don't mention schedules – update them together with the
+  release (also the README status line).
+- **Room migration test** (1 → 2 with data) – no instrumented tests yet; at least install 1.1,
+  add rules / groups, then update to 1.2 on a device.
 
 **Schedules** (decided 2026-11-25)
 - **Mode per rule / group:** *Always blocked*, *Daily limit* or *Schedule* (dropdown with the
@@ -101,8 +110,9 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - **Outside the windows:** set per schedule – free, full block, or a timer for all time outside the
   windows that day.
 - **Timers:** each window has its own budget by default; a window's timer can be combined with
-  other windows *of the same day* (shared budget). The "outside" timer stays separate. All budgets
-  restart at the daily reset time.
+  other windows *of the same day* (shared budget). The "outside" timer stays separate. Window
+  budgets belong to the window (a window across the reset keeps its budget); the "outside" timer
+  restarts at the daily reset.
 - **Code:** every change to schedules needs the code – creating, editing and deleting, whether a
   schedule is used or not, and also with the "only loosening" setting below. Only unused
   schedules can be deleted (the dialog lists who uses one).
@@ -124,7 +134,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
   - Edits are collected and saved together (needs the code); "Cancel" discards all changes at any
     time (after a confirmation).
 - **Display:** main screen and block screen show the current window ("blocked until 17:00",
-  "15 min left until 17:00").
+  "Timer until 17:00" with a usage bar).
 - **Data:** Room schema 1 → 2 with a migration (first schema change; export the schema from now
   on).
 

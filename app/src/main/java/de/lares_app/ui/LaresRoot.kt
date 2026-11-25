@@ -46,6 +46,12 @@ private object Routes {
     private const val ADD_RULE_BASE = "add_rule"
     const val ADD_RULE = "$ADD_RULE_BASE?${AddRuleViewModel.ARG_GROUP_ID}={${AddRuleViewModel.ARG_GROUP_ID}}"
 
+    const val SCHEDULES = "schedules"
+    private const val SCHEDULE_BASE = "schedule"
+    const val SCHEDULE = "$SCHEDULE_BASE?${ScheduleEditorViewModel.ARG_ID}={${ScheduleEditorViewModel.ARG_ID}}"
+
+    fun schedule(id: Long?) = if (id == null) SCHEDULE_BASE else "$SCHEDULE_BASE?${ScheduleEditorViewModel.ARG_ID}=$id"
+
     fun addRule(groupId: Long? = null) =
         if (groupId == null) ADD_RULE_BASE else "$ADD_RULE_BASE?${AddRuleViewModel.ARG_GROUP_ID}=$groupId"
 }
@@ -74,8 +80,21 @@ fun LaresRoot(main: MainViewModel = hiltViewModel()) {
                     HomeScreen(
                         onAddRule = { groupId -> nav.navigate(Routes.addRule(groupId)) },
                         onOpenSettings = { highlight -> nav.navigate(Routes.settings(highlight)) },
+                        onOpenSchedules = { nav.navigate(Routes.SCHEDULES) },
                     )
                 }
+                composable(Routes.SCHEDULES) {
+                    SchedulesScreen(onBack = { nav.popBackStack() }, onOpen = { id -> nav.navigate(Routes.schedule(id)) })
+                }
+                composable(
+                    Routes.SCHEDULE,
+                    arguments = listOf(
+                        navArgument(ScheduleEditorViewModel.ARG_ID) {
+                            type = NavType.LongType
+                            defaultValue = -1L
+                        },
+                    ),
+                ) { ScheduleEditorScreen(onDone = { nav.popBackStack() }) }
                 composable(
                     Routes.SETTINGS,
                     arguments = listOf(
@@ -93,6 +112,7 @@ fun LaresRoot(main: MainViewModel = hiltViewModel()) {
                         onOpenPrivacy = { nav.navigate(Routes.PRIVACY) },
                         onOpenLicense = { nav.navigate(Routes.LICENSE) },
                         onOpenLibraries = { nav.navigate(Routes.LIBRARIES) },
+                        onOpenSchedules = { nav.navigate(Routes.SCHEDULES) },
                     )
                 }
                 composable(Routes.CHANGE_CODE) {
@@ -130,6 +150,7 @@ fun LaresRoot(main: MainViewModel = hiltViewModel()) {
                             nav.navigate(Routes.addRule(groupId)) { popUpTo(Routes.HOME) }
                         },
                         onOpenBlockingMode = { nav.navigate(Routes.settings(SettingsHighlight.BLOCKING_MODE)) },
+                        onOpenSchedules = { nav.navigate(Routes.SCHEDULES) },
                     )
                 }
             }
