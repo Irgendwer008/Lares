@@ -24,7 +24,7 @@ import org.junit.Test
 
 class BackupAndChannelsTest {
     private val clock = FakeClock()
-    private val state = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x"), settings = AppSettings(setupComplete = true)))
+    private val state = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x"), settings = AppSettings(setupComplete = true, onlyLooseningNeedsCode = true)))
     private val gate = UnlockGate(state, clock)
 
     private fun newRepo(): Pair<RuleRepository, FakeRuleStore> {

@@ -245,6 +245,13 @@ fun SettingsScreen(
                 icon = R.drawable.ic_key,
                 onClick = vm::changeCode,
             )
+            SwitchItem(
+                title = stringResource(R.string.settings_only_loosening),
+                summary = stringResource(if (ui.onlyLooseningNeedsCode) R.string.settings_only_loosening_on else R.string.settings_only_loosening_off),
+                checked = ui.onlyLooseningNeedsCode,
+                icon = R.drawable.ic_lock,
+                onChange = vm::setOnlyLooseningNeedsCode,
+            )
 
             SettingsSubheader(stringResource(R.string.settings_group_blocking))
             SettingsItem(

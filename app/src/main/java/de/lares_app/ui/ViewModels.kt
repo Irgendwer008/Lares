@@ -344,6 +344,8 @@ data class HomeContent(
     val websiteBlocking: WebsiteBlockingState = WebsiteBlockingState.ON,
     /** Show the info box "website blocking is off" (not ON and not dismissed). */
     val websiteHint: Boolean = false,
+    /** Every rule change needs the code (default since 1.2), not only loosening ones. */
+    val everyChangeNeedsCode: Boolean = true,
 ) {
     val isEmpty: Boolean get() = groups.isEmpty() && standalone.isEmpty()
 }
@@ -425,6 +427,7 @@ class HomeViewModel @Inject constructor(
             websiteBlocking = WebsiteBlockingState.of(state.settings),
             websiteHint = state.settings.setupComplete && !state.settings.websiteHintDismissed &&
                 WebsiteBlockingState.of(state.settings) != WebsiteBlockingState.ON,
+            everyChangeNeedsCode = !state.settings.onlyLooseningNeedsCode,
         )
     }.stateIn(viewModelScope, WhileSubscribed, HomeContent())
 
@@ -536,6 +539,9 @@ sealed interface AddRuleEvent {
     data object Duplicate : AddRuleEvent
 
     data object Invalid : AddRuleEvent
+
+    /** Adding rules needs the code right now (every rule change does by default). */
+    data object NeedsCode : AddRuleEvent
 }
 
 /**
@@ -574,13 +580,21 @@ class AddRuleViewModel @Inject constructor(
     private val _events = MutableSharedFlow<AddRuleEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<AddRuleEvent> = _events
 
-    fun add(type: RuleType, target: String, limitMinutes: Int?) {
+    fun add(type: RuleType, target: String, limitMinutes: Int?) = launchAdding {
+        when (rules.add(type, target, limitMinutes, groupId)) {
+            is AddRuleResult.Added -> AddRuleEvent.Added
+            is AddRuleResult.Duplicate -> AddRuleEvent.Duplicate
+            AddRuleResult.InvalidTarget -> AddRuleEvent.Invalid
+        }
+    }
+
+    private fun launchAdding(block: suspend () -> AddRuleEvent) {
         viewModelScope.launch {
             _events.tryEmit(
-                when (rules.add(type, target, limitMinutes, groupId)) {
-                    is AddRuleResult.Added -> AddRuleEvent.Added
-                    is AddRuleResult.Duplicate -> AddRuleEvent.Duplicate
-                    AddRuleResult.InvalidTarget -> AddRuleEvent.Invalid
+                try {
+                    block()
+                } catch (_: CodeRequiredException) {
+                    AddRuleEvent.NeedsCode
                 },
             )
         }
@@ -591,8 +605,8 @@ class AddRuleViewModel @Inject constructor(
     }
 
     /** @param asGroup create a new group named like the template, so all members share the limit. */
-    fun addTemplate(template: RuleTemplate, limitMinutes: Int?, asGroup: Boolean) {
-        viewModelScope.launch {
+    fun addTemplate(template: RuleTemplate, limitMinutes: Int?, asGroup: Boolean) = launchAdding {
+        run {
             val added = when {
                 groupId != null -> rules.addAll(template.targets, limitMinutes, groupId)
                 asGroup -> {
@@ -601,7 +615,7 @@ class AddRuleViewModel @Inject constructor(
                 }
                 else -> rules.addAll(template.targets, limitMinutes)
             }
-            _events.tryEmit(if (added > 0) AddRuleEvent.Added else AddRuleEvent.Duplicate)
+            if (added > 0) AddRuleEvent.Added else AddRuleEvent.Duplicate
         }
     }
 
@@ -628,6 +642,7 @@ data class SettingsUi(
     val theme: AppTheme = AppTheme.LARES,
     val totpTransfer: TotpTransferState = TotpTransferState.NOT_TOTP,
     val exportIncludesTotp: Boolean = true,
+    val onlyLooseningNeedsCode: Boolean = false,
 )
 
 /** Can the authenticator code go into the rules export? */
@@ -702,6 +717,7 @@ class SettingsViewModel @Inject constructor(
                 else -> TotpTransferState.AVAILABLE
             },
             exportIncludesTotp = s.settings.exportIncludesTotp,
+            onlyLooseningNeedsCode = s.settings.onlyLooseningNeedsCode,
             theme = s.settings.theme,
         )
     }.stateIn(viewModelScope, WhileSubscribed, SettingsUi())
@@ -776,10 +792,17 @@ class SettingsViewModel @Inject constructor(
 
     fun setExportIncludesTotp(enabled: Boolean) = guarded { settings.setExportIncludesTotp(enabled) }
 
+    fun setOnlyLooseningNeedsCode(enabled: Boolean) = guarded { settings.setOnlyLooseningNeedsCode(enabled) }
+
     fun import(read: suspend () -> String?) {
         viewModelScope.launch {
             val backup = runCatching { read()?.let(BackupCodec::decode) }.getOrNull()
-            val result = backup?.let { runCatching { rules.importBackup(it) }.getOrNull() }
+            val imported = backup?.let { runCatching { rules.importBackup(it) } }
+            if (imported?.exceptionOrNull() is CodeRequiredException) {
+                _events.tryEmit(SettingsEvent.NeedsCode) // every rule change needs the code
+                return@launch
+            }
+            val result = imported?.getOrNull()
             // The authenticator code is only offered if the file was imported at all.
             // Not offered either if it's this phone's own code (same package, e.g. its own export).
             val pkg = backup?.guardianTotp?.takeIf {

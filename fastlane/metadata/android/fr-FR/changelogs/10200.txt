@@ -1,1 +1,2 @@
+• Toute modification des règles et des groupes exige désormais le code du gardien par défaut – « Seul l’assouplissement exige le code » dans les paramètres rétablit l’ancien comportement
 • La remise à zéro quotidienne a maintenant toujours lieu à l’heure réglée – elle pouvait avoir des heures de retard si le téléphone n’était pas utilisé à ce moment-là

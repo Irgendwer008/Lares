@@ -51,6 +51,11 @@ data class AppSettings(
     val exportIncludesTotp: Boolean = true,
     /** The main-screen hint "website blocking is off" was dismissed (shown again after it's switched on and off). */
     val websiteHintDismissed: Boolean = false,
+    /**
+     * Up to 1.1 only loosening rule changes needed the code; since 1.2 every rule change does by
+     * default. True = the old behavior (tightening free). Changing it needs the code.
+     */
+    val onlyLooseningNeedsCode: Boolean = false,
 ) {
     /** Website blocking needs the Accessibility service, so it works only in Accessibility mode. */
     val websiteBlockingAvailable: Boolean

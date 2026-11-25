@@ -7,6 +7,7 @@ updated in place.
 | Decision | Reason |
 |---|---|
 | Tightening is free, loosening needs the guardian code | Encourages stricter rules; the guardian only needs to be involved for loosening |
+| Since 1.2: every rule / group change needs the code by default; "Only loosening needs the code" is a setting (changing it needs the code) | A rule added or tightened by mistake could otherwise only be undone with the guardian; who wants free tightening can switch it on |
 | Rule types in v1: always blocked or daily time limit | Schedules and open-count limits are not part of v1 |
 | Daily reset time configurable (default 00:00); any change needs the code and applies after the next reset | Night owls; moving the reset in either direction can grant a fresh quota |
 | Groups with a shared daily limit and a common switch; members use the group's limit | Sum up time across app + website + alternative clients; switch related rules at once |

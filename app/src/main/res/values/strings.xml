@@ -20,13 +20,13 @@
 
     <!-- Setup (first start; done together with the guardian) -->
     <string name="setup_intro_title">Welcome</string>
-    <string name="setup_intro_body">Lares blocks the apps and websites you choose. Adding restrictions is always possible – removing or loosening them needs a code that only a trusted person knows: your guardian, for example a friend or family member.\n\nFor the next steps, please hand the phone to your guardian.</string>
+    <string name="setup_intro_body">Lares blocks the apps and websites you choose. Changing the rules needs a code that only a trusted person knows: your guardian, for example a friend or family member.\n\nFor the next steps, please hand the phone to your guardian.</string>
     <string name="setup_intro_start">Let’s start</string>
     <string name="setup_mode_title">Guardian: choose the blocking mode</string>
     <string name="setup_mode_body">How should Lares detect which app is open? You can also decide later in the settings.</string>
     <string name="setup_protection_hint">Lares then shows on the main screen what still has to be allowed for these. Notification channels for the guardian are added in the settings.</string>
     <string name="setup_method_title">Guardian: choose your code</string>
-    <string name="setup_method_body">The code is needed whenever restrictions are paused or loosened. Don’t tell it to the phone owner.</string>
+    <string name="setup_method_body">The code is needed whenever rules are changed or restrictions are paused. Don’t tell it to the phone owner.</string>
     <string name="setup_method_password_title">Password</string>
     <string name="setup_method_password_desc">You set a password now and type it on this phone whenever it’s needed.</string>
     <string name="setup_method_totp_title">Authenticator app</string>
@@ -79,7 +79,7 @@
     <string name="home_pause">Pause blocking…</string>
     <string name="home_groups">Groups</string>
     <string name="home_single_rules">Single rules</string>
-    <string name="home_needs_code">This loosens a restriction and needs the guardian code.</string>
+    <string name="home_needs_code">This change needs the guardian code.</string>
 
     <!-- Rules -->
     <string name="rule_always_blocked">Always blocked</string>
@@ -92,6 +92,7 @@
     <string name="rule_supporting_disabled">%1$s · %2$s</string>
     <string name="rule_dialog_enabled">Rule active</string>
     <string name="rule_dialog_hint">Loosening (removing, deactivating, raising the limit) needs the guardian code.</string>
+    <string name="rule_dialog_hint_all">Every change to the rules needs the guardian code.</string>
     <string name="rule_dialog_save">Save</string>
     <string name="rule_dialog_remove">Remove rule</string>
     <string name="limit_daily">Daily time limit</string>
@@ -203,6 +204,9 @@
     <string name="settings_section_info">Info</string>
     <string name="settings_locked_hint">Loosening settings (switching off, changing the app blocking mode, the guardian code, reset time or notification channels) needs the guardian code.</string>
     <string name="settings_guardian_code">Guardian code</string>
+    <string name="settings_only_loosening_off">Off: every change to rules and groups needs the code.</string>
+    <string name="settings_only_loosening_on">Adding rules and making them stricter is possible without the code.</string>
+    <string name="settings_only_loosening">Only loosening needs the code</string>
     <string name="settings_reset_time">Daily limits reset at</string>
     <!-- %1$s = current time, %2$s = new time -->
     <string name="settings_reset_time_pending">%1$s – changes to %2$s after the next reset</string>
@@ -220,7 +224,7 @@
     <string name="about_title">About Lares</string>
     <!-- %1$s = version, e.g. "1.0.0" -->
     <string name="about_version">Version %1$s</string>
-    <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Adding restrictions is always possible – loosening them needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
+    <string name="about_body">Version %1$s\n\nLares blocks the apps and websites you choose. Changing the rules – above all loosening them – needs a code that only your guardian knows.\n\nFree software under the GNU General Public License, version 3 or later.</string>
     <string name="privacy_title">Privacy policy</string>
     <string name="privacy_summary">Everything stays on this phone</string>
     <string name="privacy_body">Lares works entirely on this phone.\n\n• No account, no analytics, no advertising, no tracking, no crash reporting.\n• No data is sold. Nothing is shared with third parties – except the notification services you set up yourself (see below).\n• Your rules, usage times, settings and a log of protection events (e.g. “clock changed”) are stored only on this phone. They are excluded from Android backups and device transfers.\n• The guardian code is stored only as a protected hash (password) or encrypted with a key that never leaves this phone (authenticator app) – an authenticator code additionally encrypted with the recovery code, for moving it to a new phone. The recovery code is stored only as a protected hash.\n• Lares turns off Android autofill, so password managers never offer to save the guardian code.\n• If you turn on the Accessibility service or usage access, Lares uses it only to detect which app is open – and, while website blocking is on, the address in the address bar of supported browsers and, while “Guard system settings” is on, whether a system settings page or uninstall dialog is about Lares (nothing else of the screen). This is processed on the phone in the moment and neither stored nor sent.\n• The optional device administrator role is only used to prevent uninstalling Lares.\n• Lares connects to the internet only to send guardian notifications – and only to the services set up in the settings (Telegram, ntfy, email, Matrix or a webhook). Nothing is sent unless such a channel is set up. A message contains only the notification text (e.g. “protection was disabled”), its time and the phone model; the chosen service’s own privacy policy applies. Tokens and passwords are stored encrypted on the phone.\n• Some links open in your browser, which loads them: Lares’ neutral page shown when a website is blocked (hosted on GitHub Pages; GitHub’s privacy policy applies), manufacturer tips and library pages.\n• Exported rule files contain rules and groups – no tokens or usage data. If switched on, they also contain the authenticator code, encrypted with the recovery code (useless without it); never the password.</string>

@@ -36,6 +36,6 @@ must keep working across updates (see [Architecture](architecture.md), data mode
 - **Group** – several rules sharing one limit and one on/off switch.
 - **Template** – ready-made app + website combination (e.g. YouTube incl. alternative clients).
 - **Loosening** – any change that reduces restrictions (needs the code).
-- **Tightening** – any change that adds restrictions (no code needed).
+- **Tightening** – any change that adds restrictions (for rules and groups it needs the code too, unless "Only loosening needs the code" is on).
 - **Unlocked mode** – 10 minutes after a correct code in which every change is allowed.
 - **Pause** – time-boxed suspension of all blocking, started while unlocked; ends automatically.

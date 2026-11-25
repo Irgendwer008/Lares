@@ -26,4 +26,15 @@ class UnlockGate(
     suspend fun check(kind: ChangeKind) {
         if (kind.needsCode && !isOpen()) throw CodeRequiredException()
     }
+
+    /**
+     * For changes to rules, groups and schedules: by default every change needs the code; with
+     * "only loosening needs the code" ([AppSettings.onlyLooseningNeedsCode]) like [check].
+     * @throws CodeRequiredException if the change isn't allowed right now.
+     */
+    suspend fun checkRuleChange(kind: ChangeKind) {
+        if (kind == ChangeKind.NONE) return
+        val strict = !store.current().settings.onlyLooseningNeedsCode
+        if ((strict || kind.needsCode) && !isOpen()) throw CodeRequiredException()
+    }
 }

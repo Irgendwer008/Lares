@@ -5,6 +5,7 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.annotation.StringRes
@@ -92,6 +93,10 @@ fun AddRuleScreen(
     val snackbar = remember { SnackbarHostState() }
     val duplicateText = stringResource(if (inGroup) R.string.add_rule_duplicate_in_group else R.string.add_rule_duplicate)
     val invalidText = stringResource(R.string.add_rule_invalid)
+    val needsCodeText = stringResource(R.string.home_needs_code)
+    val enterCodeText = stringResource(R.string.home_unlock)
+    var showUnlock by rememberSaveable { mutableStateOf(false) }
+    if (showUnlock) UnlockDialog(onDismiss = { showUnlock = false })
     LaunchedEffect(Unit) {
         vm.events.collect { event ->
             when (event) {
@@ -99,6 +104,10 @@ fun AddRuleScreen(
                 is AddRuleEvent.GroupCreated -> onGroupCreated(event.groupId)
                 AddRuleEvent.Duplicate -> snackbar.showSnackbar(duplicateText)
                 AddRuleEvent.Invalid -> snackbar.showSnackbar(invalidText)
+                AddRuleEvent.NeedsCode -> {
+                    val result = snackbar.showSnackbar(needsCodeText, actionLabel = enterCodeText, withDismissAction = true)
+                    if (result == SnackbarResult.ActionPerformed) showUnlock = true
+                }
             }
         }
     }

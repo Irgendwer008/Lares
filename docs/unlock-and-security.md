@@ -65,17 +65,23 @@
 - Neither is reported to the guardian.
 
 ## Tighten vs. loosen policy
+Since 1.2 **every change to rules and groups needs the code by default** (the rows marked *rules*
+below). With the setting "Only loosening needs the code" (changing it needs the code, both ways)
+the table applies as written. Creating an empty group stays free.
+
 | Change | Needs code |
 |---|---|
-| Add rule / group / group member, lower a limit, switch a rule, group or protection on | No |
+| Add rule / group member, lower a limit, switch a rule or group on (*rules*) | No (default: Yes) |
+| Switch a protection or website blocking on | No |
 | Remove / disable a rule, raise a limit, take a member out of a group, delete a group | Yes |
 | Choose the blocking mode for the first time / switch it later | No / Yes |
 | Switch website blocking or a protection off | Yes |
 | Change the daily reset time (either direction can grant a fresh quota) / cancel a pending change | Yes / No |
-| Broaden a website rule (e.g. `youtube.com/shorts` → `youtube.com`) without raising its limit | No |
+| Broaden a website rule (e.g. `youtube.com/shorts` → `youtube.com`) without raising its limit (*rules*) | No (default: Yes) |
 | Add a notification channel / edit or delete one | No / Yes |
 | Change the guardian code | Yes |
-| Export rules / import rules (import only adds) | No / No |
+| Export rules / import rules (import only adds; *rules*) | No / No (default: Yes) |
+| "Only loosening needs the code" on / off | Yes / Yes |
 
 Until the first setup is complete, nothing is protected yet (no code needed for anything), so the
 setup pages can still change their choices after the code was stored.

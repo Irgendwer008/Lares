@@ -7,8 +7,9 @@ Where Lares stands and what comes next. Finished work is described in more detai
 |---|---|---|
 | [1.0.0](#version-100--first-release-released) | First release: app and website blocking, guardian code, protection | Released on Google Play (2026-11-15) |
 | [1.1](#version-11--blocking-gaps-sharing-french-released) | Blocking gaps, multiple countdowns, sharing, French | Released on Google Play |
-| [1.2](#version-12--plans--pause-code-in-progress) | Weekly / daily plans, pause code | In progress |
-| [1.3](#version-13--sync--linux-companion-planned) | Sync between devices, Linux companion | Planned |
+| [1.2](#version-12--schedules-in-progress) | Schedules (time windows per weekday), code for every rule change | In progress |
+| [1.3](#version-13--stats--pause-code-planned) | Stats on the main screen, pause code | Planned |
+| [1.4](#version-14--sync--linux-companion-planned) | Sync between devices, Linux companion | Planned |
 | [Later](#later--ideas) | Ideas | To be decided |
 
 ## Version 1.0.0 – first release (released)
@@ -67,11 +68,14 @@ Where Lares stands and what comes next. Finished work is described in more detai
   known limit in [Blocking](blocking.md).
 - Block screen over only one half of a split screen – not possible reliably.
 
-## Version 1.2 – plans & pause code (in progress)
+## Version 1.2 – schedules (in progress)
 **Done**
 - Daily reset always at the set time: the clock-forward check uses a clock anchor per boot (before,
   the reset could come hours late if a period was first noticed late, e.g. phone unused around
   midnight).
+
+- Code for every rule change by default, with the setting "Only loosening needs the code" (see
+  below).
 
 **Carried over from 1.1**
 - **Device tests** on other manufacturers (Samsung, Pixel, Xiaomi): add their settings packages
@@ -81,15 +85,60 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - **Android 13+ "active apps" panel** (quick settings) can stop Usage access mode: detect it
   faster than the gap check, and point users to Accessibility mode.
 - **Device-admin policy** check (Google Play).
+- **At release:** store descriptions (EN / DE / FR) still say "adding restrictions is always
+  possible" – update them together with the release.
 
-**Weekly and daily plans** (more custom rules)
-- Per rule / group: different limits per weekday (e.g. 30 min on school days, 90 min at the
-  weekend) and/or time windows (blocked at certain times of day, e.g. 21:00–07:00 or during school
-  hours), alone or combined with a daily limit.
-- Policy: like limits today – tightening (shorter limit, more blocked time) applies at once,
-  loosening needs the code or waits for the reset.
-- To decide: windows across midnight, how the main screen shows the plan ("blocked until 07:00",
-  today's limit), whether plans can be shared between rules (templates like "school days").
+**Schedules** (decided 2026-11-25)
+- **Mode per rule / group:** *Always blocked*, *Daily limit* or *Schedule* (dropdown with the
+  schedule's name and a short summary). Rules in a group follow the group's mode, as with limits
+  today. Internally the first two are schedules without windows; in the export they stay in the
+  existing fields (`limitMinutesPerDay`), so older versions keep reading them.
+- **Schedules are stored separately** (own list, named) and can be picked by any number of rules
+  and groups.
+- **Per weekday** a list of time windows (with "copy to other days"). A window may cross midnight
+  and then belongs to its start day (e.g. Mon 22:00–07:00).
+- **Window modes:** *full block*, *timer* (minutes within the window) or *free*.
+- **Outside the windows:** set per schedule – free, full block, or a timer for all time outside the
+  windows that day.
+- **Timers:** each window has its own budget by default; a window's timer can be combined with
+  other windows *of the same day* (shared budget). The "outside" timer stays separate. All budgets
+  restart at the daily reset time.
+- **Code:** every change to schedules needs the code – creating, editing and deleting, whether a
+  schedule is used or not, and also with the "only loosening" setting below. Only unused
+  schedules can be deleted (the dialog lists who uses one).
+- **Export:** additive – a `schedules` list and an optional schedule reference (by name) on rules
+  and groups; rules with a schedule also carry `limitMinutesPerDay = null` (always blocked) as the
+  fallback for 1.0 / 1.1.
+- **Editor – week view like a calendar app:** all seven weekdays side by side (columns Mon–Sun,
+  first day of the week from the locale), a vertical time axis 00–24 (scrollable), windows as
+  colored blocks by mode (full block / timer / free, with the minutes on timer blocks), the
+  "outside" mode as the background shade. A window crossing midnight continues at the top of the
+  next day's column.
+  - A thin "now" line marks the current time in today's column (moves along while the editor is
+    open), and the view opens scrolled to it.
+  - Tap an empty spot → new window there; tap a block → edit (start, end, mode, minutes, shared
+    with which windows of the same day – shared timers get the same marker), delete, copy to other
+    days.
+  - Move by long-press and drag, resize by dragging the block's top / bottom edge (snaps to 15
+    min).
+  - Edits are collected and saved together (needs the code); "Cancel" discards all changes at any
+    time (after a confirmation).
+- **Display:** main screen and block screen show the current window ("blocked until 17:00",
+  "15 min left until 17:00").
+- **Data:** Room schema 1 → 2 with a migration (first schema change; export the schema from now
+  on).
+
+**Code for every rule change** (decided 2026-11-25)
+- New default: every rule change – adding, editing, deleting, enabling / disabling rules and
+  groups, picking a schedule – needs the guardian code (or unlocked mode).
+- Settings switch (changing it needs the code): "Only loosening needs the code" – the behavior up
+  to 1.1 (tightening free). There, switching a rule to *Always blocked* is free; any other mode or
+  schedule switch needs the code.
+
+## Version 1.3 – stats & pause code (planned)
+**Stats on the main screen**
+- Some usage statistics in the main view (e.g. time per rule / group over the last days). Needs
+  keeping older usage periods (today only the current one is stored).
 
 **Pause code** (second TOTP)
 - An extra authenticator code, set up by the guardian while unlocked (second entry in the
@@ -100,7 +149,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - To decide: pause everything or only the app / website that is blocked right now; a maximum per
   day; does pause time count toward the limits; the export (move it like the guardian TOTP?).
 
-## Version 1.3 – sync & Linux companion (planned)
+## Version 1.4 – sync & Linux companion (planned)
 Share rules and used time between several devices (e.g. phone and Linux laptops), without a
 server of Lares' own: through an MQTT broker the user configures (own server or one they choose),
 end-to-end encrypted.

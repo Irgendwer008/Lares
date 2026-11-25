@@ -1,1 +1,2 @@
+• Every change to rules and groups now needs the guardian code by default – "Only loosening needs the code" in the settings restores the old behavior
 • Daily reset now always at the set time – it could come hours late if the phone wasn't used around the reset time

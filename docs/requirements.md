@@ -19,7 +19,10 @@ Agreed with the product owner. Details of the "how" are on the linked pages.
 
 ## Tighten vs. loosen
 6. **Tightening** (adding rules / members, lowering limits, switching things on, adding
-   notification channels) never needs the code.
+   notification channels): **rule and group changes need the code too by default** (since 1.2);
+   the setting "Only loosening needs the code" (changing it needs the code) restores the old
+   behavior, where tightening is free. Other tightening (switching protections or website
+   blocking on, adding notification channels) never needs the code.
 7. **Loosening** (removing or disabling rules, raising limits, switching protections or website
    blocking off, changing the blocking mode, the reset time, the guardian code or notification
    channels) needs the guardian code. Full table: [Unlock & Security](unlock-and-security.md).

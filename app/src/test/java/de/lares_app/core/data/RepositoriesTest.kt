@@ -23,7 +23,7 @@ import java.time.ZoneId
 class RepositoriesTest {
     private val clock = FakeClock()
     private val zone = ZoneId.of("Europe/Berlin")
-    private val store = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x"), settings = AppSettings(setupComplete = true)))
+    private val store = FakeStateStore(AppState(unlock = UnlockState(method = UnlockMethod.PASSWORD, passwordHash = "x"), settings = AppSettings(setupComplete = true, onlyLooseningNeedsCode = true)))
     private val gate = UnlockGate(store, clock)
     private val ruleStore = FakeRuleStore()
     private val rules = RuleRepository(ruleStore, FakeGroupStore(ruleStore), gate)
@@ -64,6 +64,32 @@ class RepositoriesTest {
 
         clock.advance(60_000L) // edit session over
         rules.add(RuleType.APP, "com.instagram.android")
+    }
+
+    @Test fun byDefaultEveryRuleChangeNeedsTheCode() = runTest {
+        unlockApp()
+        val id = (rules.add(RuleType.APP, "com.instagram.android", limitMinutesPerDay = 30) as AddRuleResult.Added).id
+        store.update { it.copy(unlock = it.unlock.copy(unlockedSession = null), settings = it.settings.copy(onlyLooseningNeedsCode = false)) }
+
+        assertNeedsCode { rules.add(RuleType.APP, "com.zhiliaoapp.musically") }
+        assertNeedsCode { rules.updateRule(id, 10, enabled = true) } // tighter, still needs it
+        assertNeedsCode { rules.createGroupWith("Social", 20, listOf(RuleType.APP to "com.reddit.frontpage")) }
+        assertNeedsCode { rules.importBackup(BackupFile(rules = listOf(BackupRule(RuleType.WEBSITE, "reddit.com")))) }
+        assertEquals(1, ruleStore.all().size)
+        rules.createGroup("Empty", null) // restricts nothing: free
+
+        unlockApp()
+        rules.updateRule(id, 10, enabled = true)
+        assertTrue(rules.add(RuleType.APP, "com.zhiliaoapp.musically") is AddRuleResult.Added)
+    }
+
+    @Test fun switchingTheCodeModeNeedsTheCodeBothWays() = runTest {
+        assertNeedsCode { settings.setOnlyLooseningNeedsCode(false) }
+        unlockApp()
+        settings.setOnlyLooseningNeedsCode(false)
+        store.update { it.copy(unlock = it.unlock.copy(unlockedSession = null)) }
+        assertNeedsCode { settings.setOnlyLooseningNeedsCode(true) }
+        assertTrue(!store.current().settings.onlyLooseningNeedsCode)
     }
 
     @Test fun nothingIsProtectedBeforeSetup() = runTest {

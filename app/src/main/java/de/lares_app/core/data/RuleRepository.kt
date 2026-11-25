@@ -5,6 +5,7 @@
  */
 package de.lares_app.core.data
 
+import de.lares_app.core.policy.ChangeKind
 import de.lares_app.core.policy.ChangePolicy
 import de.lares_app.core.policy.Rule
 import de.lares_app.core.policy.RuleGroup
@@ -55,8 +56,9 @@ sealed interface AddRuleResult {
 }
 
 /**
- * All rule and group changes go through here. Tightening is always allowed; loosening throws
- * [CodeRequiredException] unless the app is unlocked.
+ * All rule and group changes go through here. They throw [CodeRequiredException] unless the app
+ * is unlocked – every change by default, only loosening ones with "only loosening needs the code"
+ * ([UnlockGate.checkRuleChange]). Creating an empty group restricts nothing and stays free.
  */
 class RuleRepository(
     private val store: RuleStore,
@@ -85,6 +87,7 @@ class RuleRepository(
         // Duplicates only count within the same scope: a target may be a single rule *and* a group
         // member at the same time – then both limits apply (whichever is reached first blocks).
         store.all().firstOrNull { it.key == rule.key && it.groupId == groupId }?.let { return AddRuleResult.Duplicate(it) }
+        gate.checkRuleChange(ChangeKind.TIGHTENING)
         return AddRuleResult.Added(store.insert(rule))
     }
 
@@ -102,7 +105,7 @@ class RuleRepository(
         val normalized = normalizeTarget(rule.type, rule.target) ?: throw IllegalArgumentException("invalid target")
         val new = rule.copy(target = normalized)
         require(new.groupId == null || groupStore.get(new.groupId) != null) { "unknown group ${new.groupId}" }
-        gate.check(ChangePolicy.classifyInGroups(old, new, groupMap()))
+        gate.checkRuleChange(ChangePolicy.classifyInGroups(old, new, groupMap()))
         store.update(new)
         if (old.groupId != new.groupId) usage.ruleMoved(new.id, old.groupId, new.groupId)
     }
@@ -130,7 +133,7 @@ class RuleRepository(
 
     suspend fun remove(id: Long) {
         val old = store.get(id) ?: return
-        gate.check(ChangePolicy.classifyInGroups(old, null, groupMap()))
+        gate.checkRuleChange(ChangePolicy.classifyInGroups(old, null, groupMap()))
         store.delete(id)
     }
 
@@ -144,6 +147,8 @@ class RuleRepository(
 
     /** Creates a group and adds [targets] as members. @return the group id. */
     suspend fun createGroupWith(name: String, limitMinutesPerDay: Int?, targets: List<Pair<RuleType, String>>): Long {
+        // Checked first, so no empty group is left behind if the code is needed for the members.
+        if (targets.isNotEmpty()) gate.checkRuleChange(ChangeKind.TIGHTENING)
         val id = createGroup(name, limitMinutesPerDay)
         addAll(targets, limitMinutesPerDay, id)
         return id
@@ -152,7 +157,7 @@ class RuleRepository(
     suspend fun updateGroup(group: RuleGroup) {
         require(group.name.isNotBlank()) { "name must not be blank" }
         val old = requireNotNull(groupStore.get(group.id)) { "unknown group ${group.id}" }
-        gate.check(ChangePolicy.classifyGroup(old, group, hasActiveMembers(group.id)))
+        gate.checkRuleChange(ChangePolicy.classifyGroup(old, group, hasActiveMembers(group.id)))
         groupStore.update(group.copy(name = group.name.trim()))
     }
 
@@ -164,7 +169,7 @@ class RuleRepository(
     /** Deletes the group and its members (loosening if the group restricts anything). */
     suspend fun deleteGroup(id: Long) {
         val old = groupStore.get(id) ?: return
-        gate.check(ChangePolicy.classifyGroup(old, null, hasActiveMembers(id)))
+        gate.checkRuleChange(ChangePolicy.classifyGroup(old, null, hasActiveMembers(id)))
         groupStore.deleteWithMembers(id)
     }
 
@@ -181,10 +186,12 @@ class RuleRepository(
 
     /**
      * Imports by **adding only**: groups that don't exist yet (matched by name) are created, rules
-     * that don't exist yet in their scope are added. Nothing existing is removed or loosened, so no
-     * guardian code is needed. Existing groups keep their own limit.
+     * that don't exist yet in their scope are added. Nothing existing is removed or loosened, so it
+     * only needs the code if every rule change does. Existing groups keep their own limit.
      */
     suspend fun importBackup(backup: BackupFile): ImportResult {
+        // Adding rules is a rule change (needs the code unless "only loosening needs the code").
+        if (backup.rules.isNotEmpty()) gate.checkRuleChange(ChangeKind.TIGHTENING)
         val existing = groupStore.all().associate { it.name.trim() to it.id }.toMutableMap()
         var groupsAdded = 0
         for (g in backup.groups) {

@@ -283,6 +283,7 @@ fun HomeScreen(
             MemberDialog(
                 item = item,
                 group = group,
+                hint = ruleHint(content.everyChangeNeedsCode),
                 onTakeOut = {
                     vm.setGroup(item.rule.id, null)
                     selected = null
@@ -297,6 +298,7 @@ fun HomeScreen(
             RuleDialog(
                 item = item,
                 groups = content.groups.map { it.group },
+                hint = ruleHint(content.everyChangeNeedsCode),
                 onDismiss = { selected = null },
                 onSave = { limit, enabled ->
                     if (limit != item.rule.limitMinutesPerDay || enabled != item.rule.enabled) vm.updateRule(item.rule.id, limit, enabled)
@@ -314,6 +316,10 @@ fun HomeScreen(
         }
     }
 }
+
+/** Which changes need the code, shown in the rule dialogs. */
+private fun ruleHint(everyChangeNeedsCode: Boolean): Int =
+    if (everyChangeNeedsCode) R.string.rule_dialog_hint_all else R.string.rule_dialog_hint
 
 @Composable
 private fun SectionHeader(text: String) {
@@ -584,7 +590,7 @@ private fun GroupDialog(initial: RuleGroup, onSave: (String, Int?) -> Unit, onDe
 }
 
 @Composable
-private fun MemberDialog(item: RuleItem, group: RuleGroup, onTakeOut: () -> Unit, onRemove: () -> Unit, onDismiss: () -> Unit) {
+private fun MemberDialog(item: RuleItem, group: RuleGroup, hint: Int, onTakeOut: () -> Unit, onRemove: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { RuleIcon(item) },
@@ -594,7 +600,7 @@ private fun MemberDialog(item: RuleItem, group: RuleGroup, onTakeOut: () -> Unit
                 Text(stringResource(R.string.member_info, group.name, groupLimitLabel(group.limitMinutesPerDay)))
                 TextButton(onClick = onTakeOut) { Text(stringResource(R.string.member_take_out)) }
                 TextButton(onClick = onRemove) { Text(stringResource(R.string.rule_dialog_remove), color = MaterialTheme.colorScheme.error) }
-                Text(stringResource(R.string.rule_dialog_hint), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(hint), style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
@@ -668,6 +674,7 @@ fun RuleIcon(item: RuleItem, size: Int = 40) {
 private fun RuleDialog(
     item: RuleItem,
     groups: List<RuleGroup>,
+    hint: Int,
     onDismiss: () -> Unit,
     onSave: (Int?, Boolean) -> Unit,
     onMoveToGroup: (Long) -> Unit,
@@ -691,7 +698,7 @@ private fun RuleDialog(
                     Text(stringResource(R.string.rule_dialog_enabled))
                     Switch(checked = enabled, onCheckedChange = null)
                 }
-                Text(stringResource(R.string.rule_dialog_hint), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(hint), style = MaterialTheme.typography.bodySmall)
                 if (groups.isNotEmpty()) {
                     TextButton(onClick = { pickGroup = true }) { Text(stringResource(R.string.rule_add_to_group)) }
                 }

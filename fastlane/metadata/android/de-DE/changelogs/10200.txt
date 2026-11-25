@@ -1,1 +1,2 @@
+• Jede Änderung an Regeln und Gruppen erfordert jetzt standardmäßig den Guardian-Code – „Nur Lockern erfordert den Code“ in den Einstellungen stellt das alte Verhalten wieder her
 • Tageswechsel jetzt immer zur eingestellten Zeit – er kam teils Stunden zu spät, wenn das Handy um diese Zeit nicht benutzt wurde

@@ -40,6 +40,13 @@ class SettingsRepository(
     }
 
     /** Whether the rules export includes the encrypted authenticator code (not loosening either way). */
+    /** Either direction needs the code (it decides what the code protects). */
+    suspend fun setOnlyLooseningNeedsCode(enabled: Boolean) {
+        if (store.current().settings.onlyLooseningNeedsCode == enabled) return
+        gate.check(ChangeKind.LOOSENING)
+        store.update { it.copy(settings = it.settings.copy(onlyLooseningNeedsCode = enabled)) }
+    }
+
     suspend fun setExportIncludesTotp(enabled: Boolean) {
         store.update { it.copy(settings = it.settings.copy(exportIncludesTotp = enabled)) }
     }
