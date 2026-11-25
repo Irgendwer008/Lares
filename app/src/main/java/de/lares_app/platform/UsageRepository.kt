@@ -76,17 +76,21 @@ class UsageRepository(
         val schedule = state.settings.resetSchedule.settle(now, zone())
         val stored = state.trackedPeriod
         val tracked = stored?.let { UsagePeriod(Instant.ofEpochMilli(it.startMillis), Instant.ofEpochMilli(it.endMillis)) }
-        val elapsed = stored?.elapsedSinceStart(clock.elapsedMillis(), clock.bootId())
-        val period = schedule.advance(tracked, now, zone(), elapsed)
+        val elapsedNow = clock.elapsedMillis()
+        val boot = clock.bootId()
+        val period = schedule.advance(tracked, now, zone(), stored?.trustedNowMillis(elapsedNow, boot))
         val periodChanged = period != tracked
-        if (periodChanged) {
+        // The anchor stays for the whole boot; a new one only after a reboot (or for data from 1.0).
+        val keepAnchor = stored?.hasAnchor(boot) == true
+        if (periodChanged || !keepAnchor) {
             store.update {
                 it.copy(
                     trackedPeriod = TrackedPeriod(
                         period.start.toEpochMilli(),
                         period.end.toEpochMilli(),
-                        startElapsedMillis = clock.elapsedMillis(),
-                        startBootId = clock.bootId(),
+                        startElapsedMillis = if (keepAnchor) stored!!.startElapsedMillis else elapsedNow,
+                        startBootId = boot,
+                        anchorWallMillis = if (keepAnchor) stored!!.anchorWallMillis else now.toEpochMilli(),
                     ),
                     settings = it.settings.withResetSchedule(schedule),
                 )

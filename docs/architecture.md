@@ -45,8 +45,8 @@ Single `app` module:
 - `TamperEvent(id, type, timestamp, details, delivered)`
 - `AppState` (DataStore): `AppSettings` (setup complete, blocking mode, website blocking,
   protections, reset time + pending change, `AlertChannelConfig` list, countdown / warning
-  switches, theme), `TrackedPeriod` (the usage period currently counted, with the monotonic time
-  and boot it started in) and `UnlockState` (method, password hash / encrypted TOTP secret, last
+  switches, theme), `TrackedPeriod` (the usage period currently counted, with a clock anchor –
+  wall time, monotonic time and boot – kept for the whole boot) and `UnlockState` (method, password hash / encrypted TOTP secret, last
   and highest seen TOTP counter, recovery hash, re-setup flag, failed attempts, lockout, pause,
   unlocked session).
 - `AlertChannelConfig(id, type, language, server, address, port, startTls, username, sender,

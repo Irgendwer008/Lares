@@ -46,7 +46,7 @@ updated in place.
 | Settings guard recognizes Lares' pages by title / non-clickable "Lares" text (dialogs aren't guarded); a setup link opens it only until that issue is fixed (max. 2 min, ends when Lares is opened; not for the battery recommendation) | Lists stay usable; setup issues can be fixed while the guard is on, without a time window for anything else |
 | One digest message per channel, per-channel delivery cursor | No duplicates when one channel fails; several events don't flood the guardian |
 | Moving a rule between groups carries its used time along | Otherwise moving it into a fresh group with a lower limit would be "tightening" and start a new quota |
-| A usage period can't end before most of it really passed (monotonic time) and lasts at least 23 h after a time-zone change | Setting the clock forward or switching zones never grants extra quota |
+| A usage period can't end more than 2 h before its end really came (monotonic time since a per-boot clock anchor) and lasts at least 23 h after a time-zone change | Setting the clock forward or switching zones never grants extra quota |
 | TOTP: codes older than the highest time step ever seen are rejected | A saved code can't be replayed by setting the clock back |
 | The settings guard always needs the Accessibility service (also in Usage access mode) | Settings pages can only be read via Accessibility |
 | Tamper protections (prevent uninstall, settings guard, notify guardian) – each toggleable | User choice |

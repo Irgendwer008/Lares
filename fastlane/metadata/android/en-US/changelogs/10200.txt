@@ -1,0 +1,1 @@
+• Daily reset now always at the set time – it could come hours late if the phone wasn't used around the reset time

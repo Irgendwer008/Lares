@@ -6,8 +6,8 @@ Where Lares stands and what comes next. Finished work is described in more detai
 | Version | Theme | Status |
 |---|---|---|
 | [1.0.0](#version-100--first-release-released) | First release: app and website blocking, guardian code, protection | Released on Google Play (2026-11-15) |
-| [1.1](#version-11--blocking-gaps-sharing-french-in-progress) | Blocking gaps, multiple countdowns, sharing, French | In progress |
-| [1.2](#version-12--plans--pause-code-planned) | Weekly / daily plans, pause code | Planned |
+| [1.1](#version-11--blocking-gaps-sharing-french-released) | Blocking gaps, multiple countdowns, sharing, French | Released on Google Play |
+| [1.2](#version-12--plans--pause-code-in-progress) | Weekly / daily plans, pause code | In progress |
 | [1.3](#version-13--sync--linux-companion-planned) | Sync between devices, Linux companion | Planned |
 | [Later](#later--ideas) | Ideas | To be decided |
 
@@ -29,8 +29,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - **F-Droid:** rejected for now (projects need more than three months of development history;
   reviewers saw no new features over similar apps). Recipe kept in `docs/fdroid/de.lares_app.yml`.
 
-## Version 1.1 – blocking gaps, sharing, French (in progress)
-### Done
+## Version 1.1 – blocking gaps, sharing, French (released)
 **Blocking**
 - Picture-in-picture and split screen: the other visible windows are checked too (Accessibility
   mode), incl. the address of a browser in the other half.
@@ -63,7 +62,18 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - No blocking main-thread reads of the settings (small settings mirror), duplicate strings merged,
   proper plurals in the import result.
 
-### Open
+### Decided against (for now)
+- Detecting a supported browser whose address bar can't be read (view id changed by an update) –
+  known limit in [Blocking](blocking.md).
+- Block screen over only one half of a split screen – not possible reliably.
+
+## Version 1.2 – plans & pause code (in progress)
+**Done**
+- Daily reset always at the set time: the clock-forward check uses a clock anchor per boot (before,
+  the reset could come hours late if a period was first noticed late, e.g. phone unused around
+  midnight).
+
+**Carried over from 1.1**
 - **Device tests** on other manufacturers (Samsung, Pixel, Xiaomi): add their settings packages
   (e.g. Samsung's `com.samsung.accessibility`, Huawei / Honor's system manager), verify the
   address-bar ids and the settings-page detection, test Usage access mode with aggressive
@@ -71,15 +81,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - **Android 13+ "active apps" panel** (quick settings) can stop Usage access mode: detect it
   faster than the gap check, and point users to Accessibility mode.
 - **Device-admin policy** check (Google Play).
-- **Release:** `appVersion = "1.1.0"`, `appVersionCode = 10100`, bundle, upload with the
-  changelogs (`fastlane/metadata/android/*/changelogs/10100.txt`).
 
-### Decided against (for now)
-- Detecting a supported browser whose address bar can't be read (view id changed by an update) –
-  known limit in [Blocking](blocking.md).
-- Block screen over only one half of a split screen – not possible reliably.
-
-## Version 1.2 – plans & pause code (planned)
 **Weekly and daily plans** (more custom rules)
 - Per rule / group: different limits per weekday (e.g. 30 min on school days, 90 min at the
   weekend) and/or time windows (blocked at certain times of day, e.g. 21:00–07:00 or during school

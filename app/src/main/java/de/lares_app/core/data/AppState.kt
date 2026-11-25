@@ -112,13 +112,23 @@ data class UnlockState(
 data class TrackedPeriod(
     val startMillis: Long,
     val endMillis: Long,
-    /** elapsedRealtime when this period began being counted, and in which boot (clock-forward check). */
+    /**
+     * Clock anchor for the clock-forward check: elapsedRealtime and boot at the moment
+     * [anchorWallMillis] was read. Kept across periods within one boot (names from 1.0, when this
+     * was taken anew for every period – which delayed the next reset if a period was first noticed
+     * late, e.g. phone unused around midnight).
+     */
     val startElapsedMillis: Long? = null,
     val startBootId: Int? = null,
+    /** Wall-clock time at the anchor (null in data from 1.0 – then a new anchor is taken). */
+    val anchorWallMillis: Long? = null,
 ) {
-    /** Monotonic time since the period started, or null if unknown (another boot). */
-    fun elapsedSinceStart(nowElapsedMillis: Long, bootId: Int): Long? =
-        startElapsedMillis?.takeIf { startBootId == bootId }?.let { nowElapsedMillis - it }
+    /** Whether the anchor is usable in this boot. */
+    fun hasAnchor(bootId: Int): Boolean = anchorWallMillis != null && startElapsedMillis != null && startBootId == bootId
+
+    /** The current time as the monotonic clock sees it since the anchor, or null if unknown. */
+    fun trustedNowMillis(nowElapsedMillis: Long, bootId: Int): Long? =
+        if (hasAnchor(bootId)) anchorWallMillis!! + (nowElapsedMillis - startElapsedMillis!!) else null
 }
 
 @Serializable

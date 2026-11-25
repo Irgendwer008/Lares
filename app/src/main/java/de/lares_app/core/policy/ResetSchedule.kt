@@ -60,16 +60,18 @@ data class ResetSchedule(
      * Advances the tracked period monotonically. A period only ends when its stored end is
      * reached, so setting the clock back never grants a fresh quota; setting it forward or
      * switching time zones doesn't either (both are also reported as tamper events):
-     * - [elapsedSinceStartMillis] (monotonic time since the current period started, null if
-     *   unknown – e.g. another boot): a period can't end before most of its length really passed.
+     * - [trustedNowMillis] (the current time according to the monotonic clock since an anchor in
+     *   this boot, null if unknown – e.g. another boot): a period can't end more than
+     *   [CLOCK_TOLERANCE_MILLIS] before its end really came.
      * - A period that follows directly (time-zone change near the end) lasts at least
      *   [MIN_FOLLOWING_PERIOD_MILLIS], so repeated zone changes can't chain short periods.
      */
-    fun advance(current: UsagePeriod?, now: Instant, zone: ZoneId, elapsedSinceStartMillis: Long? = null): UsagePeriod {
+    fun advance(current: UsagePeriod?, now: Instant, zone: ZoneId, trustedNowMillis: Long? = null): UsagePeriod {
         if (current != null && now < current.end) return current
-        if (current != null && elapsedSinceStartMillis != null) {
-            val length = current.end.toEpochMilli() - current.start.toEpochMilli()
-            if (elapsedSinceStartMillis < length - CLOCK_TOLERANCE_MILLIS) return current // clock set forward
+        if (current != null && trustedNowMillis != null &&
+            trustedNowMillis < current.end.toEpochMilli() - CLOCK_TOLERANCE_MILLIS
+        ) {
+            return current // clock set forward
         }
         val next = periodAt(now, zone)
         return if (current != null && next.start < current.end) {

@@ -5,6 +5,7 @@
  */
 package de.lares_app.core.policy
 
+import de.lares_app.core.data.TrackedPeriod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -95,13 +96,30 @@ class ResetScheduleTest {
     @Test fun clockSetForwardDoesNotEndThePeriodEarly() {
         val s = ResetSchedule()
         val p = s.advance(null, at("2026-11-11T10:00"), berlin)
-        val hour = 3_600_000L
-        // Wall clock jumped two days ahead, but only 1 h really passed since the period started.
-        assertEquals(p, s.advance(p, at("2026-11-13T10:00"), berlin, elapsedSinceStartMillis = hour))
-        // Once (almost) the whole period really passed, the next one starts.
-        val later = s.advance(p, at("2026-11-13T10:00"), berlin, elapsedSinceStartMillis = 23 * hour)
+        // Wall clock jumped two days ahead, but the monotonic clock says it's still 11 Nov, 11:00.
+        assertEquals(p, s.advance(p, at("2026-11-13T10:00"), berlin, trustedNowMillis = at("2026-11-11T11:00").toEpochMilli()))
+        // Once the end really (almost) came, the next period starts.
+        val later = s.advance(p, at("2026-11-13T10:00"), berlin, trustedNowMillis = at("2026-11-11T23:00").toEpochMilli())
         assertTrue(later.start > p.start)
         // Unknown (other boot): wall clock decides, as before.
-        assertTrue(s.advance(p, at("2026-11-12T00:00"), berlin, elapsedSinceStartMillis = null).start == p.end)
+        assertTrue(s.advance(p, at("2026-11-12T00:00"), berlin, trustedNowMillis = null).start == p.end)
+    }
+
+    @Test fun periodNoticedLateStillEndsAtTheResetTime() {
+        // Regression: the phone wasn't used around midnight, so the period was first noticed at
+        // 07:00. The next reset must still happen at midnight (before: only ~05:00 the day after).
+        val s = ResetSchedule()
+        val hour = 3_600_000L
+        val anchor = TrackedPeriod(0, 0, startElapsedMillis = 1_000L, startBootId = 1, anchorWallMillis = at("2026-11-10T22:00").toEpochMilli())
+        val p = s.advance(null, at("2026-11-11T07:00"), berlin)
+        val midnight = p.end
+        val elapsedAtMidnight = 1_000L + (midnight.toEpochMilli() - at("2026-11-10T22:00").toEpochMilli())
+        val next = s.advance(p, midnight, berlin, anchor.trustedNowMillis(elapsedAtMidnight, bootId = 1))
+        assertEquals(midnight, next.start)
+        // Same anchor, wall clock set 22 h forward at 12:00: no new period.
+        val noon = elapsedAtMidnight - 12 * hour
+        assertEquals(p, s.advance(p, at("2026-11-12T10:00"), berlin, anchor.trustedNowMillis(noon, bootId = 1)))
+        // Anchor from another boot is unknown.
+        assertEquals(null, anchor.trustedNowMillis(noon, bootId = 2))
     }
 }

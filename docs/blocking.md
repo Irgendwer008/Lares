@@ -83,8 +83,10 @@ and countdown.
   group; for websites the time a matching URL is in the foreground.
 - Reset at the configured local time (default midnight, see [Requirements](requirements.md) §3).
   Clock / time-zone changes never grant a new quota (`ResetSchedule.advance()`): a period only
-  ends at its stored end, not before most of its length really passed (monotonic time, so setting
-  the clock forward doesn't help), and a period after a zone change lasts at least 23 h. Both are
+  ends at its stored end, and not more than 2 h before that end really came: the monotonic clock
+  since an anchor taken once per boot says what time it really is, so setting the clock forward
+  doesn't help (and a period first noticed late, e.g. phone unused around midnight, still ends on
+  time), and a period after a zone change lasts at least 23 h. Both are
   also recorded as tamper events (see [Unlock & Security](unlock-and-security.md)).
 - Moving a rule into / out of a group carries its used time along (the destination counter gets
   at least the source's time), so moving never starts a fresh quota.
