@@ -15,9 +15,11 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -283,29 +285,31 @@ fun SchedulesScreen(onBack: () -> Unit, onOpen: (Long?) -> Unit, vm: SchedulesVi
                 Text(stringResource(R.string.schedules_empty), textAlign = TextAlign.Center)
             }
         } else {
-            LazyColumn(Modifier.fillMaxSize().padding(padding)) {
-                item {
-                    Text(
-                        stringResource(R.string.schedules_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-                items(list, key = { it.schedule.id }) { item ->
-                    ListItem(
-                        colors = clearListItemColors(),
-                        headlineContent = { Text(item.schedule.name) },
-                        supportingContent = {
-                            val usage = if (item.usedBy == 0) {
-                                stringResource(R.string.schedule_unused)
-                            } else {
-                                pluralStringResource(R.plurals.schedule_used_by, item.usedBy, item.usedBy)
-                            }
-                            Text(stringResource(R.string.schedule_list_line, scheduleSummary(item.schedule), usage))
-                        },
-                        leadingContent = { Icon(painterResource(R.drawable.ic_calendar), contentDescription = null) },
-                        modifier = Modifier.clickable { onOpen(item.schedule.id) },
-                    )
+            BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = readableSidePadding(maxWidth))) {
+                    item {
+                        Text(
+                            stringResource(R.string.schedules_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
+                    items(list, key = { it.schedule.id }) { item ->
+                        ListItem(
+                            colors = clearListItemColors(),
+                            headlineContent = { Text(item.schedule.name) },
+                            supportingContent = {
+                                val usage = if (item.usedBy == 0) {
+                                    stringResource(R.string.schedule_unused)
+                                } else {
+                                    pluralStringResource(R.plurals.schedule_used_by, item.usedBy, item.usedBy)
+                                }
+                                Text(stringResource(R.string.schedule_list_line, scheduleSummary(item.schedule), usage))
+                            },
+                            leadingContent = { Icon(painterResource(R.drawable.ic_calendar), contentDescription = null) },
+                            modifier = Modifier.clickable { onOpen(item.schedule.id) },
+                        )
+                    }
                 }
             }
         }
@@ -449,24 +453,24 @@ fun ScheduleEditorScreen(onDone: () -> Unit, vm: ScheduleEditorViewModel = hiltV
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         val schedule = draft ?: return@Scaffold
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = schedule.name,
-                    onValueChange = { v -> vm.edit { it.copy(name = v.take(MAX_NAME)) } },
-                    label = { Text(stringResource(R.string.schedule_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutsideSelector(
-                    schedule,
-                    onChange = { mode, minutes ->
-                        outsideValid = minutes != null
-                        vm.edit { it.copy(outside = mode, outsideMinutes = minutes ?: it.outsideMinutes) }
-                    },
-                )
-                Text(stringResource(R.string.schedule_grid_hint), style = MaterialTheme.typography.bodySmall)
-            }
+        val fields: @Composable () -> Unit = {
+            OutlinedTextField(
+                value = schedule.name,
+                onValueChange = { v -> vm.edit { it.copy(name = v.take(MAX_NAME)) } },
+                label = { Text(stringResource(R.string.schedule_name)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutsideSelector(
+                schedule,
+                onChange = { mode, minutes ->
+                    outsideValid = minutes != null
+                    vm.edit { it.copy(outside = mode, outsideMinutes = minutes ?: it.outsideMinutes) }
+                },
+            )
+            Text(stringResource(R.string.schedule_grid_hint), style = MaterialTheme.typography.bodySmall)
+        }
+        val grid: @Composable (Modifier) -> Unit = { m ->
             WeekGrid(
                 schedule = schedule,
                 onTapEmpty = { day, minute ->
@@ -489,8 +493,27 @@ fun ScheduleEditorScreen(onDone: () -> Unit, vm: ScheduleEditorViewModel = hiltV
                         false
                     }
                 },
-                modifier = Modifier.weight(1f),
+                modifier = m,
             )
+        }
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            if (maxWidth >= WIDE_EDITOR) {
+                // Tablets / landscape: name and "outside" on the left (a third), the calendar at full
+                // height on the right.
+                val sideWidth = (maxWidth / 3).coerceIn(260.dp, 400.dp)
+                Row(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier.width(sideWidth).fillMaxHeight().verticalScroll(rememberScrollState()).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) { fields() }
+                    grid(Modifier.weight(1f).fillMaxHeight().padding(end = 8.dp))
+                }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { fields() }
+                    grid(Modifier.weight(1f))
+                }
+            }
         }
     }
 
@@ -602,6 +625,9 @@ private const val SNAP_MINUTES = 15
 private const val DEFAULT_LENGTH = 60
 private const val DEFAULT_MINUTES = 30
 private const val MAX_NAME = 40
+
+/** From this width the editor puts its fields next to the calendar. */
+private val WIDE_EDITOR = 600.dp
 private val HANDLE_HEIGHT = 12.dp
 
 /** Blocks smaller than this have no resize handles (they'd cover the whole block). */

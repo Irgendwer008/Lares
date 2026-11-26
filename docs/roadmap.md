@@ -90,6 +90,9 @@ Where Lares stands and what comes next. Finished work is described in more detai
   + drag (within one day), live snapping while moving / resizing, tour as numbered circles in the
   progress row. Interop test: a rules file in the extension's format must import (and re-export)
   unchanged.
+- Tablets and landscape: info boxes in a left column, schedule editor with the fields next to the
+  calendar, grids in the add screen, group cards in two columns on very wide screens, readable
+  maximum widths for text screens, setup and the block screen.
 
 **Carried over from 1.1**
 - **Device tests** on other manufacturers (Samsung, Pixel, Xiaomi): add their settings packages

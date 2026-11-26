@@ -1,5 +1,6 @@
 • Plannings : plages par jour (bloqué, minuterie ou libre) en vue calendrier – pour règles et groupes, au lieu d’une limite quotidienne
-• Configuration initiale avec visite des modes de blocage et progression visible
-• Lien vers la nouvelle extension de navigateur (Paramètres → Infos)
-• Toute modification des règles exige désormais le code du gardien par défaut (ancien comportement : « Seul l’assouplissement exige le code »)
-• Remise à zéro quotidienne toujours à l’heure réglée
+• Configuration initiale avec visite et progression
+• Lien vers l’extension de navigateur (Paramètres → Infos)
+• Toute modification des règles exige le code du gardien par défaut (sinon : « Seul l’assouplissement exige le code »)
+• Remise à zéro quotidienne toujours à l’heure (avant parfois en retard)
+• Meilleur affichage sur tablette et en paysage

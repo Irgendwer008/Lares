@@ -9,6 +9,7 @@ import android.app.Activity
 import android.text.format.DateFormat
 import android.Manifest
 import android.os.Build
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -229,7 +230,7 @@ fun SettingsScreen(
     ) { padding ->
         val scroll = rememberScrollState()
         val density = LocalDensity.current
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll)) {
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll).readableWidth()) {
             // ================= App settings =================
             SettingsHeader(stringResource(R.string.settings_section_app))
             if (!ui.unlocked) {
@@ -790,7 +791,7 @@ private fun InfoScaffold(title: String, onBack: () -> Unit, content: @Composable
 @Composable
 fun BrowserExtensionScreen(onBack: () -> Unit) {
     InfoScaffold(stringResource(R.string.browser_ext_title), onBack) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).readableWidth().padding(16.dp)) {
             BrowserExtensionCard()
         }
     }
@@ -803,7 +804,7 @@ fun PrivacyScreen(onBack: () -> Unit) {
         Text(
             stringResource(R.string.privacy_body),
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).readableWidth().padding(16.dp),
         )
     }
 }
@@ -843,59 +844,61 @@ fun LibrariesScreen(onBack: () -> Unit) {
     }
     val uriHandler = LocalUriHandler.current
     InfoScaffold(stringResource(R.string.libraries_title), onBack) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
-            groups.forEach { (author, libs) ->
-                val open = author in expanded
-                item(key = "a:$author") {
-                    ListItem(
-                        colors = clearListItemColors(),
-                        headlineContent = { Text(author, style = MaterialTheme.typography.titleMedium) },
-                        supportingContent = { Text(pluralStringResource(R.plurals.libraries_count, libs.size, libs.size)) },
-                        trailingContent = {
-                            Icon(
-                                painterResource(R.drawable.ic_expand_more),
-                                contentDescription = null,
-                                modifier = Modifier.rotate(if (open) 180f else 0f),
-                            )
-                        },
-                        modifier = Modifier
-                            .clickable(onClickLabel = if (open) collapseLabel else expandLabel) {
-                                expanded = if (open) expanded - author else expanded + author
-                            }
-                            .semantics { stateDescription = if (open) expandedState else collapsedState },
-                    )
-                }
-                if (open) {
-                    items(libs, key = { "l:$author:${it.uniqueId}" }) { lib ->
-                        val link = lib.scm?.url?.takeIf { it.isNotBlank() } ?: lib.website?.takeIf { it.isNotBlank() }
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = readableSidePadding(maxWidth))) {
+                groups.forEach { (author, libs) ->
+                    val open = author in expanded
+                    item(key = "a:$author") {
                         ListItem(
                             colors = clearListItemColors(),
-                            headlineContent = { Text(lib.name) },
-                            supportingContent = {
-                                Text(listOfNotNull(lib.artifactVersion, lib.licenses.joinToString { it.spdxId ?: it.name }.ifBlank { null }).joinToString(" · "))
-                            },
-                            // License text and source code / website as compact buttons behind the entry.
+                            headlineContent = { Text(author, style = MaterialTheme.typography.titleMedium) },
+                            supportingContent = { Text(pluralStringResource(R.plurals.libraries_count, libs.size, libs.size)) },
                             trailingContent = {
-                                Row {
-                                    IconButton(onClick = { shown = lib }) {
-                                        Icon(painterResource(R.drawable.ic_description), contentDescription = stringResource(R.string.libraries_license))
-                                    }
-                                    if (link != null) {
-                                        IconButton(onClick = { runCatching { uriHandler.openUri(link) } }) {
-                                            Icon(
-                                                painterResource(R.drawable.ic_code),
-                                                contentDescription = stringResource(if (lib.scm?.url.isNullOrBlank()) R.string.libraries_website else R.string.libraries_source),
-                                            )
-                                        }
-                                    }
-                                }
+                                Icon(
+                                    painterResource(R.drawable.ic_expand_more),
+                                    contentDescription = null,
+                                    modifier = Modifier.rotate(if (open) 180f else 0f),
+                                )
                             },
-                            modifier = Modifier.padding(start = 16.dp).clickable { shown = lib },
+                            modifier = Modifier
+                                .clickable(onClickLabel = if (open) collapseLabel else expandLabel) {
+                                    expanded = if (open) expanded - author else expanded + author
+                                }
+                                .semantics { stateDescription = if (open) expandedState else collapsedState },
                         )
                     }
+                    if (open) {
+                        items(libs, key = { "l:$author:${it.uniqueId}" }) { lib ->
+                            val link = lib.scm?.url?.takeIf { it.isNotBlank() } ?: lib.website?.takeIf { it.isNotBlank() }
+                            ListItem(
+                                colors = clearListItemColors(),
+                                headlineContent = { Text(lib.name) },
+                                supportingContent = {
+                                    Text(listOfNotNull(lib.artifactVersion, lib.licenses.joinToString { it.spdxId ?: it.name }.ifBlank { null }).joinToString(" · "))
+                                },
+                                // License text and source code / website as compact buttons behind the entry.
+                                trailingContent = {
+                                    Row {
+                                        IconButton(onClick = { shown = lib }) {
+                                            Icon(painterResource(R.drawable.ic_description), contentDescription = stringResource(R.string.libraries_license))
+                                        }
+                                        if (link != null) {
+                                            IconButton(onClick = { runCatching { uriHandler.openUri(link) } }) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_code),
+                                                    contentDescription = stringResource(if (lib.scm?.url.isNullOrBlank()) R.string.libraries_website else R.string.libraries_source),
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.padding(start = 16.dp).clickable { shown = lib },
+                            )
+                        }
+                    }
+                    item(key = "d:$author") { HorizontalDivider() }
                 }
-                item(key = "d:$author") { HorizontalDivider() }
-            }
+        }
         }
     }
     shown?.let { lib ->
@@ -919,12 +922,14 @@ fun LicenseTextScreen(onBack: () -> Unit) {
         }.split(Regex("\\n\\s*\\n")).map { it.trim() }.filter { it.isNotEmpty() }
     }
     InfoScaffold(stringResource(R.string.license_title), onBack) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(paragraphs) { Text(it, style = MaterialTheme.typography.bodySmall) }
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = readableSidePadding(maxWidth, min = 16.dp), vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(paragraphs) { Text(it, style = MaterialTheme.typography.bodySmall) }
+        }
         }
     }
 }

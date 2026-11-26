@@ -143,6 +143,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(scroll)
+                .readableWidth(SETUP_WIDTH)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -219,6 +220,9 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
         UnlockDialog(onDismiss = { showUnlock = false }, onUnlocked = vm::codeEntered)
     }
 }
+
+/** Setup pages are narrower than other screens on tablets (short texts, big buttons). */
+private val SETUP_WIDTH = 560.dp
 
 @Composable
 internal fun Title(text: String) = Text(text, style = MaterialTheme.typography.headlineMedium)

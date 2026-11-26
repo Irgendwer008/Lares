@@ -9,6 +9,8 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.view.View
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -485,3 +487,17 @@ fun TotpRestoreDialog(
 /** List rows without their own background: they take the color of the screen or card they're on. */
 @Composable
 fun clearListItemColors(): ListItemColors = ListItemDefaults.colors(containerColor = Color.Transparent)
+
+/** Text screens and lists don't get wider than this on tablets / in landscape (readable lines). */
+val READABLE_WIDTH = 720.dp
+
+/**
+ * Centered with at most [max] width. Put it after `verticalScroll`, so the whole width still
+ * scrolls.
+ */
+fun Modifier.readableWidth(max: Dp = READABLE_WIDTH): Modifier =
+    fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = max)
+
+/** Side padding that centers a lazy list of at most [max] width in [available] width. */
+fun readableSidePadding(available: Dp, max: Dp = READABLE_WIDTH, min: Dp = 0.dp): Dp = maxOf((available - max) / 2, min)
+

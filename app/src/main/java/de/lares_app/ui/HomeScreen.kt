@@ -9,6 +9,8 @@ import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
@@ -190,64 +192,63 @@ private fun HomeContentScreen(
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val (required, recommended) = setupIssues.partition { it.required }
-            // The info boxes: one below the other on phones, side by side on wide screens.
-            item(key = "info-tiles") {
-                InfoTiles(
-                    buildList {
-                        if (required.isNotEmpty()) {
-                            add { m ->
-                                SetupIssuesCard(R.string.setup_issues_title, required, MaterialTheme.colorScheme.errorContainer, openIssue, vm::dontKillMyAppUrl, m)
-                            }
-                        }
-                        if (recommended.isNotEmpty()) {
-                            add { m ->
-                                SetupIssuesCard(R.string.setup_recommendations_title, recommended, MaterialTheme.colorScheme.primaryContainer, openIssue, vm::dontKillMyAppUrl, m)
-                            }
-                        }
-                        if (content.websiteHint) {
-                            add { m ->
-                                WebsiteHintCard(
-                                    unavailable = content.websiteBlocking == WebsiteBlockingState.UNAVAILABLE,
-                                    onEnable = vm::enableWebsiteBlocking,
-                                    onChangeMode = { onOpenSettings(SettingsHighlight.BLOCKING_MODE) },
-                                    onDismiss = vm::dismissWebsiteHint,
-                                    modifier = m,
-                                )
-                            }
-                        }
-                        add { m ->
-                            StatusCard(
-                                session = session,
-                                everyChangeNeedsCode = content.everyChangeNeedsCode,
-                                onUnlock = { showUnlock = true },
-                                onLock = vm::lock,
-                                onPause = { showPause = true },
-                                onEndPause = vm::endPause,
-                                modifier = m,
-                            )
-                        }
-                    },
+        val (required, recommended) = setupIssues.partition { it.required }
+        // The info boxes (setup issues, website hint, status).
+        val tiles: List<@Composable (Modifier) -> Unit> = buildList {
+            if (required.isNotEmpty()) {
+                add { m ->
+                    SetupIssuesCard(R.string.setup_issues_title, required, MaterialTheme.colorScheme.errorContainer, openIssue, vm::dontKillMyAppUrl, m)
+                }
+            }
+            if (recommended.isNotEmpty()) {
+                add { m ->
+                    SetupIssuesCard(R.string.setup_recommendations_title, recommended, MaterialTheme.colorScheme.primaryContainer, openIssue, vm::dontKillMyAppUrl, m)
+                }
+            }
+            if (content.websiteHint) {
+                add { m ->
+                    WebsiteHintCard(
+                        unavailable = content.websiteBlocking == WebsiteBlockingState.UNAVAILABLE,
+                        onEnable = vm::enableWebsiteBlocking,
+                        onChangeMode = { onOpenSettings(SettingsHighlight.BLOCKING_MODE) },
+                        onDismiss = vm::dismissWebsiteHint,
+                        modifier = m,
+                    )
+                }
+            }
+            add { m ->
+                StatusCard(
+                    session = session,
+                    everyChangeNeedsCode = content.everyChangeNeedsCode,
+                    onUnlock = { showUnlock = true },
+                    onLock = vm::lock,
+                    onPause = { showPause = true },
+                    onEndPause = vm::endPause,
+                    modifier = m,
                 )
             }
+        }
+        val rules: LazyListScope.(groupColumns: Int) -> Unit = { groupColumns ->
             if (content.isEmpty) {
                 item { EmptyState() }
             }
             if (content.groups.isNotEmpty()) item { SectionHeader(stringResource(R.string.home_groups)) }
-            items(content.groups, key = { "g" + it.group.id }) { item ->
-                GroupCard(
-                    item = item,
-                    websiteBlocking = content.websiteBlocking,
-                    onToggle = { vm.setGroupEnabled(item.group.id, it) },
-                    onEdit = { editingGroupId = item.group.id },
-                    onAddMember = { onAddRule(item.group.id) },
-                    onMemberClick = { selectedId = it.rule.id },
-                )
+            // Very wide screens: the group cards in two columns (each one expands on its own).
+            items(content.groups.chunked(groupColumns), key = { row -> "g" + row.first().group.id }) { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                    for (item in row) {
+                        GroupCard(
+                            item = item,
+                            websiteBlocking = content.websiteBlocking,
+                            onToggle = { vm.setGroupEnabled(item.group.id, it) },
+                            onEdit = { editingGroupId = item.group.id },
+                            onAddMember = { onAddRule(item.group.id) },
+                            onMemberClick = { selectedId = it.rule.id },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    repeat(groupColumns - row.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
             if (content.standalone.isNotEmpty()) item { SectionHeader(stringResource(R.string.home_single_rules)) }
             // One compact card for all single rules, styled like the group cards.
@@ -259,6 +260,37 @@ private fun HomeContentScreen(
                             RuleRow(item, content.websiteBlocking, onClick = { selectedId = item.rule.id }, onToggle = { vm.setEnabled(item.rule.id, it) })
                         }
                     }
+                }
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            if (maxWidth >= WIDE_LAYOUT) {
+                // Wide screens (tablets, landscape): the info boxes stack down a left column, the
+                // rules fill the rest – each side scrolls on its own.
+                val sideWidth = (maxWidth * 0.36f).coerceIn(300.dp, 420.dp)
+                Row(Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.width(sideWidth).fillMaxHeight(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(tiles.size) { i -> InfoTiles(listOf(tiles[i]), fixedColumns = 1) }
+                    }
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentPadding = PaddingValues(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) { rules(if (this@BoxWithConstraints.maxWidth >= TWO_COLUMN_RULES) 2 else 1) }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // One below the other on phones, side by side from 600 dp.
+                    item(key = "info-tiles") { InfoTiles(tiles) }
+                    rules(1)
                 }
             }
         }
@@ -495,12 +527,13 @@ private fun GroupCard(
     onEdit: () -> Unit,
     onAddMember: () -> Unit,
     onMemberClick: (RuleItem) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val group = item.group
     // Collapsed by default; remembered per group (also across rotation).
     var expanded by rememberSaveable(group.id) { mutableStateOf(false) }
     val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "chevron")
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(), border = CardDefaults.outlinedCardBorder()) {
+    Card(modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(), border = CardDefaults.outlinedCardBorder()) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -865,15 +898,22 @@ private fun EmptyState() {
     }
 }
 
+/** From this width the main screen shows the info boxes in a column on the left. */
+private val WIDE_LAYOUT = 840.dp
+
+/** From this width the group cards sit in two columns next to the info column. */
+private val TWO_COLUMN_RULES = 1200.dp
+
 /**
- * Info boxes as tiles: one column on phones, 2 from 600 dp width (tablets, landscape, unfolded
- * foldables), 3 from 1200 dp. Tiles in a row get equal width and height; a short last row keeps
- * the tile width instead of stretching.
+ * Info boxes as tiles: one column on phones, 2 from 600 dp width (unfolded foldables, small
+ * tablets in portrait; wider screens use the side column instead). Tiles in a row get equal width
+ * and height; a short last row keeps the tile width instead of stretching.
+ * @param fixedColumns fixed number of columns (null: by width).
  */
 @Composable
-private fun InfoTiles(tiles: List<@Composable (Modifier) -> Unit>) {
+private fun InfoTiles(tiles: List<@Composable (Modifier) -> Unit>, fixedColumns: Int? = null) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val columns = when {
+        val columns = fixedColumns ?: when {
             maxWidth >= 1200.dp -> 3
             maxWidth >= 600.dp -> 2
             else -> 1

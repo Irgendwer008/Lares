@@ -91,7 +91,7 @@ fun ChannelEditorScreen(onDone: () -> Unit, vm: ChannelEditorViewModel = hiltVie
     ) { padding ->
         DisableAutofill()
         Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).readableWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (!editing) {

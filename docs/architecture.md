@@ -150,6 +150,11 @@ columns).
   on, returned via `revokeSelfPermissionOnKill` when all are off.
 
 `ui`
+- Wide screens (tablets, landscape): the main screen puts the info boxes in a left column from
+  840 dp (group cards in two columns from 1200 dp; 600–840 dp: info boxes as tiles); the schedule
+  editor puts name / "outside" next to the full-height calendar from 600 dp; template and app lists
+  become grids (`GridCells.Adaptive`); text screens, lists and setup are centered with a maximum
+  width (`readableWidth`, 720 dp; setup 560 dp, block screen 480 dp).
 - Setup flow (`SetupMode`: FIRST with welcome + color choice, a skippable 4-page tour (rules, the three modes, schedules, the guardian code), the hand-over to the guardian and the optional blocking-mode choice before the code; icon circles at the bottom show the progress; last page "All set" with a pointer to the browser extension (`finishInfoPending` keeps the setup on screen until it is closed); RECOVERY after the recovery code, CHANGE from the
   settings), main screen (setup issues, status / unlocked / pause cards, groups, single rules),
   add screen (templates, group, apps, website), unlock and pause dialogs, settings (app settings /

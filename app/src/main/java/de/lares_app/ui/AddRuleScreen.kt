@@ -5,6 +5,10 @@
  */
 package de.lares_app.ui
 
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.Role
@@ -20,8 +24,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -173,8 +175,9 @@ private fun TemplatesTab(vm: AddRuleViewModel, group: RuleGroup?, onOpenBlocking
     val pending = pendingId?.let { id -> vm.templates.firstOrNull { it.id == id } }
     val websiteBlocking by vm.websiteBlocking.collectAsStateWithLifecycle()
 
-    LazyColumn(Modifier.fillMaxSize()) {
-        item {
+    // One column on phones, 2–3 on tablets / in landscape.
+    LazyVerticalGrid(columns = GridCells.Adaptive(GRID_CELL_MIN), modifier = Modifier.fillMaxSize()) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
             Text(
                 stringResource(R.string.add_rule_templates_intro),
                 style = MaterialTheme.typography.bodyMedium,
@@ -281,7 +284,7 @@ private fun AppsTab(vm: AddRuleViewModel, inGroup: Boolean) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else {
             val filtered = list.filter { query.isBlank() || it.label.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true) }
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyVerticalGrid(columns = GridCells.Adaptive(GRID_CELL_MIN), modifier = Modifier.fillMaxSize()) {
                 items(filtered, key = { it.packageName }) { app ->
                     ListItem(
                         colors = clearListItemColors(),
@@ -322,7 +325,7 @@ private fun WebsiteTab(inGroup: Boolean, vm: AddRuleViewModel, onOpenBlockingMod
     val limit = rememberLimitState(null)
     val websiteBlocking by vm.websiteBlocking.collectAsStateWithLifecycle()
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).readableWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         WebsiteBlockingNote(websiteBlocking, onEnable = vm::enableWebsiteBlocking, onOpenBlockingMode)
@@ -349,7 +352,7 @@ private fun NewGroupTab(onCreate: (String, Int?, Long?) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     val limit = rememberLimitState(60)
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).readableWidth().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(R.string.group_explanation), style = MaterialTheme.typography.bodyMedium)
@@ -387,3 +390,6 @@ private fun WebsiteBlockingNote(state: WebsiteBlockingState, onEnable: () -> Uni
         }
     }
 }
+
+/** Narrowest column of the template / app grids: one column on phones, more on wide screens. */
+private val GRID_CELL_MIN = 320.dp

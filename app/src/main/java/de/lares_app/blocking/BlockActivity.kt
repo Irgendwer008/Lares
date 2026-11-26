@@ -42,6 +42,7 @@ import de.lares_app.MainActivity
 import de.lares_app.R
 import de.lares_app.core.policy.BlockReason
 import de.lares_app.core.data.StateStore
+import de.lares_app.ui.readableWidth
 import de.lares_app.ui.theme.LaresTheme
 import de.lares_app.ui.theme.initialTheme
 import java.util.Calendar
@@ -158,6 +159,9 @@ class BlockActivity : AppCompatActivity() {
     }
 }
 
+/** The block screen's text and buttons don't get wider than this on tablets / in landscape. */
+private val BLOCK_SCREEN_WIDTH = 480.dp
+
 @Composable
 private fun BlockScreen(
     label: String,
@@ -172,7 +176,7 @@ private fun BlockScreen(
 ) {
     Scaffold { padding ->
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(32.dp),
+            Modifier.fillMaxSize().padding(padding).readableWidth(BLOCK_SCREEN_WIDTH).padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

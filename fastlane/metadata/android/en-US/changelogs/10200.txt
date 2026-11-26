@@ -1,5 +1,6 @@
-• Schedules: windows per weekday (full block, timer or free) in a calendar view – usable by rules and groups instead of a daily limit
-• New first setup with a short tour of the blocking modes and progress circles
+• Schedules: windows per weekday (blocked, timer or free) in a calendar view – for rules and groups instead of a daily limit
+• New first setup with a short tour and progress circles
 • Link to the new browser extension (Settings → Info)
-• Every rule change now needs the guardian code by default ("Only loosening needs the code" in the settings restores the old behavior)
-• Daily reset always at the set time (it could be hours late)
+• Every rule change now needs the guardian code by default (setting "Only loosening needs the code" for the old behavior)
+• Daily reset always on time (it could be hours late)
+• Better layouts for tablets and landscape
