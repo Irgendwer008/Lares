@@ -36,8 +36,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import de.lares_app.R
 import de.lares_app.core.policy.WindowMode
 import java.time.DayOfWeek
@@ -85,7 +87,6 @@ internal fun TutorialPage(page: Int, onBack: () -> Unit, onSkip: () -> Unit, onN
             TutorialPoint(R.drawable.ic_notifications, R.string.tutorial_code_protect)
         }
     }
-    PageDots(page, TUTORIAL_PAGES)
     val last = page == TUTORIAL_PAGES - 1
     BackAndNext(onBack) {
         Button(onClick = onNext) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_next)) }
@@ -197,21 +198,6 @@ private fun Legend(mode: WindowMode, label: Int) {
     }
 }
 
-@Composable
-private fun PageDots(page: Int, count: Int) {
-    Row(Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalArrangement = Arrangement.Center) {
-        repeat(count) { i ->
-            Box(
-                Modifier
-                    .padding(horizontal = 3.dp)
-                    .size(if (i == page) 8.dp else 6.dp)
-                    .clip(CircleShape)
-                    .background(if (i == page) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
-            )
-        }
-    }
-}
-
 // ---- End of the setup / browser extension --------------------------------------------------------
 
 /** The browser extension (separate project, desktop browsers). */
@@ -271,39 +257,66 @@ internal fun stageOf(step: SetupStep): SetupStage = when (step) {
     SetupStep.Done -> SetupStage.DONE
 }
 
-/** Small circles with icons: done, current (filled) and still to come – connected by short lines. */
+/**
+ * Small circles with icons: done, current (filled) and still to come – connected by short lines.
+ * The tour is one circle; while it's the current step it splits into one smaller numbered circle
+ * per page (instead of separate page dots) – like the browser extension.
+ */
 @Composable
-internal fun SetupProgress(stages: List<SetupStage>, current: SetupStage) {
-    val index = stages.indexOf(current).coerceAtLeast(0)
-    val description = stringResource(R.string.setup_progress, index + 1, stages.size, stringResource(current.label))
+internal fun SetupProgress(stages: List<SetupStage>, current: SetupStage, tourPage: Int = 0) {
+    // (stage, tour page or null) per circle.
+    val nodes = stages.flatMap { stage ->
+        if (stage == SetupStage.TUTORIAL && current == SetupStage.TUTORIAL) (0 until TUTORIAL_PAGES).map { stage to it } else listOf(stage to null)
+    }
+    val index = nodes.indexOfFirst { (stage, page) -> stage == current && (page == null || page == tourPage) }.coerceAtLeast(0)
+    val stageIndex = stages.indexOf(current).coerceAtLeast(0)
+    val description = stringResource(R.string.setup_progress, stageIndex + 1, stages.size, stringResource(current.label))
+    // With the tour split up there are ten circles: shorter lines so they fit on a 320 dp screen.
+    val lineWidth = if (nodes.size > stages.size) 6.dp else 10.dp
     Row(
         Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(vertical = 12.dp)
+            .padding(top = 12.dp, bottom = 8.dp)
             .clearAndSetSemantics { contentDescription = description },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        stages.forEachIndexed { i, stage ->
+        nodes.forEachIndexed { i, (stage, page) ->
             if (i > 0) {
                 Box(
                     Modifier
-                        .width(12.dp)
+                        .width(lineWidth)
                         .height(2.dp)
                         .background(if (i <= index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
                 )
             }
+            val isCurrent = i == index
             val (fill, tint) = when {
                 i < index -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-                i == index -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+                isCurrent -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
                 else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
             }
+            val size = when {
+                page != null -> if (isCurrent) 28.dp else 22.dp // the tour's page circles are smaller
+                isCurrent -> 34.dp
+                else -> 28.dp
+            }
             Box(
-                Modifier.size(if (i == index) 34.dp else 28.dp).clip(CircleShape).background(fill),
+                Modifier.size(size).clip(CircleShape).background(fill),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(painterResource(stage.icon), contentDescription = null, tint = tint, modifier = Modifier.size(if (i == index) 18.dp else 16.dp))
+                when {
+                    page != null -> Text("${page + 1}", color = tint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    // The Lares "L" is narrow and tall: a little smaller than the other icons.
+                    stage == SetupStage.WELCOME -> Icon(
+                        painterResource(stage.icon),
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(if (isCurrent) 12.dp else 10.dp),
+                    )
+                    else -> Icon(painterResource(stage.icon), contentDescription = null, tint = tint, modifier = Modifier.size(if (isCurrent) 18.dp else 16.dp))
+                }
             }
         }
     }

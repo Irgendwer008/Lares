@@ -40,7 +40,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -136,7 +135,7 @@ fun SetupScreen(mode: SetupMode, onDone: () -> Unit = {}, onCancel: () -> Unit =
     Scaffold(
         bottomBar = {
             val current = step?.let(::stageOf)
-            if (current != null) SetupProgress(stagesFor(mode), current)
+            if (current != null) SetupProgress(stagesFor(mode), current, tourPage = (step as? SetupStep.Tutorial)?.page ?: 0)
         },
     ) { padding ->
         Column(

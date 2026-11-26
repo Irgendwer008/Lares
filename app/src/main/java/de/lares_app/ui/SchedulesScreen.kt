@@ -474,6 +474,9 @@ fun ScheduleEditorScreen(onDone: () -> Unit, vm: ScheduleEditorViewModel = hiltV
                     if (window == null) scope.launch { snackbar.showSnackbar(overlapText) } else editing = EditingWindow(window, isNew = true)
                 },
                 onWindowClick = { editing = EditingWindow(it, isNew = false) },
+                onDrawn = { window ->
+                    if (window == null) scope.launch { snackbar.showSnackbar(overlapText) } else editing = EditingWindow(window, isNew = true)
+                },
                 onChange = { changed ->
                     // From the current draft – a gesture may have started before other edits.
                     val current = vm.draft.value ?: return@WeekGrid false
@@ -621,9 +624,14 @@ private fun WeekGrid(
     schedule: Schedule,
     onTapEmpty: (DayOfWeek, Int) -> Unit,
     onWindowClick: (ScheduleWindow) -> Unit,
+    onDrawn: (ScheduleWindow?) -> Unit,
     onChange: (ScheduleWindow) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val currentSchedule by rememberUpdatedState(schedule)
+    val currentOnDrawn by rememberUpdatedState(onDrawn)
+    /** A window being drawn (long press on an empty spot, then drag): its preview. */
+    var drawing by remember { mutableStateOf<ScheduleWindow?>(null) }
     val locale = currentLocale()
     val days = remember(locale) { weekDays(locale) }
     val density = LocalDensity.current
@@ -681,8 +689,48 @@ private fun WeekGrid(
                         }
                         .pointerInput(schedule, day) {
                             detectTapGestures { offset -> onTapEmpty(day, snap((offset.y / pxPerMinute).toInt(), floor = true)) }
+                        }
+                        // Long press on an empty spot and drag: draw a window (calendar style, within this
+                        // day, stops at neighbouring windows). Without moving, the tap above adds one.
+                        .pointerInput(day) {
+                            var press = 0f
+                            var current = 0f
+                            var moved = false
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { offset ->
+                                    press = offset.y / pxPerMinute
+                                    current = press
+                                    moved = false
+                                    drawing = newWindowAt(currentSchedule, day, snap(press.toInt(), floor = true))
+                                },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    current += amount.y / pxPerMinute
+                                    moved = true
+                                    drawing = drawnWindow(currentSchedule, day, press, current)
+                                },
+                                onDragEnd = {
+                                    val drawn = drawing
+                                    drawing = null
+                                    if (moved) currentOnDrawn(drawn)
+                                },
+                                onDragCancel = { drawing = null },
+                            )
                         },
                 ) {
+                    drawing?.takeIf { it.dayOfWeek == day }?.let { preview ->
+                        val (fill, content) = modeColors(WindowMode.BLOCK)
+                        Box(
+                            Modifier
+                                .offset { IntOffset(0, (preview.startMinute * pxPerMinute).roundToInt()) }
+                                .fillMaxWidth()
+                                .height(with(density) { (preview.lengthMinutes * pxPerMinute).toDp() })
+                                .padding(horizontal = 1.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(fill.copy(alpha = 0.5f))
+                                .border(1.dp, content, RoundedCornerShape(4.dp)),
+                        )
+                    }
                     for (piece in piecesFor(schedule, day)) {
                         WindowBlock(
                             schedule = schedule,
@@ -767,9 +815,14 @@ private fun WindowBlock(
     var resizeTop by remember(w) { mutableFloatStateOf(0f) }
     var resizeBottom by remember(w) { mutableFloatStateOf(0f) }
     val (fill, content) = modeColors(w.mode)
-    val top = piece.fromMinute * pxPerMinute + dragY + resizeTop
+    // Snapped while dragging – 15-minute steps and whole day columns, the same steps the drop uses –
+    // so the block always shows where it will land.
+    fun snapPx(px: Float) = snap((px / pxPerMinute).roundToInt()) * pxPerMinute
+    val shownX = if (columnWidthPx > 0) (dragX / columnWidthPx).roundToInt() * columnWidthPx else 0f
+    val shownTop = snapPx(resizeTop)
+    val top = piece.fromMinute * pxPerMinute + snapPx(dragY) + shownTop
     val naturalHeight = (piece.toMinute - piece.fromMinute) * pxPerMinute
-    val height = (naturalHeight - resizeTop + resizeBottom).coerceAtLeast(SNAP_MINUTES * pxPerMinute)
+    val height = (naturalHeight - shownTop + snapPx(resizeBottom)).coerceAtLeast(SNAP_MINUTES * pxPerMinute)
     val handles = naturalHeight >= with(density) { HANDLE_MIN_BLOCK.toPx() }
     val label = windowLabel(schedule, w)
     val editLabel = stringResource(R.string.schedule_window_edit)
@@ -782,7 +835,7 @@ private fun WindowBlock(
     )
     Box(
         Modifier
-            .offset { IntOffset(dragX.roundToInt(), top.roundToInt()) }
+            .offset { IntOffset(shownX.roundToInt(), top.roundToInt()) }
             .zIndex(if (dragX != 0f || dragY != 0f) 1f else 0f)
             .fillMaxWidth()
             .height(with(density) { height.toDp() })
@@ -934,6 +987,54 @@ private fun newWindowAt(schedule: Schedule, day: DayOfWeek, minute: Int): Schedu
     return null
 }
 
+/**
+ * A window drawn by pressing at [pressMinute] and dragging to [currentMinute] on [day] (calendar
+ * style, like the browser extension): from the press point down or up to the finger, snapped to
+ * 15 minutes, at least 15 minutes, within the day. It stops at a neighbouring window instead of
+ * overlapping it. @return the new window (full block, like a tap), or null if the press point isn't free.
+ */
+internal fun drawnWindow(schedule: Schedule, day: DayOfWeek, pressMinute: Float, currentMinute: Float): ScheduleWindow? {
+    val id = (schedule.windows.maxOfOrNull { it.id } ?: 0) + 1
+    val anchor = snap(pressMinute.toInt(), floor = true).coerceIn(0, Schedule.MINUTES_PER_DAY - SNAP_MINUTES)
+    val current = currentMinute.coerceIn(0f, Schedule.MINUTES_PER_DAY.toFloat())
+    fun valid(start: Int, end: Int): ScheduleWindow? {
+        val w = ScheduleWindow(id, day.value, start, end - start, WindowMode.BLOCK)
+        return w.takeIf { schedule.copy(windows = schedule.windows + it).isValid() }
+    }
+    if (current >= anchor) {
+        // Downwards: the end follows the finger (rounded up), shortened until it fits.
+        var end = maxOf(anchor + SNAP_MINUTES, kotlin.math.ceil(current / SNAP_MINUTES).toInt() * SNAP_MINUTES)
+        while (end > anchor) {
+            valid(anchor, minOf(end, Schedule.MINUTES_PER_DAY))?.let { return it }
+            end -= SNAP_MINUTES
+        }
+        return null
+    }
+    // Upwards: the start follows the finger, the end is the press point's slot.
+    val end = anchor + SNAP_MINUTES
+    var start = snap(current.toInt(), floor = true)
+    while (start < end) {
+        valid(start, end)?.let { return it }
+        start += SNAP_MINUTES
+    }
+    return null
+}
+
+/**
+ * The "share the timer with" options for [candidates] (timers of the same day): windows that
+ * already share a timer form one option – ticking it joins the whole group (ticking one of its
+ * windows alone would pull just that window out and leave its partner on its own).
+ */
+internal fun shareOptions(candidates: List<ScheduleWindow>): List<List<ScheduleWindow>> {
+    val sorted = candidates.sortedBy { it.startMinute }
+    val groups = sorted.filter { it.shareGroup != null }.groupBy { it.shareGroup }
+    val seen = mutableSetOf<Int>()
+    return sorted.mapNotNull { w ->
+        val g = w.shareGroup ?: return@mapNotNull listOf(w)
+        if (seen.add(g)) groups.getValue(g) else null
+    }
+}
+
 /** Removes a window; a shared timer group left with one window is dissolved. */
 private fun removeWindow(schedule: Schedule, id: Int): Schedule =
     dissolveSingleShares(schedule.copy(windows = schedule.windows.filterNot { it.id == id }))
@@ -963,7 +1064,14 @@ private fun WindowDialog(
     val w = editing.window
     val context = LocalContext.current
     val locale = currentLocale()
-    var day by rememberSaveable { mutableIntStateOf(w.day) }
+    /**
+     * The days the window is on (several at once instead of "copy to", like the browser extension):
+     * the window itself stays on its own day if that's still selected, otherwise moves to the first
+     * selected day; every other selected day gets a copy (a copy that would overlap is skipped).
+     */
+    var selectedDays by rememberSaveable(stateSaver = IntSetSaver) { mutableStateOf(setOf(w.day)) }
+    val day = if (w.day in selectedDays) w.day else weekDays(locale).firstOrNull { it.value in selectedDays }?.value ?: w.day
+    val copyDays = selectedDays - day
     var start by rememberSaveable { mutableIntStateOf(w.startMinute) }
     var end by rememberSaveable { mutableIntStateOf(w.endMinute % Schedule.MINUTES_PER_DAY) }
     var mode by rememberSaveable { mutableStateOf(w.mode) }
@@ -971,7 +1079,6 @@ private fun WindowDialog(
     var minutes by rememberSaveable { mutableStateOf<Int?>(if (w.mode == WindowMode.TIMER) schedule.budgetMinutes(w) else DEFAULT_MINUTES) }
     val initiallyShared = w.shareGroup?.let { g -> schedule.windows.filter { it.shareGroup == g && it.id != w.id }.map { it.id } }.orEmpty()
     var shared by rememberSaveable(stateSaver = IntSetSaver) { mutableStateOf(initiallyShared.toSet()) }
-    var copyDays by rememberSaveable(stateSaver = IntSetSaver) { mutableStateOf(emptySet<Int>()) }
     var pickTime by rememberSaveable { mutableStateOf<Boolean?>(null) } // true = start, false = end
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     val overlapText = stringResource(R.string.schedule_overlap)
@@ -987,15 +1094,17 @@ private fun WindowDialog(
         title = { Text(stringResource(if (editing.isNew) R.string.schedule_window_new else R.string.schedule_window_edit)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.schedule_window_day), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.schedule_window_days), style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     for (d in weekDays(locale)) {
+                        val selected = d.value in selectedDays
                         FilterChip(
-                            selected = d.value == day,
+                            selected = selected,
                             onClick = {
-                                day = d.value
-                                copyDays = copyDays - d.value
-                                shared = emptySet() // shared timers only within one day
+                                if (!(selected && selectedDays.size == 1)) { // at least one day
+                                    selectedDays = if (selected) selectedDays - d.value else selectedDays + d.value
+                                    shared = emptySet() // shared timers only within one day
+                                }
                             },
                             label = { Text(d.getDisplayName(TextStyle.SHORT, locale)) },
                         )
@@ -1013,28 +1122,25 @@ private fun WindowDialog(
                 ModeChips(mode) { mode = it }
                 if (mode == WindowMode.TIMER) {
                     MinutesField(minutes ?: DEFAULT_MINUTES, { minutes = it }, Modifier.fillMaxWidth())
-                    if (shareCandidates.isNotEmpty()) {
+                    // Sharing only with one day selected; windows that already share a timer are one
+                    // option, so joining keeps their whole group together.
+                    if (shareCandidates.isNotEmpty() && selectedDays.size == 1) {
                         Text(stringResource(R.string.schedule_share_with), style = MaterialTheme.typography.titleSmall)
-                        for (c in shareCandidates) {
-                            val checked = c.id in shared
+                        for (option in shareOptions(shareCandidates)) {
+                            val checked = option.all { it.id in shared }
+                            val ids = option.map { it.id }.toSet()
                             Row(
-                                Modifier.fillMaxWidth().toggleable(checked, role = Role.Checkbox) { shared = if (it) shared + c.id else shared - c.id },
+                                Modifier.fillMaxWidth().toggleable(checked, role = Role.Checkbox) { shared = if (it) shared + ids else shared - ids },
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Checkbox(checked = checked, onCheckedChange = null)
-                                Text(timeLabel(context, c.startMinute) + "–" + timeLabel(context, c.endMinute % Schedule.MINUTES_PER_DAY))
+                                val ranges = option.joinToString(", ") {
+                                    timeLabel(context, it.startMinute) + "–" + timeLabel(context, it.endMinute % Schedule.MINUTES_PER_DAY)
+                                }
+                                val marker = option.first().shareGroup?.let { " · " + shareMarker(schedule, it) }.orEmpty()
+                                Text(ranges + marker)
                             }
                         }
-                    }
-                }
-                Text(stringResource(R.string.schedule_copy_to), style = MaterialTheme.typography.titleSmall)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for (d in weekDays(locale).filter { it.value != day }) {
-                        FilterChip(
-                            selected = d.value in copyDays,
-                            onClick = { copyDays = if (d.value in copyDays) copyDays - d.value else copyDays + d.value },
-                            label = { Text(d.getDisplayName(TextStyle.SHORT, locale)) },
-                        )
                     }
                 }
                 if (!editing.isNew) {
@@ -1054,7 +1160,7 @@ private fun WindowDialog(
                         length,
                         mode,
                         minutes ?: 0,
-                        shared.filter { id -> shareCandidates.any { it.id == id } }.toSet().takeIf { mode == WindowMode.TIMER }.orEmpty(),
+                        shared.filter { id -> shareCandidates.any { it.id == id } }.toSet().takeIf { mode == WindowMode.TIMER && selectedDays.size == 1 }.orEmpty(),
                         copyDays.map { DayOfWeek.of(it) }.toSet(),
                     )
                     when {

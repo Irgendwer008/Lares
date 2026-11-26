@@ -31,7 +31,7 @@
     <string name="schedule_mode_free">Free</string>
     <string name="schedule_mode_timer">Timer</string>
     <string name="schedule_minutes_short">%1$d min</string>
-    <string name="schedule_grid_hint">Tap an empty spot to add a window, tap a window to edit it. Long-press to move it, drag its top or bottom edge to resize it.</string>
+    <string name="schedule_grid_hint">Tap an empty spot to add a window, or long-press and drag to draw one; tap a window to edit it. Long-press a window to move it, or its top or bottom edge to resize it.</string>
     <string name="schedule_needs_code">Changing schedules needs the guardian code.</string>
     <string name="schedule_overlap">Windows can’t overlap.</string>
     <string name="schedule_discard_title">Discard changes?</string>
@@ -42,13 +42,12 @@
     <string name="schedule_window_description">%1$s, %2$s to %3$s: %4$s</string>
     <string name="schedule_next_day">Ends the next day.</string>
     <string name="schedule_share_with">Share the timer with</string>
-    <string name="schedule_copy_to">Copy to</string>
     <string name="schedule_copy_skipped">Some copies were skipped because they would overlap.</string>
     <string name="schedule_window_delete">Delete window</string>
     <string name="schedule_window_add">Add window</string>
     <string name="schedule_window_new">New window</string>
     <string name="schedule_window_edit">Edit window</string>
-    <string name="schedule_window_day">Day</string>
+    <string name="schedule_window_days">Days</string>
     <string name="schedule_full_day">Runs 24 hours (start and end are the same).</string>
     <string name="back">Back</string>
     <plurals name="duration_minutes">

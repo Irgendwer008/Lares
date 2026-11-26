@@ -1,0 +1,114 @@
+{
+    "format": "lares-rules",
+    "groups": [
+        {
+            "name": "Social",
+            "limitMinutesPerDay": null,
+            "enabled": true,
+            "schedule": "School days"
+        },
+        {
+            "name": "Video",
+            "limitMinutesPerDay": 45,
+            "enabled": false,
+            "schedule": null
+        }
+    ],
+    "rules": [
+        {
+            "type": "WEBSITE",
+            "target": "reddit.com",
+            "limitMinutesPerDay": null,
+            "enabled": true,
+            "group": "Social",
+            "schedule": null
+        },
+        {
+            "type": "WEBSITE",
+            "target": "youtube.com/shorts",
+            "limitMinutesPerDay": null,
+            "enabled": true,
+            "group": null,
+            "schedule": "School days"
+        },
+        {
+            "type": "WEBSITE",
+            "target": "twitch.tv",
+            "limitMinutesPerDay": 30,
+            "enabled": true,
+            "group": "Video",
+            "schedule": null
+        },
+        {
+            "type": "WEBSITE",
+            "target": "news.example",
+            "limitMinutesPerDay": 20,
+            "enabled": true,
+            "group": null,
+            "schedule": null
+        },
+        {
+            "type": "APP",
+            "target": "com.instagram.android",
+            "limitMinutesPerDay": null,
+            "enabled": true,
+            "group": "Social",
+            "schedule": null
+        }
+    ],
+    "guardianTotp": null,
+    "schedules": [
+        {
+            "name": "School days",
+            "outside": "TIMER",
+            "outsideMinutes": 60,
+            "windows": [
+                {
+                    "id": 1,
+                    "day": 1,
+                    "startMinute": 480,
+                    "lengthMinutes": 360,
+                    "mode": "BLOCK",
+                    "minutes": 0,
+                    "shareGroup": null
+                },
+                {
+                    "id": 2,
+                    "day": 1,
+                    "startMinute": 1020,
+                    "lengthMinutes": 60,
+                    "mode": "TIMER",
+                    "minutes": 20,
+                    "shareGroup": 1
+                },
+                {
+                    "id": 3,
+                    "day": 1,
+                    "startMinute": 1140,
+                    "lengthMinutes": 60,
+                    "mode": "TIMER",
+                    "minutes": 20,
+                    "shareGroup": 1
+                },
+                {
+                    "id": 4,
+                    "day": 5,
+                    "startMinute": 1320,
+                    "lengthMinutes": 540,
+                    "mode": "BLOCK",
+                    "minutes": 0,
+                    "shareGroup": null
+                },
+                {
+                    "id": 5,
+                    "day": 6,
+                    "startMinute": 840,
+                    "lengthMinutes": 240,
+                    "mode": "FREE",
+                    "minutes": 0,
+                    "shareGroup": null
+                }
+            ]
+        }
+    ]
+}

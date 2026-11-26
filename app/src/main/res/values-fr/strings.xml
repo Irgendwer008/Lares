@@ -30,7 +30,7 @@
     <string name="schedule_mode_free">Libre</string>
     <string name="schedule_mode_timer">Minuterie</string>
     <string name="schedule_minutes_short">%1$d min</string>
-    <string name="schedule_grid_hint">Touche un emplacement libre pour ajouter une plage, une plage pour la modifier. Appui long pour la déplacer, fais glisser son bord supérieur ou inférieur pour la redimensionner.</string>
+    <string name="schedule_grid_hint">Touche un emplacement libre pour ajouter une plage, ou appuie longuement et fais glisser pour en dessiner une ; touche une plage pour la modifier. Appui long sur une plage pour la déplacer, sur son bord supérieur ou inférieur pour la redimensionner.</string>
     <string name="schedule_needs_code">Modifier les plannings exige le code du gardien.</string>
     <string name="schedule_overlap">Les plages ne peuvent pas se chevaucher.</string>
     <string name="schedule_discard_title">Abandonner les modifications ?</string>
@@ -41,13 +41,12 @@
     <string name="schedule_window_description">%1$s, de %2$s à %3$s : %4$s</string>
     <string name="schedule_next_day">Se termine le lendemain.</string>
     <string name="schedule_share_with">Partager la minuterie avec</string>
-    <string name="schedule_copy_to">Copier vers</string>
     <string name="schedule_copy_skipped">Certaines copies ont été ignorées, car elles se chevaucheraient.</string>
     <string name="schedule_window_delete">Supprimer la plage</string>
     <string name="schedule_window_add">Ajouter une plage</string>
     <string name="schedule_window_new">Nouvelle plage</string>
     <string name="schedule_window_edit">Modifier la plage</string>
-    <string name="schedule_window_day">Jour</string>
+    <string name="schedule_window_days">Jours</string>
     <string name="schedule_full_day">Dure 24 heures (le début et la fin sont identiques).</string>
     <string name="back">Retour</string>
     <plurals name="duration_minutes">

@@ -11,6 +11,11 @@ e.g. a friend or family member – knows.
 
 > **Status:** version 1.1.0 – available on Google Play.
 
+Disclaimer: This app would not have been possible without the use of AI. While everything
+generated was checked over, there may still be bugs hidden in the code. If you find any, feel free
+to open an issue [here](https://github.com/Irgendwer008/Lares/issues), if there isn't already one
+for your bug!
+
 ## Features
 - **Privacy first** – Lares only asks for the permissions your current settings need. It doesn't
   connect to the internet at all, except to send guardian notifications if you set them up.

@@ -27,7 +27,7 @@
     <string name="schedule_mode_free">Frei</string>
     <string name="schedule_mode_timer">Timer</string>
     <string name="schedule_minutes_short">%1$d Min.</string>
-    <string name="schedule_grid_hint">Tippe auf eine freie Stelle für ein neues Zeitfenster, auf ein Zeitfenster zum Bearbeiten. Lange drücken zum Verschieben, oberen oder unteren Rand ziehen für die Länge.</string>
+    <string name="schedule_grid_hint">Tippe auf eine freie Stelle für ein neues Zeitfenster oder halte gedrückt und ziehe, um eines zu zeichnen; tippe auf ein Zeitfenster zum Bearbeiten. Lange drücken zum Verschieben, am oberen oder unteren Rand für die Länge.</string>
     <string name="schedule_needs_code">Änderungen an Zeitplänen erfordern den Guardian-Code.</string>
     <string name="schedule_overlap">Zeitfenster dürfen sich nicht überschneiden.</string>
     <string name="schedule_discard_title">Änderungen verwerfen?</string>
@@ -38,13 +38,12 @@
     <string name="schedule_window_description">%1$s, %2$s bis %3$s: %4$s</string>
     <string name="schedule_next_day">Endet am nächsten Tag.</string>
     <string name="schedule_share_with">Timer teilen mit</string>
-    <string name="schedule_copy_to">Kopieren nach</string>
     <string name="schedule_copy_skipped">Einige Kopien wurden ausgelassen, weil sie sich überschneiden würden.</string>
     <string name="schedule_window_delete">Zeitfenster löschen</string>
     <string name="schedule_window_add">Zeitfenster hinzufügen</string>
     <string name="schedule_window_new">Neues Zeitfenster</string>
     <string name="schedule_window_edit">Zeitfenster bearbeiten</string>
-    <string name="schedule_window_day">Tag</string>
+    <string name="schedule_window_days">Tage</string>
     <string name="schedule_full_day">Dauert 24 Stunden (Beginn und Ende sind gleich).</string>
     <string name="back">Zurück</string>
     <plurals name="duration_minutes">

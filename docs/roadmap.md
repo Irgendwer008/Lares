@@ -77,7 +77,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
   below).
 - Schedules (see below): model, evaluation, window budgets, Room 1 → 2 (auto migration, schema
   export), export / import, change policy, schedule list and week-view editor (drag to move /
-  resize, "now" line, shared timers, copy to days, cancel with confirmation), mode selection with
+  resize, "now" line, shared timers, several days at once, cancel with confirmation), mode selection with
   the schedule dropdown, state on the main and block screens. Still to do: on-device testing.
 - First setup: welcome screen with the color choice, then a short skippable tour (what Lares blocks,
   always blocked / daily limit / schedule, schedules, the guardian code) before the guardian takes
@@ -85,6 +85,11 @@ Where Lares stands and what comes next. Finished work is described in more detai
 - Browser extension ([Lares Browser Edition](https://github.com/Irgendwer008/Lares-BrowserEdition),
   separate project): mentioned on the last setup page ("All set"), in Settings → Info, in the
   README and the store descriptions.
+- Taken over from the browser extension: window dialog with several days at once (instead of "copy
+  to"), timers that already share a budget offered as one option, drawing a window by long-press
+  + drag (within one day), live snapping while moving / resizing, tour as numbered circles in the
+  progress row. Interop test: a rules file in the extension's format must import (and re-export)
+  unchanged.
 
 **Carried over from 1.1**
 - **Device tests** on other manufacturers (Samsung, Pixel, Xiaomi): add their settings packages
@@ -107,7 +112,7 @@ Where Lares stands and what comes next. Finished work is described in more detai
   existing fields (`limitMinutesPerDay`), so older versions keep reading them.
 - **Schedules are stored separately** (own list, named) and can be picked by any number of rules
   and groups.
-- **Per weekday** a list of time windows (with "copy to other days"). A window may cross midnight
+- **Per weekday** a list of time windows (a window can be put on several days at once). A window may cross midnight
   and then belongs to its start day (e.g. Mon 22:00–07:00).
 - **Window modes:** *full block*, *timer* (minutes within the window) or *free*.
 - **Outside the windows:** set per schedule – free, full block, or a timer for all time outside the
@@ -129,11 +134,11 @@ Where Lares stands and what comes next. Finished work is described in more detai
   next day's column.
   - A thin "now" line marks the current time in today's column (moves along while the editor is
     open), and the view opens scrolled to it.
-  - Tap an empty spot → new window there; tap a block → edit (start, end, mode, minutes, shared
-    with which windows of the same day – shared timers get the same marker), delete, copy to other
-    days.
-  - Move by long-press and drag, resize by dragging the block's top / bottom edge (snaps to 15
-    min).
+  - Tap an empty spot → new window there, or long-press and drag to draw one (within the day,
+    stops at neighbours); tap a block → edit (days – several at once, start, end, mode, minutes,
+    shared with which windows of the same day – shared timers get the same marker), delete.
+  - Move by long-press and drag, resize by long-press on the block's top / bottom edge (snaps to
+    15 minutes and day columns while dragging).
   - Edits are collected and saved together (needs the code); "Cancel" discards all changes at any
     time (after a confirmation).
 - **Display:** main screen and block screen show the current window ("blocked until 17:00",
