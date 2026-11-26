@@ -14,6 +14,7 @@ If you find any, feel free to open an issue [here](https://github.com/Irgendwer0
 |---|---|
 | [Requirements](requirements.md) | Agreed product requirements (the "what") |
 | [Roadmap](roadmap.md) | Versions: released, in progress, planned, ideas |
+| [Changelog](changelog.md) | Complete changes per version (the store texts are short summaries) |
 | [Architecture](architecture.md) | Stack, packages, data model, what is implemented (the "how") |
 | [Blocking](blocking.md) | App blocking modes, website blocking, time limits |
 | [Unlock & Security](unlock-and-security.md) | Password / TOTP, recovery, unlocked mode, tighten / loosen policy, tamper protection |

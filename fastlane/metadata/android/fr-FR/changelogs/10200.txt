@@ -1,6 +1,6 @@
-• Plannings : plages par jour (bloqué, minuterie ou libre) en vue calendrier – pour règles et groupes, au lieu d’une limite quotidienne
-• Configuration initiale avec visite et progression
-• Lien vers l’extension de navigateur (Paramètres → Infos)
-• Toute modification des règles exige le code du gardien par défaut (sinon : « Seul l’assouplissement exige le code »)
-• Remise à zéro quotidienne toujours à l’heure (avant parfois en retard)
-• Meilleur affichage sur tablette et en paysage
+• Plannings : plages horaires par jour (bloqué, minuterie ou libre) en vue calendrier – pour les règles et les groupes
+• Toute modification des règles exige désormais le code du gardien par défaut (modifiable dans les paramètres)
+• Nouvelle configuration initiale avec une courte visite
+• Corrigé : la remise à zéro quotidienne pouvait avoir des heures de retard
+
+Toutes les modifications (en anglais) : https://irgendwer008.github.io/Lares/changelog.html

@@ -34,6 +34,9 @@ for your bug!
 - **Two blocking modes** – Accessibility service (recommended) or usage access + overlay.
 - English, German and French; Lares colors or your wallpaper colors (Material You).
 
+## Changelog
+What changed in each version: [docs/changelog.md](docs/changelog.md).
+
 ## Browser extension
 For computers there is also **[Lares Browser Edition](https://github.com/Irgendwer008/Lares-BrowserEdition)**,
 a browser extension that blocks websites in desktop browsers. It is a separate project with its own

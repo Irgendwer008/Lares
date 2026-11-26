@@ -1,6 +1,6 @@
-• Schedules: windows per weekday (blocked, timer or free) in a calendar view – for rules and groups instead of a daily limit
-• New first setup with a short tour and progress circles
-• Link to the new browser extension (Settings → Info)
-• Every rule change now needs the guardian code by default (setting "Only loosening needs the code" for the old behavior)
-• Daily reset always on time (it could be hours late)
-• Better layouts for tablets and landscape
+• Schedules: time windows per weekday (blocked, timer or free) in a calendar view – for rules and groups
+• Every rule change now needs the guardian code by default (can be switched back in the settings)
+• New first setup with a short tour
+• Fixed: the daily reset could come hours late
+
+All changes: https://irgendwer008.github.io/Lares/changelog.html

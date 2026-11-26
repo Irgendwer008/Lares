@@ -1,6 +1,6 @@
-• Zeitpläne: Zeitfenster pro Wochentag (gesperrt, Timer oder frei) in Kalenderansicht – für Regeln und Gruppen statt eines Tageslimits
-• Neue Ersteinrichtung mit kurzer Tour und Fortschrittskreisen
-• Hinweis auf die neue Browser-Erweiterung (Einstellungen → Info)
-• Jede Regeländerung erfordert jetzt standardmäßig den Guardian-Code (alt: Einstellung „Nur Lockern erfordert den Code“)
-• Tageswechsel immer pünktlich (kam teils Stunden zu spät)
-• Bessere Ansichten für Tablets und Querformat
+• Zeitpläne: Zeitfenster pro Wochentag (gesperrt, Timer oder frei) in Kalenderansicht – für Regeln und Gruppen
+• Jede Regeländerung erfordert jetzt standardmäßig den Guardian-Code (in den Einstellungen umstellbar)
+• Neue Ersteinrichtung mit kurzer Tour
+• Behoben: Der Tageswechsel kam teils Stunden zu spät
+
+Alle Änderungen (Englisch): https://irgendwer008.github.io/Lares/changelog.html

@@ -54,7 +54,12 @@ only if a store forces divergence – currently none is planned.
   1.2.3 → 10203), so it always grows; minor and patch stay below 100. Both are literals (F-Droid's
   update check reads them); the build fails if they don't match.
 - Each release gets a git tag `v<versionName>` (F-Droid's update check can follow tags) and a
-  changelog file `fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt`.
+  changelog file `fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt` (store "What's
+  new", max. 500 characters): only the most important changes, then "All changes:
+  https://irgendwer008.github.io/Lares/changelog.html" (GitHub Pages renders
+  [Changelog](changelog.md); DE / FR say it's in English). The complete changes go into the
+  changelog; when tagging, paste that version's section into the GitHub release (Releases → Draft
+  a new release → choose the tag).
 
 ## Signing
 - **F-Droid** builds from source and signs with its own key, or – with reproducible builds –
